@@ -1,0 +1,79 @@
+name: APK Queue Watchdog
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  refresh-stale-queue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Refresh APK build if queued too long
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          WORKFLOW="build-apk.yml"
+          MAX_QUEUE_SECONDS=1200
+
+          runs="$(gh api "/repos/$REPO/actions/workflows/$WORKFLOW/runs?branch=main&per_page=20")"
+
+          run_id="$(jq -r '
+            .workflow_runs
+            | map(select(.status == "queued"))
+            | sort_by(.created_at)
+            | last
+            | .id // empty
+          ' <<<"$runs")"
+
+          created_at="$(jq -r '
+            .workflow_runs
+            | map(select(.status == "queued"))
+            | sort_by(.created_at)
+            | last
+            | .created_at // empty
+          ' <<<"$runs")"
+
+          if [[ -z "$run_id" || -z "$created_at" ]]; then
+            echo "Brak buildów APK czekających w kolejce."
+            exit 0
+          fi
+
+          created_epoch="$(date -u -d "$created_at" +%s)"
+          now_epoch="$(date -u +%s)"
+          age="$((now_epoch - created_epoch))"
+
+          echo "Run $run_id czeka ${age}s."
+
+          if (( age < MAX_QUEUE_SECONDS )); then
+            echo "Jeszcze nie przekroczono 20 minut — bez zmian."
+            exit 0
+          fi
+
+          echo "Run $run_id czeka za długo. Anuluję go i uruchamiam świeży build."
+
+          gh api             --method POST             "/repos/$REPO/actions/runs/$run_id/cancel"             >/dev/null || true
+
+          for i in {1..12}; do
+            status="$(gh api "/repos/$REPO/actions/runs/$run_id" --jq '.status' 2>/dev/null || true)"
+            conclusion="$(gh api "/repos/$REPO/actions/runs/$run_id" --jq '.conclusion // ""' 2>/dev/null || true)"
+            echo "Po anulowaniu: status=$status conclusion=$conclusion"
+            if [[ "$status" == "completed" ]]; then
+              break
+            fi
+            sleep 5
+          done
+
+          gh api             --method POST             "/repos/$REPO/actions/workflows/$WORKFLOW/dispatches"             -f ref=main             >/dev/null
+
+          echo "Uruchomiono nowy build APK."
