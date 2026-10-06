@@ -110,8 +110,7 @@ public class MainActivity extends Activity {
 
         Button stop = makeButton("Zatrzymaj pracę w tle");
         stop.setOnClickListener(v -> {
-            DrogowskazyService.stopForUpdate(this);
-            status.setText("Zatrzymywanie…");
+            DrogowskazyService.stop(this);\n            status.setText("Zatrzymywanie…");
             handler.postDelayed(this::refreshStatus, 1200);
         });
         root.addView(stop, buttonParams());
@@ -188,7 +187,7 @@ public class MainActivity extends Activity {
         status.setText("Bezpieczne zatrzymywanie serwera i kolejki…");
         startButton.setEnabled(false);
         openButton.setEnabled(false);
-        DrogowskazyService.stop(this);
+        DrogowskazyService.stopForUpdate(this);
         executor.execute(() -> {
             try {
                 if (!waitForRuntimeStopped(45_000L)) {
