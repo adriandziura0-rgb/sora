@@ -2,10 +2,10 @@ package pl.drogowskazy.sora;
 
 import android.Manifest;
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,6 +15,7 @@ import android.provider.Settings;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowInsets;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
@@ -22,7 +23,6 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
@@ -37,6 +37,9 @@ public class MainActivity extends Activity {
     private TextView status;
     private Button openButton;
     private Button startButton;
+    private Button selectButton;
+    private Button restoreButton;
+    private Button stopButton;
     private FrameLayout container;
     private ScrollView settingsView;
     private NativePanel panel;
@@ -46,6 +49,16 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         container = new FrameLayout(this);
+        container.setOnApplyWindowInsetsListener((view, insets) -> {
+            if (Build.VERSION.SDK_INT >= 30) {
+                Insets bars = insets.getInsets(WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+                view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            } else {
+                view.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
+                        insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            }
+            return insets;
+        });
         settingsView = buildUi();
         container.addView(settingsView);
         setContentView(container);
@@ -62,8 +75,7 @@ public class MainActivity extends Activity {
             return;
         }
         status.setText("Przygotowywanie programu…");
-        startButton.setEnabled(false);
-        openButton.setEnabled(false);
+        setBusy(true);
         if (ProjectStore.isInstalled(this)) DrogowskazyService.stopForUpdate(this);
         executor.execute(() -> {
             try {
@@ -73,8 +85,7 @@ public class MainActivity extends Activity {
                 ProjectStore.installBundled(this);
                 handler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
-                    startButton.setEnabled(true);
-                    openButton.setEnabled(true);
+                    setBusy(false);
                     DrogowskazyService.start(this);
                     waitForServer(true);
                 });
@@ -82,8 +93,7 @@ public class MainActivity extends Activity {
                 handler.post(() -> {
                     if (isFinishing() || isDestroyed()) return;
                     status.setText("Nie udało się przygotować programu: " + error.getMessage());
-                    startButton.setEnabled(true);
-                    openButton.setEnabled(true);
+                    setBusy(false);
                 });
             }
         });
@@ -118,10 +128,12 @@ public class MainActivity extends Activity {
         root.addView(status, matchWrap());
 
         Button select = makeButton("Wybierz / zaktualizuj ZIP Drogowskazów");
+        selectButton = select;
         select.setOnClickListener(v -> chooseZip());
         root.addView(select, buttonParams());
 
         Button restoreDb = makeButton("Przywróć kopię bazy SQLite");
+        restoreButton = restoreDb;
         restoreDb.setOnClickListener(v -> chooseDatabaseBackup());
         root.addView(restoreDb, buttonParams());
 
@@ -149,6 +161,7 @@ public class MainActivity extends Activity {
         root.addView(openButton, buttonParams());
 
         Button stop = makeButton("Zatrzymaj pracę w tle");
+        stopButton = stop;
         stop.setOnClickListener(v -> {
             DrogowskazyService.stop(this);
             status.setText("Zatrzymywanie…");
@@ -228,8 +241,7 @@ public class MainActivity extends Activity {
         } catch (Exception ignored) {
         }
         status.setText("Bezpieczne zatrzymywanie serwera i kolejki…");
-        startButton.setEnabled(false);
-        openButton.setEnabled(false);
+        setBusy(true);
         DrogowskazyService.stopForUpdate(this);
         executor.execute(() -> {
             try {
@@ -240,16 +252,14 @@ public class MainActivity extends Activity {
                 String message = ProjectStore.importZip(this, uri);
                 handler.post(() -> {
                     status.setText(message + "\nUruchamianie serwera…");
-                    startButton.setEnabled(true);
-                    openButton.setEnabled(true);
+                    setBusy(false);
                     DrogowskazyService.start(this);
                     waitForServer(true);
                 });
             } catch (Exception error) {
                 handler.post(() -> {
                     status.setText("Błąd importu: " + error.getMessage());
-                    startButton.setEnabled(true);
-                    openButton.setEnabled(true);
+                    setBusy(false);
                 });
             }
         });
@@ -258,8 +268,7 @@ public class MainActivity extends Activity {
     private void restoreDatabaseBackup(Uri uri) {
         panelNeedsReload = true;
         status.setText("Bezpieczne zatrzymywanie przed przywróceniem bazy…");
-        startButton.setEnabled(false);
-        openButton.setEnabled(false);
+        setBusy(true);
         DrogowskazyService.stopForUpdate(this);
         executor.execute(() -> {
             try {
@@ -270,16 +279,14 @@ public class MainActivity extends Activity {
                 String message = ProjectStore.restoreDatabase(this, uri);
                 handler.post(() -> {
                     status.setText(message + "\nUruchamianie serwera…");
-                    startButton.setEnabled(true);
-                    openButton.setEnabled(true);
+                    setBusy(false);
                     DrogowskazyService.start(this);
                     waitForServer(true);
                 });
             } catch (Exception error) {
                 handler.post(() -> {
                     status.setText("Błąd przywracania bazy: " + error.getMessage());
-                    startButton.setEnabled(true);
-                    openButton.setEnabled(true);
+                    setBusy(false);
                 });
             }
         });
@@ -350,12 +357,19 @@ public class MainActivity extends Activity {
     }
 
     private void refreshStatus() {
-        File root = ProjectStore.projectDir(this);
         if (ProjectStore.isInstalled(this)) {
             status.setText("Program jest zainstalowany. Ustawienia pracy i kopii bazy.");
         } else {
             status.setText("Przygotowywanie programu przy pierwszym uruchomieniu…");
         }
+    }
+
+    private void setBusy(boolean busy) {
+        startButton.setEnabled(!busy);
+        openButton.setEnabled(!busy);
+        selectButton.setEnabled(!busy);
+        restoreButton.setEnabled(!busy);
+        stopButton.setEnabled(!busy);
     }
 
     private void openBatterySettings() {
