@@ -92,7 +92,7 @@ def start(project_dir: str, port: int = 5433) -> str:
 
 
 def stop() -> str:
-    global _SERVER, _THREAD, _PROJECT_DIR
+    global _SERVER, _THREAD, _PROJECT_DIR, _MODULE, _LAST_ERROR
     with _LOCK:
         if _SERVER is not None:
             try:
@@ -100,8 +100,22 @@ def stop() -> str:
             finally:
                 _SERVER = None
         if _THREAD is not None:
-            _THREAD.join(timeout=3.0)
+            _THREAD.join(timeout=5.0)
             _THREAD = None
+
+        # Nowsze runtime'y udostępniają hook zatrzymujący worker kolejki SQLite.
+        # Najpierw przestajemy przyjmować HTTP, potem czekamy na aktywny zapis.
+        module = _MODULE
+        if module is not None and hasattr(module, "shutdown_background_worker"):
+            try:
+                stopped = module.shutdown_background_worker(45.0)
+                if stopped is False:
+                    raise RuntimeError("Worker kolejki nie zatrzymał się w wymaganym czasie")
+            except Exception:
+                _LAST_ERROR = traceback.format_exc()
+                raise
+
+        _MODULE = None
         _PROJECT_DIR = None
     return "stopped"
 

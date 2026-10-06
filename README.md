@@ -30,3 +30,8 @@ Gotowy plik znajduje się w artefakcie **Drogowskazy-Sora-APK** jako `Drogowskaz
 - Program nasłuchuje wyłącznie na `127.0.0.1`, więc serwer nie jest wystawiany do sieci lokalnej ani Internetu.
 - ZIP jest rozpakowywany z ochroną przed `Zip Slip` oraz limitem liczby i rozmiaru plików.
 - Baza użytkownika pozostaje w prywatnym katalogu aplikacji.
+
+
+## Bezpieczna aktualizacja runtime
+
+Od wersji APK **1.1.0** aktualizacja ZIP-a najpierw zatrzymuje lokalny serwer i – jeśli runtime udostępnia odpowiedni hook – czeka na zakończenie aktywnego workera kolejki SQLite. Dopiero potem podmieniane są pliki projektu. Rekordy pozostające w stanie `processing` są wznawiane po ponownym uruchomieniu runtime.

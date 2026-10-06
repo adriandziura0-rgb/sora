@@ -30,6 +30,7 @@ public class DrogowskazyService extends Service {
     static final int PORT = 5433;
     private static final String CHANNEL_ID = "drogowskazy_background";
     private static final int NOTIFICATION_ID = 4569;
+    private static final AtomicBoolean RUNTIME_STOPPED = new AtomicBoolean(true);
     private final AtomicBoolean starting = new AtomicBoolean(false);
     private ScheduledExecutorService watchdog;
     private PowerManager.WakeLock wakeLock;
@@ -46,6 +47,10 @@ public class DrogowskazyService extends Service {
         else context.startService(intent);
     }
 
+    public static boolean isRuntimeStopped() {
+        return RUNTIME_STOPPED.get();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -57,11 +62,13 @@ public class DrogowskazyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_STOP.equals(intent.getAction())) {
-            startForegroundCompat(buildNotification("Zatrzymywanie…"));
+            startForegroundCompat(buildNotification("Bezpieczne zatrzymywanie…"));
             stopRuntime();
+            RUNTIME_STOPPED.set(true);
             stopSelf();
             return START_NOT_STICKY;
         }
+        RUNTIME_STOPPED.set(false);
         startForegroundCompat(buildNotification("Uruchamianie lokalnego serwera…"));
         ensureRuntime();
         return START_STICKY;
@@ -131,6 +138,7 @@ public class DrogowskazyService extends Service {
 
     private void ensureRuntime() {
         if (!ProjectStore.isInstalled(this)) {
+            RUNTIME_STOPPED.set(true);
             updateNotification("Wybierz ZIP programu w aplikacji");
             return;
         }
@@ -182,6 +190,8 @@ public class DrogowskazyService extends Service {
         try {
             if (Python.isStarted()) Python.getInstance().getModule("android_bootstrap").callAttr("stop");
         } catch (Throwable ignored) {
+        } finally {
+            RUNTIME_STOPPED.set(true);
         }
     }
 

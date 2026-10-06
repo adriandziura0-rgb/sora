@@ -164,12 +164,16 @@ public class MainActivity extends Activity {
             getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (Exception ignored) {
         }
-        status.setText("Importowanie ZIP-a… nie zamykaj tej aplikacji.");
+        status.setText("Bezpieczne zatrzymywanie serwera i kolejki…");
         startButton.setEnabled(false);
         openButton.setEnabled(false);
         DrogowskazyService.stop(this);
         executor.execute(() -> {
             try {
+                if (!waitForRuntimeStopped(45_000L)) {
+                    throw new IllegalStateException("Nie udało się bezpiecznie zatrzymać pracy w tle. Spróbuj ponownie.");
+                }
+                handler.post(() -> status.setText("Importowanie ZIP-a… nie zamykaj tej aplikacji."));
                 String message = ProjectStore.importZip(this, uri);
                 handler.post(() -> {
                     status.setText(message + "\nUruchamianie serwera…");
@@ -207,6 +211,20 @@ public class MainActivity extends Activity {
                 }
             });
         });
+    }
+
+    private boolean waitForRuntimeStopped(long timeoutMs) {
+        long deadline = System.currentTimeMillis() + timeoutMs;
+        while (System.currentTimeMillis() < deadline) {
+            if (DrogowskazyService.isRuntimeStopped() && !serverHealthy()) return true;
+            try {
+                Thread.sleep(250);
+            } catch (InterruptedException error) {
+                Thread.currentThread().interrupt();
+                return false;
+            }
+        }
+        return DrogowskazyService.isRuntimeStopped() && !serverHealthy();
     }
 
     private boolean serverHealthy() {
