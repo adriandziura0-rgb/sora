@@ -2,7 +2,7 @@ name: APK Queue Watchdog
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   refresh-stale-queue:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 5
 
     steps:
@@ -24,7 +24,7 @@ jobs:
           set -euo pipefail
 
           WORKFLOW="build-apk.yml"
-          MAX_QUEUE_SECONDS=1200
+          MAX_QUEUE_SECONDS=480
 
           runs="$(gh api "/repos/$REPO/actions/workflows/$WORKFLOW/runs?branch=main&per_page=20")"
 
@@ -56,24 +56,20 @@ jobs:
           echo "Run $run_id czeka ${age}s."
 
           if (( age < MAX_QUEUE_SECONDS )); then
-            echo "Jeszcze nie przekroczono 20 minut — bez zmian."
+            echo "Kolejka ma mniej niż 8 minut — bez zmian."
             exit 0
           fi
 
-          echo "Run $run_id czeka za długo. Anuluję go i uruchamiam świeży build."
+          echo "Run $run_id czeka za długo. Anuluję i uruchamiam świeży build."
 
-          gh api             --method POST             "/repos/$REPO/actions/runs/$run_id/cancel"             >/dev/null || true
+          gh api --method POST "/repos/$REPO/actions/runs/$run_id/cancel" >/dev/null || true
 
-          for i in {1..12}; do
+          for i in {1..18}; do
             status="$(gh api "/repos/$REPO/actions/runs/$run_id" --jq '.status' 2>/dev/null || true)"
-            conclusion="$(gh api "/repos/$REPO/actions/runs/$run_id" --jq '.conclusion // ""' 2>/dev/null || true)"
-            echo "Po anulowaniu: status=$status conclusion=$conclusion"
-            if [[ "$status" == "completed" ]]; then
-              break
-            fi
+            echo "Po anulowaniu: status=$status"
+            [[ "$status" == "completed" ]] && break
             sleep 5
           done
 
-          gh api             --method POST             "/repos/$REPO/actions/workflows/$WORKFLOW/dispatches"             -f ref=main             >/dev/null
-
+          gh api --method POST "/repos/$REPO/actions/workflows/$WORKFLOW/dispatches" -f ref=main >/dev/null
           echo "Uruchomiono nowy build APK."
