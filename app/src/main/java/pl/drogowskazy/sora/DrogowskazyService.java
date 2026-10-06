@@ -27,6 +27,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DrogowskazyService extends Service {
     static final String ACTION_STOP = "pl.drogowskazy.sora.STOP";
+    static final String ACTION_STOP_FOR_UPDATE = "pl.drogowskazy.sora.STOP_FOR_UPDATE";
+    private static final String PREFS = "drogowskazy_service";
+    private static final String KEY_AUTO_RUN = "auto_run";
     static final int PORT = 5433;
     private static final String CHANNEL_ID = "drogowskazy_background";
     private static final int NOTIFICATION_ID = 4569;
@@ -35,16 +38,30 @@ public class DrogowskazyService extends Service {
     private ScheduledExecutorService watchdog;
     private PowerManager.WakeLock wakeLock;
 
-    public static void start(Context context) {
-        Intent intent = new Intent(context, DrogowskazyService.class);
+    private static void startInternal(Context context, Intent intent) {
         if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent);
         else context.startService(intent);
     }
 
+    public static void start(Context context) {
+        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(KEY_AUTO_RUN, true).apply();
+        startInternal(context, new Intent(context, DrogowskazyService.class));
+    }
+
+    public static void startIfEnabled(Context context) {
+        boolean enabled = context.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_AUTO_RUN, true);
+        if (enabled && ProjectStore.isInstalled(context)) {
+            startInternal(context, new Intent(context, DrogowskazyService.class));
+        }
+    }
+
     public static void stop(Context context) {
-        Intent intent = new Intent(context, DrogowskazyService.class).setAction(ACTION_STOP);
-        if (Build.VERSION.SDK_INT >= 26) context.startForegroundService(intent);
-        else context.startService(intent);
+        context.getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(KEY_AUTO_RUN, false).apply();
+        startInternal(context, new Intent(context, DrogowskazyService.class).setAction(ACTION_STOP));
+    }
+
+    public static void stopForUpdate(Context context) {
+        startInternal(context, new Intent(context, DrogowskazyService.class).setAction(ACTION_STOP_FOR_UPDATE));
     }
 
     public static boolean isRuntimeStopped() {
@@ -61,7 +78,7 @@ public class DrogowskazyService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
+        if (intent != null && (ACTION_STOP.equals(intent.getAction()) || ACTION_STOP_FOR_UPDATE.equals(intent.getAction()))) {
             startForegroundCompat(buildNotification("Bezpieczne zatrzymywanie…"));
             stopRuntime();
             RUNTIME_STOPPED.set(true);

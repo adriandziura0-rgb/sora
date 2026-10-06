@@ -35,3 +35,10 @@ Gotowy plik znajduje się w artefakcie **Drogowskazy-Sora-APK** jako `Drogowskaz
 ## Bezpieczna aktualizacja runtime
 
 Od wersji APK **1.1.0** aktualizacja ZIP-a najpierw zatrzymuje lokalny serwer i – jeśli runtime udostępnia odpowiedni hook – czeka na zakończenie aktywnego workera kolejki SQLite. Dopiero potem podmieniane są pliki projektu. Rekordy pozostające w stanie `processing` są wznawiane po ponownym uruchomieniu runtime.
+
+
+## Etap 3 — autostart i trwałe aktualizacje
+
+APK 1.2.0 uruchamia usługę automatycznie po dotknięciu ikony i otwiera panel bez ręcznego naciskania „Uruchom”. Usługa może zostać wznowiona po BOOT_COMPLETED i po aktualizacji pakietu. Dodano także przywracanie kopii `drogowskazy.sqlite3`.
+
+GitHub Actions przechowuje stały klucz podpisu debug w cache repozytorium, dzięki czemu kolejne buildy z tej linii używają tego samego podpisu. Pierwsze przejście ze starszych, losowo podpisanych APK wymaga jednorazowej migracji bazy.

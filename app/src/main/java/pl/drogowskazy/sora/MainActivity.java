@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final int REQUEST_ZIP = 1001;
-    private static final int REQUEST_NOTIFICATIONS = 1002;
+    private static final int REQUEST_NOTIFICATIONS = 1002;\n    private static final int REQUEST_DB_RESTORE = 1003;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private TextView status;
@@ -42,8 +42,9 @@ public class MainActivity extends Activity {
         requestNotificationPermission();
         refreshStatus();
         if (ProjectStore.isInstalled(this)) {
+            status.setText("Uruchamianie Drogowskazów…");
             DrogowskazyService.start(this);
-            waitForServer(false);
+            waitForServer(true);
         }
     }
 
@@ -75,11 +76,15 @@ public class MainActivity extends Activity {
         status.setPadding(dp(14), dp(14), dp(14), dp(14));
         root.addView(status, matchWrap());
 
-        Button select = makeButton("1. Wybierz ZIP Drogowskazów");
+        Button select = makeButton("Wybierz / zaktualizuj ZIP Drogowskazów");
         select.setOnClickListener(v -> chooseZip());
         root.addView(select, buttonParams());
 
-        startButton = makeButton("2. Uruchom w tle");
+        Button restoreDb = makeButton("Przywróć kopię bazy SQLite");
+        restoreDb.setOnClickListener(v -> chooseDatabaseBackup());
+        root.addView(restoreDb, buttonParams());
+
+        startButton = makeButton("Uruchom ponownie usługę");
         startButton.setOnClickListener(v -> {
             if (!ProjectStore.isInstalled(this)) {
                 toast("Najpierw wybierz ZIP programu");
@@ -91,7 +96,7 @@ public class MainActivity extends Activity {
         });
         root.addView(startButton, buttonParams());
 
-        openButton = makeButton("3. Otwórz Drogowskazy");
+        openButton = makeButton("Otwórz panel Drogowskazów");
         openButton.setOnClickListener(v -> {
             if (!ProjectStore.isInstalled(this)) {
                 toast("Najpierw wybierz ZIP programu");
@@ -104,7 +109,7 @@ public class MainActivity extends Activity {
 
         Button stop = makeButton("Zatrzymaj pracę w tle");
         stop.setOnClickListener(v -> {
-            DrogowskazyService.stop(this);
+            DrogowskazyService.stopForUpdate(this);
             status.setText("Zatrzymywanie…");
             handler.postDelayed(this::refreshStatus, 1200);
         });
@@ -155,11 +160,26 @@ public class MainActivity extends Activity {
         startActivityForResult(intent, REQUEST_ZIP);
     }
 
+    private void chooseDatabaseBackup() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
+                "application/vnd.sqlite3", "application/x-sqlite3", "application/octet-stream"
+        });
+        startActivityForResult(intent, REQUEST_DB_RESTORE);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode != REQUEST_ZIP || resultCode != RESULT_OK || data == null || data.getData() == null) return;
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
+        if (requestCode == REQUEST_DB_RESTORE) {
+            restoreDatabaseBackup(uri);
+            return;
+        }
+        if (requestCode != REQUEST_ZIP) return;
         try {
             getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (Exception ignored) {
@@ -180,11 +200,40 @@ public class MainActivity extends Activity {
                     startButton.setEnabled(true);
                     openButton.setEnabled(true);
                     DrogowskazyService.start(this);
-                    waitForServer(false);
+                    waitForServer(true);
                 });
             } catch (Exception error) {
                 handler.post(() -> {
                     status.setText("Błąd importu: " + error.getMessage());
+                    startButton.setEnabled(true);
+                    openButton.setEnabled(true);
+                });
+            }
+        });
+    }
+
+    private void restoreDatabaseBackup(Uri uri) {
+        status.setText("Bezpieczne zatrzymywanie przed przywróceniem bazy…");
+        startButton.setEnabled(false);
+        openButton.setEnabled(false);
+        DrogowskazyService.stopForUpdate(this);
+        executor.execute(() -> {
+            try {
+                if (!waitForRuntimeStopped(45_000L)) {
+                    throw new IllegalStateException("Nie udało się bezpiecznie zatrzymać pracy w tle.");
+                }
+                handler.post(() -> status.setText("Sprawdzanie i przywracanie bazy SQLite…"));
+                String message = ProjectStore.restoreDatabase(this, uri);
+                handler.post(() -> {
+                    status.setText(message + "\nUruchamianie serwera…");
+                    startButton.setEnabled(true);
+                    openButton.setEnabled(true);
+                    DrogowskazyService.start(this);
+                    waitForServer(true);
+                });
+            } catch (Exception error) {
+                handler.post(() -> {
+                    status.setText("Błąd przywracania bazy: " + error.getMessage());
                     startButton.setEnabled(true);
                     openButton.setEnabled(true);
                 });

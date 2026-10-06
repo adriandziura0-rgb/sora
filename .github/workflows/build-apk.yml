@@ -45,6 +45,22 @@ jobs:
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"             "platform-tools"             "platforms;android-36"             "build-tools;35.0.0"
 
+      - name: Restore stable APK signing key
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: sora-android-signing-v1
+
+      - name: Ensure stable APK signing key
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          if [[ ! -f "$HOME/.android/debug.keystore" ]]; then
+            keytool -genkeypair -v               -keystore "$HOME/.android/debug.keystore"               -storepass android               -alias androiddebugkey               -keypass android               -dname "CN=Drogowskazy Sora,O=Drogowskazy,C=PL"               -keyalg RSA -keysize 2048 -validity 10000
+          fi
+          keytool -list -v -keystore "$HOME/.android/debug.keystore" -storepass android -alias androiddebugkey | grep -E "SHA256:|Valid from:"
+
       - name: Gradle 8.13
         uses: gradle/actions/setup-gradle@v4
         with:

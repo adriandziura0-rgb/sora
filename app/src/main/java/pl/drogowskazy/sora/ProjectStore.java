@@ -19,6 +19,7 @@ import java.util.zip.ZipInputStream;
 final class ProjectStore {
     private static final long MAX_UNPACKED_BYTES = 700L * 1024L * 1024L;
     private static final int MAX_ENTRIES = 20_000;
+    private static final long MAX_DATABASE_BYTES = 512L * 1024L * 1024L;
 
     private ProjectStore() {}
 
@@ -108,6 +109,74 @@ final class ProjectStore {
         }
 
         return "Projekt zaimportowany: " + current.getAbsolutePath();
+    }
+
+    static String restoreDatabase(Context context, Uri uri) throws Exception {
+        File root = projectDir(context);
+        if (!isInstalled(context)) throw new IOException("Najpierw zainstaluj ZIP Drogowskazów.");
+
+        File incoming = new File(context.getCacheDir(), "drogowskazy-restore.sqlite3");
+        File target = new File(root, "data/drogowskazy.sqlite3");
+        File backup = new File(root, "data/drogowskazy.sqlite3.before_restore");
+        incoming.delete();
+
+        try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new IOException("Nie można otworzyć wybranej kopii bazy.");
+            copyStreamWithLimit(in, incoming, MAX_DATABASE_BYTES);
+        }
+        validateDatabase(incoming);
+
+        if (target.isFile()) copyFile(target, backup);
+        new File(target.getAbsolutePath() + "-wal").delete();
+        new File(target.getAbsolutePath() + "-shm").delete();
+        try {
+            copyFile(incoming, target);
+            validateDatabase(target);
+            backup.delete();
+        } catch (Exception error) {
+            if (backup.isFile()) copyFile(backup, target);
+            throw error;
+        } finally {
+            incoming.delete();
+        }
+        return "Baza SQLite przywrócona bez ponownego liczenia zakończonych rekordów.";
+    }
+
+    private static void validateDatabase(File file) throws IOException {
+        if (!file.isFile() || file.length() < 100) throw new IOException("Wybrany plik nie jest prawidłową bazą SQLite.");
+        SQLiteDatabase db = null;
+        try {
+            db = SQLiteDatabase.openDatabase(file.getAbsolutePath(), null, SQLiteDatabase.OPEN_READONLY);
+            try (Cursor integrity = db.rawQuery("PRAGMA integrity_check", null)) {
+                if (!integrity.moveToFirst() || !"ok".equalsIgnoreCase(integrity.getString(0))) {
+                    throw new IOException("Kontrola integralności SQLite nie zwróciła OK.");
+                }
+            }
+            try (Cursor schema = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents' LIMIT 1", null)) {
+                if (!schema.moveToFirst()) throw new IOException("To nie jest baza Drogowskazów: brak tabeli documents.");
+            }
+        } catch (IOException error) {
+            throw error;
+        } catch (Exception error) {
+            throw new IOException("Nie można otworzyć kopii SQLite: " + error.getMessage(), error);
+        } finally {
+            if (db != null) db.close();
+        }
+    }
+
+    private static void copyStreamWithLimit(InputStream in, File dst, long maxBytes) throws IOException {
+        File parent = dst.getParentFile();
+        if (parent != null && !parent.exists() && !parent.mkdirs()) throw new IOException("Nie można utworzyć katalogu.");
+        byte[] buffer = new byte[64 * 1024];
+        long total = 0L;
+        try (OutputStream out = new BufferedOutputStream(new FileOutputStream(dst))) {
+            int n;
+            while ((n = in.read(buffer)) > 0) {
+                total += n;
+                if (total > maxBytes) throw new IOException("Kopia bazy jest zbyt duża.");
+                out.write(buffer, 0, n);
+            }
+        }
     }
 
     private static void verify(File root) throws IOException {
