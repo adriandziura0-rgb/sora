@@ -1,6 +1,8 @@
 package pl.drogowskazy.sora;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 
 import java.io.BufferedInputStream;

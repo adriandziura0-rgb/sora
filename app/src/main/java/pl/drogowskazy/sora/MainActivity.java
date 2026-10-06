@@ -28,7 +28,8 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final int REQUEST_ZIP = 1001;
-    private static final int REQUEST_NOTIFICATIONS = 1002;\n    private static final int REQUEST_DB_RESTORE = 1003;
+    private static final int REQUEST_NOTIFICATIONS = 1002;
+    private static final int REQUEST_DB_RESTORE = 1003;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private TextView status;
