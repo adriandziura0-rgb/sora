@@ -13,8 +13,10 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -35,18 +37,56 @@ public class MainActivity extends Activity {
     private TextView status;
     private Button openButton;
     private Button startButton;
+    private FrameLayout container;
+    private ScrollView settingsView;
+    private NativePanel panel;
+    private boolean panelNeedsReload;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(buildUi());
+        container = new FrameLayout(this);
+        settingsView = buildUi();
+        container.addView(settingsView);
+        setContentView(container);
         requestNotificationPermission();
         refreshStatus();
-        if (ProjectStore.isInstalled(this)) {
+        prepareAndStart();
+    }
+
+    private void prepareAndStart() {
+        if (!ProjectStore.needsBundledInstall(this)) {
             status.setText("Uruchamianie Drogowskazów…");
             DrogowskazyService.start(this);
             waitForServer(true);
+            return;
         }
+        status.setText("Przygotowywanie programu…");
+        startButton.setEnabled(false);
+        openButton.setEnabled(false);
+        if (ProjectStore.isInstalled(this)) DrogowskazyService.stopForUpdate(this);
+        executor.execute(() -> {
+            try {
+                if (!waitForRuntimeStopped(65_000L)) {
+                    throw new IllegalStateException("Nie udało się bezpiecznie zatrzymać poprzedniej wersji.");
+                }
+                ProjectStore.installBundled(this);
+                handler.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    startButton.setEnabled(true);
+                    openButton.setEnabled(true);
+                    DrogowskazyService.start(this);
+                    waitForServer(true);
+                });
+            } catch (Exception error) {
+                handler.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    status.setText("Nie udało się przygotować programu: " + error.getMessage());
+                    startButton.setEnabled(true);
+                    openButton.setEnabled(true);
+                });
+            }
+        });
     }
 
     private ScrollView buildUi() {
@@ -64,7 +104,7 @@ public class MainActivity extends Activity {
         root.addView(title, matchWrap());
 
         TextView subtitle = new TextView(this);
-        subtitle.setText("APK bez Termuxa • lokalny serwer • praca w tle");
+        subtitle.setText("Program gotowy po instalacji • praca w tle");
         subtitle.setTextSize(16);
         subtitle.setTextColor(Color.rgb(75, 85, 99));
         subtitle.setPadding(0, 0, 0, dp(18));
@@ -121,7 +161,7 @@ public class MainActivity extends Activity {
         root.addView(battery, buttonParams());
 
         TextView note = new TextView(this);
-        note.setText("Pierwsze uruchomienie: wybierz ZIP PHONE/ANDROID z Drogowskazami. APK skopiuje projekt do swojej prywatnej pamięci. Przy kolejnej aktualizacji ZIP-a zachowa obecną bazę SQLite, żeby nie stracić danych. Interfejs otwiera się w zwykłej przeglądarce, dzięki czemu wybór folderów działa tak jak wcześniej.\n\nPo uruchomieniu możesz wygasić ekran lub przejść do innej aplikacji. Android nadal może zatrzymać aplikację po ręcznym „Wymuś zatrzymanie”, dlatego ustaw baterię na „Bez ograniczeń”.");
+        note.setText("Program przygotuje się i otworzy sam. Przy aktualizacji zachowa obecną bazę SQLite. Panel, wybór plików i folderów oraz zapis wyników działają w aplikacji. Przycisk Wstecz w panelu otwiera ten ekran ustawień.\n\nMożesz wygasić ekran lub przejść do innej aplikacji. Dla pracy w tle ustaw baterię na „Bez ograniczeń”.");
         note.setTextSize(14);
         note.setTextColor(Color.rgb(75, 85, 99));
         note.setPadding(0, dp(18), 0, 0);
@@ -174,6 +214,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        if (panel != null && panel.handleActivityResult(requestCode, resultCode, data)) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         if (requestCode == REQUEST_DB_RESTORE) {
@@ -181,6 +222,7 @@ public class MainActivity extends Activity {
             return;
         }
         if (requestCode != REQUEST_ZIP) return;
+        panelNeedsReload = true;
         try {
             getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
         } catch (Exception ignored) {
@@ -191,7 +233,7 @@ public class MainActivity extends Activity {
         DrogowskazyService.stopForUpdate(this);
         executor.execute(() -> {
             try {
-                if (!waitForRuntimeStopped(45_000L)) {
+                if (!waitForRuntimeStopped(65_000L)) {
                     throw new IllegalStateException("Nie udało się bezpiecznie zatrzymać pracy w tle. Spróbuj ponownie.");
                 }
                 handler.post(() -> status.setText("Importowanie ZIP-a… nie zamykaj tej aplikacji."));
@@ -214,13 +256,14 @@ public class MainActivity extends Activity {
     }
 
     private void restoreDatabaseBackup(Uri uri) {
+        panelNeedsReload = true;
         status.setText("Bezpieczne zatrzymywanie przed przywróceniem bazy…");
         startButton.setEnabled(false);
         openButton.setEnabled(false);
         DrogowskazyService.stopForUpdate(this);
         executor.execute(() -> {
             try {
-                if (!waitForRuntimeStopped(45_000L)) {
+                if (!waitForRuntimeStopped(65_000L)) {
                     throw new IllegalStateException("Nie udało się bezpiecznie zatrzymać pracy w tle.");
                 }
                 handler.post(() -> status.setText("Sprawdzanie i przywracanie bazy SQLite…"));
@@ -254,7 +297,7 @@ public class MainActivity extends Activity {
             boolean finalReady = ready;
             handler.post(() -> {
                 if (finalReady) {
-                    status.setText("Serwer działa w tle.\nhttp://127.0.0.1:" + DrogowskazyService.PORT);
+                    status.setText("Program działa w tle.");
                     if (openBrowserWhenReady) openBrowser();
                 } else {
                     status.setText("Serwer jeszcze nie odpowiada. Sprawdź ponownie za chwilę lub wybierz poprawny ZIP.");
@@ -292,20 +335,26 @@ public class MainActivity extends Activity {
     }
 
     private void openBrowser() {
-        Uri uri = Uri.parse("http://127.0.0.1:" + DrogowskazyService.PORT + "/");
-        try {
-            startActivity(new Intent(Intent.ACTION_VIEW, uri));
-        } catch (ActivityNotFoundException error) {
-            toast("Brak przeglądarki do otwarcia " + uri);
+        if (isFinishing() || isDestroyed()) return;
+        if (panel == null) {
+            panel = new NativePanel(this);
+            container.addView(panel, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            panel.loadUrl("http://127.0.0.1:" + DrogowskazyService.PORT + "/");
+        } else if (panelNeedsReload) {
+            panel.reload();
         }
+        panelNeedsReload = false;
+        settingsView.setVisibility(View.GONE);
+        panel.setVisibility(View.VISIBLE);
     }
 
     private void refreshStatus() {
         File root = ProjectStore.projectDir(this);
         if (ProjectStore.isInstalled(this)) {
-            status.setText("Projekt jest zainstalowany.\n" + root.getAbsolutePath() + "\nUruchamiam usługę w tle…");
+            status.setText("Program jest zainstalowany. Ustawienia pracy i kopii bazy.");
         } else {
-            status.setText("Brak zaimportowanego projektu.\nWybierz ZIP PHONE/ANDROID z Drogowskazami.");
+            status.setText("Przygotowywanie programu przy pierwszym uruchomieniu…");
         }
     }
 
@@ -335,7 +384,35 @@ public class MainActivity extends Activity {
     }
 
     @Override
+    public void onBackPressed() {
+        if (panel != null && panel.getVisibility() == View.VISIBLE) {
+            panel.setVisibility(View.GONE);
+            settingsView.setVisibility(View.VISIBLE);
+            refreshStatus();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (panel != null) panel.onResume();
+    }
+
+    @Override
+    protected void onPause() {
+        if (panel != null) panel.onPause();
+        super.onPause();
+    }
+
+    @Override
     protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        if (panel != null) {
+            container.removeView(panel);
+            panel.close();
+        }
         executor.shutdownNow();
         super.onDestroy();
     }

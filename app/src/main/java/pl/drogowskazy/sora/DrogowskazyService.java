@@ -21,6 +21,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,6 +36,8 @@ public class DrogowskazyService extends Service {
     private static final int NOTIFICATION_ID = 4569;
     private static final AtomicBoolean RUNTIME_STOPPED = new AtomicBoolean(true);
     private final AtomicBoolean starting = new AtomicBoolean(false);
+    private final ExecutorService runtimeExecutor = Executors.newSingleThreadExecutor();
+    private volatile boolean stopRequested;
     private ScheduledExecutorService watchdog;
     private PowerManager.WakeLock wakeLock;
 
@@ -79,12 +82,20 @@ public class DrogowskazyService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && (ACTION_STOP.equals(intent.getAction()) || ACTION_STOP_FOR_UPDATE.equals(intent.getAction()))) {
+            stopRequested = true;
+            if (ACTION_STOP.equals(intent.getAction())) {
+                getSharedPreferences(PREFS, MODE_PRIVATE).edit().putBoolean(KEY_AUTO_RUN, false).apply();
+            }
+            if (watchdog != null) watchdog.shutdownNow();
             startForegroundCompat(buildNotification("Bezpieczne zatrzymywanie…"));
-            stopRuntime();
-            RUNTIME_STOPPED.set(true);
-            stopSelf();
+            runtimeExecutor.execute(() -> {
+                if (stopRuntime()) stopSelfResult(startId);
+                else updateNotification("Nie udało się zatrzymać kolejki — otwórz aplikację");
+            });
             return START_NOT_STICKY;
         }
+        stopRequested = false;
+        if (watchdog == null || watchdog.isShutdown()) startWatchdog();
         RUNTIME_STOPPED.set(false);
         startForegroundCompat(buildNotification("Uruchamianie lokalnego serwera…"));
         ensureRuntime();
@@ -154,6 +165,7 @@ public class DrogowskazyService extends Service {
     }
 
     private void ensureRuntime() {
+        if (stopRequested) return;
         if (!ProjectStore.isInstalled(this)) {
             RUNTIME_STOPPED.set(true);
             updateNotification("Wybierz ZIP programu w aplikacji");
@@ -164,8 +176,9 @@ public class DrogowskazyService extends Service {
             return;
         }
         if (!starting.compareAndSet(false, true)) return;
-        Executors.newSingleThreadExecutor().execute(() -> {
+        runtimeExecutor.execute(() -> {
             try {
+                if (stopRequested) return;
                 if (!Python.isStarted()) Python.start(new AndroidPlatform(getApplicationContext()));
                 PyObject bootstrap = Python.getInstance().getModule("android_bootstrap");
                 bootstrap.callAttr("start", ProjectStore.projectDir(this).getAbsolutePath(), PORT);
@@ -203,20 +216,26 @@ public class DrogowskazyService extends Service {
         }
     }
 
-    private void stopRuntime() {
+    private boolean stopRuntime() {
         try {
             if (Python.isStarted()) Python.getInstance().getModule("android_bootstrap").callAttr("stop");
-        } catch (Throwable ignored) {
-        } finally {
             RUNTIME_STOPPED.set(true);
+            return true;
+        } catch (Throwable error) {
+            RUNTIME_STOPPED.set(false);
+            return false;
         }
     }
 
     @Override
     public void onDestroy() {
         if (watchdog != null) watchdog.shutdownNow();
-        stopRuntime();
-        if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        stopRequested = true;
+        runtimeExecutor.execute(() -> {
+            if (!RUNTIME_STOPPED.get()) stopRuntime();
+            if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        });
+        runtimeExecutor.shutdown();
         super.onDestroy();
     }
 

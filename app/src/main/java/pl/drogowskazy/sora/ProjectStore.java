@@ -19,6 +19,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 final class ProjectStore {
+    static final String BUNDLED_VERSION = "4.5.12-inapp-1";
+    private static final String BUNDLE_PREFS = "drogowskazy_bundle";
     private static final long MAX_UNPACKED_BYTES = 700L * 1024L * 1024L;
     private static final int MAX_ENTRIES = 20_000;
     private static final long MAX_DATABASE_BYTES = 512L * 1024L * 1024L;
@@ -36,86 +38,105 @@ final class ProjectStore {
                 && new File(root, "static/app.js").isFile();
     }
 
-    static String importZip(Context context, Uri uri) throws Exception {
+    static boolean needsBundledInstall(Context context) {
+        return !isInstalled(context) || !BUNDLED_VERSION.equals(context
+                .getSharedPreferences(BUNDLE_PREFS, Context.MODE_PRIVATE)
+                .getString("installed_version", ""));
+    }
+
+    static synchronized String installBundled(Context context) throws Exception {
+        if (!needsBundledInstall(context)) return "Program jest gotowy.";
+        try (InputStream input = context.getAssets().open("drogowskazy-runtime.zip")) {
+            installProject(context, input);
+        }
+        markBundleInstalled(context);
+        return "Program jest gotowy. Dotychczasowa baza została zachowana.";
+    }
+
+    static synchronized String importZip(Context context, Uri uri) throws Exception {
+        try (InputStream input = context.getContentResolver().openInputStream(uri)) {
+            if (input == null) throw new IOException("Nie można otworzyć wskazanego ZIP-a");
+            installProject(context, input);
+        }
+        // Ręczna aktualizacja pozostaje aktywna do następnej wersji APK.
+        markBundleInstalled(context);
+        return "Program zaktualizowany. Dotychczasowa baza została zachowana.";
+    }
+
+    private static void markBundleInstalled(Context context) throws IOException {
+        if (!context.getSharedPreferences(BUNDLE_PREFS, Context.MODE_PRIVATE).edit()
+                .putString("installed_version", BUNDLED_VERSION).commit()) {
+            throw new IOException("Nie można zapisać wersji zainstalowanego programu.");
+        }
+    }
+
+    private static void installProject(Context context, InputStream input) throws Exception {
         File base = new File(context.getFilesDir(), "drogowskazy");
         File current = new File(base, "current");
         File staging = new File(base, "staging");
         File previous = new File(base, "previous");
-        File preservedDb = new File(context.getCacheDir(), "drogowskazy-preserved.sqlite3");
 
         if (!base.exists() && !base.mkdirs()) {
             throw new IOException("Nie można utworzyć katalogu aplikacji");
         }
-        deleteRecursively(staging);
-        deleteRecursively(previous);
-        if (!staging.mkdirs()) {
-            throw new IOException("Nie można utworzyć katalogu tymczasowego");
+        // Odzyskaj bazę także po przerwaniu aktywacji przez system.
+        if (!current.exists() && previous.exists() && !previous.renameTo(current)) {
+            throw new IOException("Nie można odzyskać poprzedniej instalacji.");
         }
-
-        File oldDb = new File(current, "data/drogowskazy.sqlite3");
-        boolean hadOldDb = oldDb.isFile();
-        if (hadOldDb) {
-            copyFile(oldDb, preservedDb);
-        } else if (preservedDb.exists()) {
-            preservedDb.delete();
-        }
-
-        try (InputStream raw = context.getContentResolver().openInputStream(uri)) {
-            if (raw == null) throw new IOException("Nie można otworzyć wskazanego ZIP-a");
-            unzip(raw, staging);
-        }
-
-        File root = locateProjectRoot(staging);
-        if (root == null) {
-            throw new IOException("ZIP nie zawiera projektu Drogowskazy (brak app.py/templates/static)");
-        }
-        if (!root.equals(staging)) {
-            File normalized = new File(base, "normalized");
-            deleteRecursively(normalized);
-            if (!normalized.mkdirs()) throw new IOException("Nie można przygotować katalogu projektu");
-            moveChildren(root, normalized);
-            deleteRecursively(staging);
-            if (!normalized.renameTo(staging)) {
-                copyDirectory(normalized, staging);
-                deleteRecursively(normalized);
-            }
-        }
-
-        if (current.exists() && !current.renameTo(previous)) {
-            copyDirectory(current, previous);
-            deleteRecursively(current);
-        }
-        if (!staging.renameTo(current)) {
-            copyDirectory(staging, current);
-            deleteRecursively(staging);
-        }
-
-        try {
-            if (hadOldDb && preservedDb.isFile()) {
-                File newDb = new File(current, "data/drogowskazy.sqlite3");
-                File parent = newDb.getParentFile();
-                if (parent != null && !parent.exists() && !parent.mkdirs()) {
-                    throw new IOException("Nie można utworzyć katalogu data");
-                }
-                copyFile(preservedDb, newDb);
-            }
+        if (current.exists() && previous.exists()) {
             verify(current);
             deleteRecursively(previous);
-            preservedDb.delete();
+        }
+        deleteRecursively(staging);
+        File normalized = new File(base, "normalized");
+        deleteRecursively(normalized);
+        if (!staging.mkdirs()) throw new IOException("Nie można utworzyć katalogu tymczasowego");
+        boolean movedOld = false;
+        boolean activated = false;
+        try {
+            unzip(input, staging);
+            File root = locateProjectRoot(staging);
+            if (root == null) throw new IOException("ZIP nie zawiera programu Drogowskazy.");
+            verify(root);
+            if (!root.equals(staging)) {
+                if (!normalized.mkdirs()) throw new IOException("Nie można przygotować katalogu projektu");
+                moveChildren(root, normalized);
+                deleteRecursively(staging);
+                if (!normalized.renameTo(staging)) throw new IOException("Nie można przygotować programu.");
+            }
+
+            // Zachowaj całe data, w tym WAL i pozostałe pliki użytkownika.
+            // Wywołujący zatrzymuje serwer i worker przed podmianą.
+            File userData = new File(current, "data");
+            if (userData.isDirectory()) {
+                File nextData = new File(staging, "data");
+                deleteRecursively(nextData);
+                copyDirectory(userData, nextData);
+            }
+            verify(staging);
+            if (current.exists()) {
+                if (!current.renameTo(previous)) throw new IOException("Nie można bezpiecznie zachować poprzedniego programu.");
+                movedOld = true;
+            }
+            if (!staging.renameTo(current)) throw new IOException("Nie można uruchomić nowego programu.");
+            activated = true;
+            verify(current);
+            deleteRecursively(previous);
         } catch (Exception activationError) {
-            deleteRecursively(current);
-            if (previous.exists() && !previous.renameTo(current)) {
-                copyDirectory(previous, current);
+            if (activated) deleteRecursively(current);
+            if (movedOld && previous.exists() && !previous.renameTo(current)) {
+                activationError.addSuppressed(new IOException("Poprzednia instalacja jest zachowana w katalogu previous."));
             }
             throw activationError;
+        } finally {
+            deleteRecursively(staging);
+            deleteRecursively(normalized);
         }
-
-        return "Projekt zaimportowany: " + current.getAbsolutePath();
     }
 
     static String restoreDatabase(Context context, Uri uri) throws Exception {
         File root = projectDir(context);
-        if (!isInstalled(context)) throw new IOException("Najpierw zainstaluj ZIP Drogowskazów.");
+        if (!isInstalled(context)) throw new IOException("Poczekaj na przygotowanie programu.");
 
         File incoming = new File(context.getCacheDir(), "drogowskazy-restore.sqlite3");
         File target = new File(root, "data/drogowskazy.sqlite3");

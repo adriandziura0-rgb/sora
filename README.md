@@ -1,44 +1,38 @@
-# Drogowskazy Sora — Android APK bez Termuxa
+# Drogowskazy Sora 1.2.2
 
-To repozytorium buduje prawdziwą aplikację Android (`APK`), która uruchamia lokalny silnik Drogowskazów bez Termuxa.
+Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
+ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
+Nie trzeba instalować Termuxa ani wybierać osobnego ZIP-a z programem.
 
-## Jak działa
+## Pliki i baza
 
-1. Instalujesz APK z GitHub Actions.
-2. Przy pierwszym uruchomieniu wybierasz swój ZIP `DROGOWSKAZY_PHONE_ANDROID_...zip`.
-3. Aplikacja bezpiecznie kopiuje projekt do prywatnej pamięci Androida.
-4. Wbudowany Python (Chaquopy) uruchamia `app.py` na `127.0.0.1:5433`.
-5. Interfejs otwiera się w zwykłej przeglądarce, więc wybór folderów działa tak jak w wersji Termux.
-6. Foreground Service + WakeLock pilnuje pracy po wygaszeniu ekranu i podczas przechodzenia do innych aplikacji.
+Panel obsługuje systemowy wybór plików, całych folderów wraz z podfolderami
+oraz miejsca zapisu wyników. Można wskazać folder udostępniony przez Android,
+w tym katalog na karcie SD. JSON, Markdown, SQLite i druk do PDF używają
+systemowych okien Androida.
 
-Przy późniejszym wgraniu nowszego ZIP-a aplikacja zachowuje obecną `data/drogowskazy.sqlite3`, żeby aktualizacja kodu nie skasowała danych użytkownika.
+Aktualizacja aplikacji zachowuje cały prywatny katalog `data`, w tym bazę
+SQLite i pliki WAL. Do repozytorium oraz zasobów APK trafia wyłącznie program;
+baza użytkownika pozostaje prywatna. Nowa instalacja tworzy pustą bazę, którą
+można uzupełnić importem dokumentów albo przywrócić z kopii SQLite.
 
-## Budowanie
+Wstecz w panelu otwiera dotychczasowy ekran ustawień, z przywracaniem kopii
+bazy, ręczną aktualizacją programu i sterowaniem usługą.
 
-Workflow `.github/workflows/build-apk.yml` uruchamia się automatycznie po pushu do `main` i można go też uruchomić ręcznie w **Actions → Build Android APK → Run workflow**.
+## Praca w tle
 
-Gotowy plik znajduje się w artefakcie **Drogowskazy-Sora-APK** jako `Drogowskazy-Sora-debug.apk`.
+Usługa foreground utrzymuje analizę kolejki po zgaszeniu ekranu i zamknięciu panelu.
+Niedokończone rekordy są wznawiane z SQLite; zakończone pozostają zakończone.
+Ustaw baterię aplikacji na **Bez ograniczeń**. Systemowe Wymuś zatrzymanie
+wyłącza usługę do ponownego uruchomienia aplikacji.
 
-## Wymagania telefonu
+APK używa tego samego identyfikatora i certyfikatu co Sora 1.2.1 STABLE.
+Instaluj jako aktualizację. Panel zachowuje interfejs HTML/JavaScript poprzedniej
+wersji we własnym WebView; analizator Python jest osadzony w APK przez Chaquopy.
 
-- Android 7.0 (API 24) lub nowszy.
-- Architektura ARM64 (`arm64-v8a`).
-- Dla najpewniejszej pracy w tle ustaw dla aplikacji **Bateria → Bez ograniczeń**.
+## Kontrola wydania
 
-## Bezpieczeństwo danych
-
-- Program nasłuchuje wyłącznie na `127.0.0.1`, więc serwer nie jest wystawiany do sieci lokalnej ani Internetu.
-- ZIP jest rozpakowywany z ochroną przed `Zip Slip` oraz limitem liczby i rozmiaru plików.
-- Baza użytkownika pozostaje w prywatnym katalogu aplikacji.
-
-
-## Bezpieczna aktualizacja runtime
-
-Od wersji APK **1.1.0** aktualizacja ZIP-a najpierw zatrzymuje lokalny serwer i – jeśli runtime udostępnia odpowiedni hook – czeka na zakończenie aktywnego workera kolejki SQLite. Dopiero potem podmieniane są pliki projektu. Rekordy pozostające w stanie `processing` są wznawiane po ponownym uruchomieniu runtime.
-
-
-## Etap 3 — autostart i trwałe aktualizacje
-
-APK 1.2.0 uruchamia usługę automatycznie po dotknięciu ikony i otwiera panel bez ręcznego naciskania „Uruchom”. Usługa może zostać wznowiona po BOOT_COMPLETED i po aktualizacji pakietu. Dodano także przywracanie kopii `drogowskazy.sqlite3`.
-
-GitHub Actions przechowuje stały klucz podpisu debug w cache repozytorium, dzięki czemu kolejne buildy z tej linii używają tego samego podpisu. Pierwsze przejście ze starszych, losowo podpisanych APK wymaga jednorazowej migracji bazy.
+GitHub Actions sprawdza instalację i aktualizację programu z zachowaniem danych,
+odrzucanie uszkodzonych ZIP-ów, kontrakt folderów, start lokalnego serwera,
+wznowienie trwałej kolejki oraz brak ponownego liczenia zakończonych rekordów.
+Po budowie sprawdza podpis i obecność zasobów w wynikowym APK.

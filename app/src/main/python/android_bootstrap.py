@@ -1,8 +1,7 @@
-"""Uruchamia projekt Drogowskazy wybrany przez użytkownika jako lokalny serwer Flask.
+"""Uruchamia dołączony do APK program Drogowskazy w prywatnej pamięci aplikacji.
 
-Ten moduł jest częścią APK. Sam projekt (app.py, clean_core, templates, static i baza)
-jest importowany z ZIP-a do prywatnego katalogu aplikacji, dzięki czemu repozytorium nie
-musi przechowywać bazy użytkownika ani kolejnych wersji analizatora.
+Program instaluje się automatycznie z zasobów APK. Baza użytkownika pozostaje
+w prywatnym katalogu data i jest zachowywana przy aktualizacji programu.
 """
 from __future__ import annotations
 
@@ -40,6 +39,7 @@ def _load_app(project_dir: str):
     data_dir = root / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
     os.environ["DROGOWSKAZY_DB_PATH"] = str(data_dir / "drogowskazy.sqlite3")
+    os.environ["DROGOWSKAZY_BACKGROUND_SERVICE"] = "1"
     os.environ["DROGOWSKAZY_PORT"] = os.environ.get("DROGOWSKAZY_PORT", "5433")
 
     root_str = str(root)

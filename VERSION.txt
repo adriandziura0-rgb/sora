@@ -1,3 +1,4 @@
-1.2.1
-Drogowskazy Sora Android APK wrapper
-Etap 3 FINAL: autostart + boot resume + restore SQLite + stable signing verified
+1.2.2
+Drogowskazy Sora Android APK
+Runtime 4.5.12 wbudowany w APK; automatyczny start i panel w aplikacji.
+Aktualizacja zachowuje prywatny katalog data. Systemowy wybór folderów i zapis wyników.
