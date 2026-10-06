@@ -110,7 +110,8 @@ public class MainActivity extends Activity {
 
         Button stop = makeButton("Zatrzymaj pracę w tle");
         stop.setOnClickListener(v -> {
-            DrogowskazyService.stop(this);\n            status.setText("Zatrzymywanie…");
+            DrogowskazyService.stop(this);
+            status.setText("Zatrzymywanie…");
             handler.postDelayed(this::refreshStatus, 1200);
         });
         root.addView(stop, buttonParams());
