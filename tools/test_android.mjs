@@ -207,6 +207,20 @@ try{
  assert.equal(await page.locator('#sectionWindowDialog').evaluate(e=>e.open),true);await click('#closeSectionWindowBtn');
  await click('#userModeBtn');
  for(const selector of inventory.filter(s=>s.includes('production-view')||s.includes('user-text-view')))await click(selector);
+ await click('[data-production-view="relacje"]');await click('.user-show-hit');
+ assert.equal(await page.locator('#userResultPanelTekst').evaluate(e=>e.hidden),false);
+ assert.ok(await page.locator('#userTextPreview .hl').count());
+ await click('#productionRelationSection [data-rel-tab="dowod"]');
+ assert.equal(await page.locator('#productionRelationSection [data-rel-panel="dowod"]').evaluate(e=>e.hidden),false);
+ await click('#productionRelationSection [data-rel-tab="klasyfikacja"]');
+ assert.equal(await page.locator('#productionRelationSection [data-rel-panel="dowod"]').evaluate(e=>e.hidden),true);
+ const detailIds=await page.evaluate(()=>Array.from(document.querySelectorAll('#analystPane button[data-inline-detail]')).filter(e=>!e.disabled && document.getElementById(e.dataset.inlineDetail)).map(e=>e.dataset.inlineDetail).slice(0,2));
+ assert.equal(detailIds.length,2);
+ for(const id of detailIds){if(!await page.locator(`[id="${id}"]`).evaluate(e=>e.hidden))await click(`#analystPane [data-inline-detail="${id}"]`);}
+ for(const id of detailIds)await click(`#analystPane [data-inline-detail="${id}"]`);
+ for(const id of detailIds)assert.equal(await page.locator(`[id="${id}"]`).evaluate(e=>e.hidden),false);
+ await click(`#analystPane [data-inline-detail="${detailIds[0]}"]`);assert.equal(await page.locator(`[id="${detailIds[1]}"]`).evaluate(e=>e.hidden),false);
+ done('result-to-text links, classification/evidence tabs and independent inline detail buttons');
  await click('#expertModeBtn');await click('#suggestBtn');await waitJs(()=>!document.getElementById('suggestBtn').disabled);
  await click('#analyzeBtn');await waitJs(()=>!document.getElementById('analyzeBtn').disabled);
  await click('#reportBtn');await waitJs(()=>ostatniEksport!==null && !document.getElementById('reportBtn').disabled);
