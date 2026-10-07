@@ -262,6 +262,7 @@ try{
  done('analysis, suggestions, all navigation/filter/window buttons, report, native clipboard, JSON/MD export');
  try{
   await click('#printPdfBtn');
+  await nativeTap('com.android.printspooler:id/destination_spinner');await nativeTap('Save as PDF');
   const print=await until(()=>nativeNodes().find(n=>/:id\/print_button$/.test(n['resource-id']||'') && n.enabled==='true'),'Save PDF print button');
   adb('shell','input','tap',...point(print).map(String));
   const pdf=await saveFile('audit-report.pdf');assert.equal(pdf.subarray(0,5).toString(),'%PDF-');assert.ok(pdf.length>1000);
