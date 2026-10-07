@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: sora-apk-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   build:
