@@ -19,7 +19,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 final class ProjectStore {
-    static final String BUNDLED_VERSION = "4.5.12-inapp-1";
+    static final String BUNDLED_VERSION = "4.5.12-inapp-2";
     private static final String BUNDLE_PREFS = "drogowskazy_bundle";
     private static final long MAX_UNPACKED_BYTES = 700L * 1024L * 1024L;
     private static final int MAX_ENTRIES = 20_000;
@@ -177,6 +177,11 @@ final class ProjectStore {
             }
             try (Cursor schema = db.rawQuery("SELECT 1 FROM sqlite_master WHERE type='table' AND name='documents' LIMIT 1", null)) {
                 if (!schema.moveToFirst()) throw new IOException("To nie jest baza Drogowskazów: brak tabeli documents.");
+            }
+            // Sama nazwa tabeli nie wystarcza: obca baza mogłaby zatrzymać
+            // uruchomienie serwera dopiero po zastąpieniu prawidłowej kopii.
+            try (Cursor columns = db.rawQuery("SELECT id,filename,relative_path,content_sha256,text_content,status,analysis_gzip FROM documents LIMIT 0", null)) {
+                columns.getColumnCount();
             }
         } catch (IOException error) {
             throw error;

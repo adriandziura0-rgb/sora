@@ -38,8 +38,16 @@
     const request = waiting.get(String(id));
     if (!request) return;
     waiting.delete(String(id));
-    if (!selected) request.reject(new DOMException('Anulowano wybór folderu.', 'AbortError'));
+    if (selected && selected.error) request.reject(new Error(selected.error));
+    else if (!selected) request.reject(new DOMException('Anulowano wybór folderu.', 'AbortError'));
     else request.resolve(handle({...selected, kind: 'directory'}));
   };
   window.print = () => bridge.printPanel();
+  for (const [id, method] of [['appSettingsBtn', 'openSettings'], ['restoreDatabaseBackupBtn', 'restoreDatabaseBackup']]) {
+    const button = document.getElementById(id);
+    if (button && typeof bridge[method] === 'function') {
+      button.hidden = false;
+      button.addEventListener('click', () => bridge[method]());
+    }
+  }
 })();

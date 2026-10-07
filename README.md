@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.2
+# Drogowskazy Sora 1.2.3
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -19,6 +19,14 @@ można uzupełnić importem dokumentów albo przywrócić z kopii SQLite.
 Wstecz w panelu otwiera dotychczasowy ekran ustawień, z przywracaniem kopii
 bazy, ręczną aktualizacją programu i sterowaniem usługą.
 
+W **Baza / porównania** użyj **Dodaj pliki do bazy**, aby wskazać jeden lub kilka
+dokumentów z Pobranych albo karty SD. **Dodaj folder do bazy** wybiera katalog
+z podfolderami. **Przywróć kopię SQLite** wybiera plik `.sqlite3` i zastępuje bazę
+po sprawdzeniu jej integralności. Nieprawidłowa kopia nie zastępuje obecnej bazy.
+Archiwum ZIP z dokumentami najpierw rozpakuj. Błąd odczytu jednego dokumentu
+nie przerywa importu pozostałych, a podsumowanie błędów pozostaje widoczne.
+Przycisk **Ustawienia aplikacji** daje bezpośredni dostęp do ekranu usługi.
+
 ## Praca w tle
 
 Usługa foreground utrzymuje analizę kolejki po zgaszeniu ekranu i zamknięciu panelu.
@@ -36,3 +44,6 @@ GitHub Actions sprawdza instalację i aktualizację programu z zachowaniem danyc
 odrzucanie uszkodzonych ZIP-ów, kontrakt folderów, start lokalnego serwera,
 wznowienie trwałej kolejki oraz brak ponownego liczenia zakończonych rekordów.
 Po budowie sprawdza podpis i obecność zasobów w wynikowym APK.
+Testy zainstalowanego APK na emulatorze Androida uruchamiają prawdziwy WebView,
+systemowe okna wyboru plików i folderów oraz zapis do SQLite. Raport testów
+jest osobnym artefaktem przebiegu; aplikacja wydania zawiera tylko ABI arm64.

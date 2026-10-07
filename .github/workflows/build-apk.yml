@@ -15,7 +15,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 60
 
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
@@ -80,20 +80,20 @@ jobs:
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Drogowskazy-Sora-1.2.2.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Drogowskazy-Sora-1.2.3.apk
 
       - name: Verify APK signature and embedded runtime
         shell: bash
         run: |
           set -euo pipefail
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Drogowskazy-Sora-1.2.2.apk | tee apk-verification.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Drogowskazy-Sora-1.2.3.apk | tee apk-verification.txt
           grep -q '24ff96996dd176159eb71e1557cf7da9fa720382870b78b42ffa76114b7a4339' apk-verification.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Drogowskazy-Sora-1.2.2.apk > apk-badging.txt
-          grep -q "versionCode='5' versionName='1.2.2'" apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Drogowskazy-Sora-1.2.3.apk > apk-badging.txt
+          grep -q "versionCode='6' versionName='1.2.3'" apk-badging.txt
           head -n 5 apk-badging.txt
           python - <<'PY'
           import zipfile
-          with zipfile.ZipFile('Drogowskazy-Sora-1.2.2.apk') as apk:
+          with zipfile.ZipFile('Drogowskazy-Sora-1.2.3.apk') as apk:
               assert apk.testzip() is None
               assert 'assets/drogowskazy-runtime.zip' in apk.namelist()
               assert 'assets/native-panel.js' in apk.namelist()
@@ -101,10 +101,41 @@ jobs:
           print('PASS: APK CRC, embedded runtime and native panel assets')
           PY
 
+      - name: Prepare real Android panel tests
+        run: |
+          npm install --no-save --no-package-lock playwright@1.56.1
+          gradle --no-daemon --stacktrace -PsoraTestAbi=x86_64 :app:assembleDebug
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Test all panel buttons and Android file pickers
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 36
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
+          script: node tools/test_android.mjs
+
+      - name: Upload Android test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Sora-Android-tests
+          path: test-output/
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: Drogowskazy-Sora-APK
-          path: Drogowskazy-Sora-1.2.2.apk
+          path: Drogowskazy-Sora-1.2.3.apk
           if-no-files-found: error
           retention-days: 30

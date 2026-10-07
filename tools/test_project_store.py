@@ -59,6 +59,7 @@ public final class Context {
 public interface Cursor extends AutoCloseable {
   boolean moveToFirst();
   String getString(int i);
+  int getColumnCount();
   void close();
 }''',
 "android/database/sqlite/SQLiteDatabase.java": r'''package android.database.sqlite;

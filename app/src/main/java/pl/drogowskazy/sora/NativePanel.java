@@ -3,7 +3,10 @@ package pl.drogowskazy.sora;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ApplicationInfo;
 import android.database.Cursor;
 import android.net.Uri;
 import android.print.PrintManager;
@@ -58,6 +61,9 @@ final class NativePanel extends WebView {
     NativePanel(Activity activity) {
         super(activity);
         this.activity = activity;
+        if ((activity.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+            WebView.setWebContentsDebuggingEnabled(true);
+        }
         getSettings().setJavaScriptEnabled(true);
         getSettings().setDomStorageEnabled(true);
         getSettings().setAllowFileAccess(false);
@@ -165,7 +171,12 @@ final class NativePanel extends WebView {
                 try {
                     Uri tree = data.getData();
                     int flags = data.getFlags() & Intent.FLAG_GRANT_READ_URI_PERMISSION;
-                    activity.getContentResolver().takePersistableUriPermission(tree, flags);
+                    // Nie każdy dostawca udostępnia trwałe uprawnienie. Do bieżącego
+                    // importu wystarcza odczyt przyznany przez systemowy picker.
+                    if ((data.getFlags() & Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION) != 0 && flags != 0) {
+                        try { activity.getContentResolver().takePersistableUriPermission(tree, flags); }
+                        catch (SecurityException ignored) { }
+                    }
                     synchronized (allowedTrees) { allowedTrees.add(treeKey(tree)); }
                     Uri document = DocumentsContract.buildDocumentUriUsingTree(tree,
                             DocumentsContract.getTreeDocumentId(tree));
@@ -175,7 +186,10 @@ final class NativePanel extends WebView {
                         if (c != null && c.moveToFirst()) name = c.getString(0);
                     }
                     folder = new JSONObject().put("uri", document.toString()).put("name", name);
-                } catch (Exception error) { message("Nie można odczytać wybranego folderu: " + error.getMessage()); }
+                } catch (Exception error) {
+                    try { folder = new JSONObject().put("error", "Nie można odczytać wybranego folderu: " + error.getMessage()); }
+                    catch (Exception ignored) { }
+                }
             }
             if (id != null) evaluateJavascript("window.__drogowskazyFolderResult(" + JSONObject.quote(id)
                     + "," + (folder == null ? "null" : folder.toString()) + ");", null);
@@ -220,6 +234,25 @@ final class NativePanel extends WebView {
     }
 
     private final class Bridge {
+        @JavascriptInterface public void openSettings() {
+            activity.runOnUiThread(() -> ((MainActivity) activity).showSettings());
+        }
+
+        @JavascriptInterface public void restoreDatabaseBackup() {
+            activity.runOnUiThread(() -> {
+                if (closed) return;
+                ((MainActivity) activity).showSettings();
+                ((MainActivity) activity).chooseDatabaseBackup();
+            });
+        }
+
+        @JavascriptInterface public void copyText(String text) {
+            activity.runOnUiThread(() -> {
+                ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null) clipboard.setPrimaryClip(ClipData.newPlainText("Raport Drogowskazy", text));
+            });
+        }
+
         @JavascriptInterface public void pickFolder(String requestId) {
             activity.runOnUiThread(() -> {
                 if (closed) return;
@@ -233,8 +266,8 @@ final class NativePanel extends WebView {
                 try { activity.startActivityForResult(intent, REQUEST_FOLDER); }
                 catch (Exception error) {
                     folderRequest = null;
-                    evaluateJavascript("window.__drogowskazyFolderResult(" + JSONObject.quote(requestId) + ",null);", null);
-                    message("Nie udało się otworzyć wyboru folderu.");
+                    evaluateJavascript("window.__drogowskazyFolderResult(" + JSONObject.quote(requestId)
+                            + ",{error:'Nie udało się otworzyć wyboru folderu. Użyj przycisku Dodaj pliki do bazy.'});", null);
                 }
             });
         }

@@ -138,15 +138,7 @@ public class MainActivity extends Activity {
         root.addView(restoreDb, buttonParams());
 
         startButton = makeButton("Uruchom ponownie usługę");
-        startButton.setOnClickListener(v -> {
-            if (!ProjectStore.isInstalled(this)) {
-                toast("Najpierw wybierz ZIP programu");
-                return;
-            }
-            DrogowskazyService.start(this);
-            status.setText("Uruchamianie serwera…");
-            waitForServer(false);
-        });
+        startButton.setOnClickListener(v -> restartRuntime());
         root.addView(startButton, buttonParams());
 
         openButton = makeButton("Otwórz panel Drogowskazów");
@@ -214,14 +206,40 @@ public class MainActivity extends Activity {
         startActivityForResult(intent, REQUEST_ZIP);
     }
 
-    private void chooseDatabaseBackup() {
+    void chooseDatabaseBackup() {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
-        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
-                "application/vnd.sqlite3", "application/x-sqlite3", "application/octet-stream"
-        });
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         startActivityForResult(intent, REQUEST_DB_RESTORE);
+    }
+
+    private void restartRuntime() {
+        if (!ProjectStore.isInstalled(this)) { toast("Program nie jest jeszcze przygotowany."); return; }
+        setBusy(true);
+        status.setText("Bezpieczne ponowne uruchamianie serwera…");
+        panelNeedsReload = true;
+        DrogowskazyService.stopForUpdate(this);
+        executor.execute(() -> {
+            try {
+                if (!waitForRuntimeStopped(65_000L)) throw new IllegalStateException("Poprzednia praca jeszcze się nie zatrzymała.");
+                handler.post(() -> {
+                    if (isFinishing() || isDestroyed()) return;
+                    setBusy(false);
+                    DrogowskazyService.start(this);
+                    waitForServer(false);
+                });
+            } catch (Exception error) {
+                handler.post(() -> { status.setText("Nie udało się uruchomić ponownie: " + error.getMessage()); setBusy(false); });
+            }
+        });
+    }
+
+    void showSettings() {
+        if (isFinishing() || isDestroyed()) return;
+        if (panel != null) panel.setVisibility(View.GONE);
+        settingsView.setVisibility(View.VISIBLE);
+        refreshStatus();
     }
 
     @Override
