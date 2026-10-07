@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.print.PrintManager;
 import android.provider.DocumentsContract;
 import android.util.Base64;
@@ -98,6 +99,7 @@ final class NativePanel extends WebView {
                 intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,
                         params.getMode() == FileChooserParams.MODE_OPEN_MULTIPLE);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                startInDownloads(intent);
                 try {
                     activity.startActivityForResult(intent, REQUEST_FILES);
                 } catch (Exception error) {
@@ -222,6 +224,16 @@ final class NativePanel extends WebView {
         return uri.getAuthority() + "/" + DocumentsContract.getTreeDocumentId(uri);
     }
 
+    static void startInDownloads(Intent intent) {
+        if (Build.VERSION.SDK_INT >= 26) {
+            // Dostawca Downloads bywa oparty tylko na indeksie MediaStore.
+            // Pliki skopiowane lub rozpakowane muszą być widoczne również
+            // zanim Android dopisze je do tego indeksu.
+            intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI,
+                    DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Download"));
+        }
+    }
+
     private Uri permittedTreeDocument(String value) {
         Uri uri = Uri.parse(value);
         if (!"content".equals(uri.getScheme()) || !DocumentsContract.isTreeUri(uri)) {
@@ -263,6 +275,7 @@ final class NativePanel extends WebView {
                 folderRequest = requestId;
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                 intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+                startInDownloads(intent);
                 try { activity.startActivityForResult(intent, REQUEST_FOLDER); }
                 catch (Exception error) {
                     folderRequest = null;
@@ -376,6 +389,7 @@ final class NativePanel extends WebView {
             intent.setType(type.isEmpty() ? "application/octet-stream" : type);
             String cleanName = name == null ? "Drogowskazy.txt" : name.replaceAll("[\\\\/\\r\\n]", "_");
             intent.putExtra(Intent.EXTRA_TITLE, cleanName);
+            startInDownloads(intent);
             try { activity.startActivityForResult(intent, REQUEST_SAVE); }
             catch (Exception error) {
                 file.delete(); exportFile = null; exporting.set(false);

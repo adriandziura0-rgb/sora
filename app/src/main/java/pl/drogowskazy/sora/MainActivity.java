@@ -203,6 +203,7 @@ public class MainActivity extends Activity {
         intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{
                 "application/zip", "application/x-zip-compressed", "application/octet-stream"
         });
+        NativePanel.startInDownloads(intent);
         startActivityForResult(intent, REQUEST_ZIP);
     }
 
@@ -211,6 +212,7 @@ public class MainActivity extends Activity {
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("*/*");
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        NativePanel.startInDownloads(intent);
         startActivityForResult(intent, REQUEST_DB_RESTORE);
     }
 

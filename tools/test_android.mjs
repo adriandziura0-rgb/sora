@@ -43,7 +43,9 @@ async function nativeTap(label,timeout=20000){
  const node=await until(()=>nativeNodes().find(n=>matches(n,label)&&n.enabled!=='false'),`Android button ${label}`,timeout);
  adb('shell','input','tap',...point(node).map(String));await pause(350);return node;
 }
-async function downloads(){await nativeTap('Show roots');await nativeTap('Downloads');}
+async function downloads(){
+ await until(()=>nativeNodes().some(n=>matches(n,'Sora-tests')),'picker opens filesystem Downloads');
+}
 async function pickFile(name){await downloads();await nativeTap('Sora-tests');await nativeTap(name);}
 async function pickFiles(names){
  await downloads();await nativeTap('Sora-tests');
@@ -127,7 +129,7 @@ try{
  await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,5);
  await click('#addCompareFolderBtn',true);await pickFolder('RedakcjaB');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,7);
  await click('#addCompareFolderPackBtn',true);await pickFolder();await waitJs(()=>!importBazyAktywny);assert.equal((await queueDone()).stats.done,7);
- await click('#importFolderToDatabaseBtn',true);await nativeTap('Show roots');adb('shell','input','keyevent','4');await pause(500);
+ await click('#importFolderToDatabaseBtn',true);await nativeTap('Show roots');adb('shell','input','keyevent','4');adb('shell','input','keyevent','4');await pause(500);
  assert.equal(await page.evaluate(()=>wymusKlasycznyPickerFolderuBazy),false);
  await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);
  done('real SQLite import: files, duplicate, empty-file error retained, folders, nested HTML, folder pack, cancellation and retry');
