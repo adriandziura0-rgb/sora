@@ -119,7 +119,7 @@ class Window(Operations):
         self.descriptions=descriptions
         self.editor_tab=self.pages['editor'];self.results_tab=self.pages['result'];self.database_tab=self.pages['database']
         self.build_editor();self.build_results();self.build_database();self.build_compare();self.build_topics();self.build_quality();self.build_reports()
-        footer=ttk.Frame(main);footer.pack(fill='x',pady=(10,0));self.busy_bar=ttk.Progressbar(footer,mode='indeterminate',length=100);self.busy_bar.pack(side='right')
+        footer=ttk.Frame(main);footer.pack(side='bottom',fill='x',pady=(10,0),before=self.tabs);self.busy_bar=ttk.Progressbar(footer,mode='indeterminate',length=100);self.busy_bar.pack(side='right')
         ttk.Label(footer,textvariable=self.status,style='Muted.TLabel').pack(side='left')
         self.tabs.bind('<<NotebookTabChanged>>',lambda _e:self.sync_navigation())
         menu=tk.Menu(root);root.config(menu=menu)
@@ -152,7 +152,7 @@ class Window(Operations):
         return widget
     def tree(self,parent,columns):
         frame=ttk.Frame(parent);frame.pack(fill='both',expand=True)
-        tree=ttk.Treeview(frame,columns=[c[0] for c in columns],show='headings')
+        tree=ttk.Treeview(frame,columns=[c[0] for c in columns],show='headings',height=7)
         for key,title,width in columns:tree.heading(key,text=title);tree.column(key,width=width,minwidth=70)
         y=ttk.Scrollbar(frame,command=tree.yview);y.pack(side='right',fill='y');tree.pack(fill='both',expand=True);tree.configure(yscrollcommand=y.set)
         x=ttk.Scrollbar(frame,orient='horizontal',command=tree.xview);x.pack(fill='x');tree.configure(xscrollcommand=x.set)
@@ -296,7 +296,7 @@ class Window(Operations):
         ttk.Label(page,text='Wybierz 2–10 grup. Ctrl+klik pozwala zaznaczyć kilka pozycji.',style='Muted.TLabel').pack(anchor='w',pady=4)
         self.group_list=tk.Listbox(page,selectmode='extended',exportselection=False,bg=PANEL,fg=FG,selectbackground='#34534f',relief='flat',font=('Segoe UI',11),height=5);self.group_list.pack(fill='x',pady=(0,10))
         self.compare_output=self.tree(page,[('metric','Wskaźnik',280),('a','Grupa A',180),('b','Grupa B',180),('delta','Różnica',110)])
-        self.compare_notes=RichView(page);self.compare_notes.pack(fill='both',expand=True)
+        self.compare_notes=RichView(page);self.compare_notes.text.configure(height=8);self.compare_notes.pack(fill='both',expand=True)
         self.compare_notes.clear();self.compare_notes.add('Najpierw dodaj dokumenty do bazy. Porównania opisują zapisane artykuły, uwzględniając liczebność prób.','muted');self.compare_notes.finish()
 
     def groups(self):
@@ -369,7 +369,7 @@ class Window(Operations):
             seed=tk.StringVar(value='sora');self.sample_seed[kind]=seed;ttk.Label(bar,text='Nazwa próby').pack(side='left',padx=4);ttk.Entry(bar,textvariable=seed,width=12).pack(side='left',padx=4)
             self.button(bar,'Wczytaj próbę',lambda k=kind:self.sample(k),True);self.button(bar,'Wyniki ocen',lambda k=kind:self.quality_summary(k))
             stat=tk.StringVar(value='Jeszcze nie wybrano próby.');self.quality_stats[kind]=stat;ttk.Label(frame,textvariable=stat,foreground=ACCENT).pack(anchor='w',pady=6)
-            view=RichView(frame);view.pack(fill='both',expand=True);self.quality_views[kind]=view
+            view=RichView(frame);view.text.configure(height=7);view.pack(fill='both',expand=True);self.quality_views[kind]=view
             view.clear();view.add('Oceny zapisują się w bazie i pozostają dostępne po restarcie.','muted');view.finish()
             if kind=='benchmark':
                 row=self.bar(frame);self.benchmark_fields={}
@@ -378,6 +378,7 @@ class Window(Operations):
                     options=list(LABELS)[:3] if key=='overall' else list(LABELS);ttk.Combobox(col,textvariable=var,values=options,state='readonly',width=13).pack()
             else:
                 self.gold_rows=[];self.gold_tree=self.tree(frame,[('speaker','Mówca',150),('claim','Oczekiwane twierdzenie',400),('target','Dotyczy',130),('source','Źródło',130)])
+                self.gold_tree.configure(height=4)
                 self.gold_tree.bind('<Double-1>',lambda _e:self.edit_gold())
                 row=self.bar(frame);self.button(row,'Dodaj relację',lambda:self.edit_gold(new=True));self.button(row,'Edytuj',self.edit_gold);self.button(row,'Usuń relację',self.remove_gold)
             row=self.bar(frame);ttk.Label(row,text='Notatka').pack(side='left',padx=5);note=tk.StringVar();self.quality_note[kind]=note;ttk.Entry(row,textvariable=note).pack(side='left',fill='x',expand=True,padx=5)
