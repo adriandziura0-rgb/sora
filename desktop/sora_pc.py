@@ -291,10 +291,28 @@ def main():
         if args.smoke_test:
             def check():
                 window.editor.insert('1.0','Premier przedstawił projekt ustawy. Sejm rozpocznie debatę.')
+                def job():
+                    from engine import runtime_identity
+                    result=engine.request('/api/analizuj',{'tekst':window.captured_text})
+                    assert result.get('analysis_run_id')
+                    if getattr(sys,'frozen',False):
+                        reference=json.loads((Path(sys._MEIPASS)/'engine-reference.json').read_text('utf-8'))
+                        def stable(value):
+                            if isinstance(value,dict):return {k:stable(v) for k,v in value.items() if k not in {'analysis_run_id','analysis_generated_at','generated_at','utworzono','czas_generowania','timestamp'}}
+                            if isinstance(value,list):return [stable(v) for v in value]
+                            return value
+                        for text,expected in zip(reference['cases'],reference['results']):
+                            assert stable(engine.request('/api/analizuj',{'tekst':text}))==stable(expected),'Frozen EXE/PHONE result mismatch'
+                    fixture=home/'smoke-document.txt'
+                    fixture.write_text('Rada miasta przyjęła uchwałę. Burmistrz poinformował o decyzji.',encoding='utf-8')
+                    engine.import_file(fixture,'Test/smoke-document.txt')
+                    engine.stop()
+                    assert engine.request('/api/baza/status')['stats']['done']==1
+                    return result
                 def analyzed(result):
-                    assert result.get('analysis_run_id');window.show_result(result)
+                    window.show_result(result)
                     (home/'smoke-ok.json').write_text(json.dumps(engine.identity),encoding='utf-8');window.close()
-                window.run(lambda:engine.request('/api/analizuj',{'tekst':window.captured_text}),analyzed)
+                window.run(job,analyzed)
             root.after(100,check)
         root.mainloop()
         if lock_handle:lock_handle.close()
