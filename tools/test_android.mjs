@@ -163,6 +163,12 @@ try{
  await waitJs(()=>window.__drogowskazyNativeInstalled && document.getElementById('backendStatusPill').classList.contains('backend-ok'));
  const inventory=await page.evaluate(()=>Array.from(document.querySelectorAll('button')).map(e=>e.id?`#${e.id}`:['productionView','expertView','previewView','userTextView','view','menuGroup'].map(key=>e.dataset[key]?`[data-${key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())}="${e.dataset[key]}"]`:null).find(Boolean)).filter(Boolean));
  done('APK first start, embedded runtime, HTTP health, real Android WebView bridge');
+ await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
+ const emptyBackup=await exportButton('#downloadDatabaseBtn','audit-empty.sqlite3');
+ assert.equal(emptyBackup.subarray(0,16).toString(),'SQLite format 3\0');
+ await click('#refreshDatabaseBtn');
+ await click('#splitWorkspaceBtn');
+ done('native SQLite save keeps panel interactive');
 
  await click('#loadFileBtn',true);await pickFile('single.txt');await waitJs(()=>document.getElementById('textInput').value.includes('Budowa potrwa'));
  await click('#appendFileBtn',true);await pickFile('second.txt');await waitJs(()=>document.getElementById('textInput').value.includes('Opozycja'));

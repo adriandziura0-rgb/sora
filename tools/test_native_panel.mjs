@@ -11,14 +11,17 @@ const listing = {
     {name:'duży.txt',kind:'file',uri:'big',size:3*1024*1024},
     {name:'obraz.jpg',kind:'file',uri:'image',size:400}]
 };
-let picked, reads=0, printed=0;
+let picked, reads=0, printed=0, downloaded=0;
+const databaseListeners=[];
+const databaseButton={addEventListener(type,handler,options){assert.equal(type,'click');databaseListeners.push({handler,options});}};
 const window = {DrogowskazyAndroid:{
   pickFolder(id){picked=id;},
   listChildren(uri){return JSON.stringify({entries:listing[uri]});},
   readFile(uri){assert.equal(uri,'text'); reads++; return JSON.stringify({base64:bytes.toString('base64')});},
-  printPanel(){printed++;}
+  printPanel(){printed++;},
+  downloadDatabase(){downloaded++;}
 }};
-vm.runInNewContext(source, {window, document:{getElementById(){return null;}}, File, DOMException, Uint8Array, Map, JSON, atob});
+vm.runInNewContext(source, {window, document:{getElementById(id){return id==='downloadDatabaseBtn'?databaseButton:null;}}, File, DOMException, Uint8Array, Map, JSON, atob});
 const pending=window.showDirectoryPicker();
 window.__drogowskazyFolderResult(picked,{name:'wybrany',uri:'root'});
 const root=await pending;
@@ -40,6 +43,12 @@ await assert.rejects(failure,e=>e.name==='Error' && /Brak dostępu/.test(e.messa
 const retry=window.showDirectoryPicker();
 window.__drogowskazyFolderResult(picked,{name:'wybrany',uri:'root'});
 assert.equal((await retry).name,'wybrany');
+assert.equal(databaseListeners.length,1);
+assert.equal(databaseListeners[0].options.capture,true);
+let stopped=false;
+databaseListeners[0].handler({stopImmediatePropagation(){stopped=true;}});
+assert.equal(stopped,true);
+assert.equal(downloaded,1);
 window.print();
 assert.equal(printed,1);
-console.log('PASS: folder contract, nested paths, UTF-8, oversized/unsupported file skipping, cancellation, print');
+console.log('PASS: folder contract, nested paths, UTF-8, oversized/unsupported file skipping, cancellation, print, SQLite save without navigation');

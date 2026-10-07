@@ -335,6 +335,11 @@ final class NativePanel extends WebView {
             });
         }
 
+        @JavascriptInterface public void downloadDatabase() {
+            download("http://127.0.0.1:" + DrogowskazyService.PORT + "/api/baza/pobierz",
+                    "drogowskazy_baza.sqlite3", "application/vnd.sqlite3");
+        }
+
         @JavascriptInterface public void printPanel() {
             activity.runOnUiThread(() -> {
                 if (closed) return;

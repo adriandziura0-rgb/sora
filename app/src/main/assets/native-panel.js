@@ -43,6 +43,14 @@
     else request.resolve(handle({...selected, kind: 'directory'}));
   };
   window.print = () => bridge.printPanel();
+  const databaseDownload = document.getElementById('downloadDatabaseBtn');
+  if (databaseDownload && typeof bridge.downloadDatabase === 'function') {
+    // Systemowy zapis SQLite nie rozpoczyna nawigacji panelu.
+    databaseDownload.addEventListener('click', event => {
+      event.stopImmediatePropagation();
+      bridge.downloadDatabase();
+    }, {capture: true});
+  }
   for (const [id, method] of [['appSettingsBtn', 'openSettings'], ['restoreDatabaseBackupBtn', 'restoreDatabaseBackup']]) {
     const button = document.getElementById(id);
     if (button && typeof bridge[method] === 'function') {
