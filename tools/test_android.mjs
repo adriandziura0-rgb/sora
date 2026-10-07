@@ -39,8 +39,22 @@ function nativeNodes(){
 }
 function point(node){const n=node.bounds.match(/\d+/g).map(Number);return [Math.round((n[0]+n[2])/2),Math.round((n[1]+n[3])/2)];}
 const matches=(n,label)=>n.text?.toLowerCase()===label.toLowerCase() || n['content-desc']?.toLowerCase()===label.toLowerCase() || n['resource-id']===label;
+async function nativeFind(label,timeout=20000){
+ return until(()=>{
+   const nodes=nativeNodes();
+   const node=nodes.find(n=>matches(n,label)&&n.enabled!=='false');
+   if(node)return node;
+   const list=nodes.find(n=>n.scrollable==='true' && n.class!=='android.webkit.WebView');
+   if(list){
+     const [left,top,right,bottom]=list.bounds.match(/\d+/g).map(Number);
+     const x=String(Math.round((left+right)/2));
+     adb('shell','input','swipe',x,String(bottom-60),x,String(top+60),'400');
+   }
+   return false;
+ },`Android button ${label}`,timeout);
+}
 async function nativeTap(label,timeout=20000){
- const node=await until(()=>nativeNodes().find(n=>matches(n,label)&&n.enabled!=='false'),`Android button ${label}`,timeout);
+ const node=await nativeFind(label,timeout);
  adb('shell','input','tap',...point(node).map(String));await pause(350);return node;
 }
 async function downloads(){
@@ -49,7 +63,7 @@ async function downloads(){
 async function pickFile(name){await downloads();await nativeTap('Sora-tests');await nativeTap(name);}
 async function pickFiles(names){
  await downloads();await nativeTap('Sora-tests');
- const first=await until(()=>nativeNodes().find(n=>matches(n,names[0])),'first multiple file');
+ const first=await nativeFind(names[0]);
  const [x,y]=point(first).map(String);adb('shell','input','swipe',x,y,x,y,'900');
  for(const name of names.slice(1))await nativeTap(name);
  const select=await until(()=>nativeNodes().find(n=>['Select','Open','com.google.android.documentsui:id/action_menu_select','com.android.documentsui:id/action_menu_select'].some(label=>matches(n,label))),'confirm multiple files');
@@ -140,12 +154,15 @@ try{
  await waitJs(()=>importBazyAktywny);await click('#cancelDatabaseImportBtn');await waitJs(()=>!importBazyAktywny);
  await page.unroute('**/api/baza/importuj');await queueDone();
  await click('#refreshDatabaseBtn');await waitJs(()=>document.querySelectorAll('.database-folder-group').length>0);
+ await page.locator('.database-documents-panel').evaluate(e=>e.open=true);
  const folder=page.locator('#databaseDocuments details').first();if(await folder.count())await folder.evaluate(e=>e.open=true);
  await waitJs(()=>document.querySelectorAll('[data-database-document-id]').length>0);
  await page.locator('[data-database-document-id]').first().evaluate(e=>e.click());await waitJs(()=>ostatnieDane!==null);
  done('stop adding and database refresh');
 
  await click('#expertModeBtn');
+ await click('#splitWorkspaceBtn');
+ await page.locator('#sourceTextDetails').evaluate(e=>e.open=true);
  await page.locator('#textInput').fill(article('TVN24','Eksperci ocenili skutki decyzji.'));
  await click('#analyzeBtn');await waitJs(()=>ostatnieDane && ostatnieDane.analysis_run_id && !document.getElementById('analyzeBtn').disabled);
  for(const selector of inventory.filter(s=>s.startsWith('[data-') && !s.includes('production-view'))){
@@ -192,8 +209,10 @@ try{
  JSON.parse((await exportButton('#downloadSameStoryComparisonBtn','audit-same-story.json')).toString());
  done('SQLite export, reanalysis, aggregate export, folder comparison and same-story comparison with JSON');
 
+ await page.locator('#manualBenchmarkPanel').evaluate(e=>e.open=true);
  await click('#loadBenchmarkSampleBtn');await waitJs(()=>benchmarkProba.length>0);await click('#saveBenchmarkLabelBtn');await waitJs(()=>benchmarkIndex===1);
  await click('#refreshBenchmarkStatsBtn');
+ await page.locator('#effectivenessGoldPanel').evaluate(e=>e.open=true);
  await click('#loadGoldSampleBtn');await waitJs(()=>goldProba.length>0);
  await page.locator('#goldExpectedJson').fill('not JSON');await click('#saveGoldDocumentBtn');assert.match(await page.locator('#goldStatus').textContent(),/Błąd JSON/);
  await page.locator('#goldExpectedJson').fill('[]');await click('#saveGoldDocumentBtn');await waitJs(()=>goldIndex===1);
