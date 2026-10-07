@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {mkdirSync,writeFileSync,readFileSync,copyFileSync} from 'node:fs';
-import {chromium} from 'playwright';
+import {_android as android} from 'playwright';
 
 const output='test-output';
 mkdirSync(`${output}/input/Sora-tests/RedakcjaA/Sub`,{recursive:true});
@@ -70,7 +70,7 @@ async function saveFile(name){
 }
 const api=async(path,options)=>{const r=await fetch(`http://127.0.0.1:15433${path}`,options);const value=await r.json();if(!r.ok)throw new Error(JSON.stringify(value));return value;};
 const queueDone=()=>until(async()=>{const s=await api('/api/baza/status');return s.stats.processing===0?s:false;},'queue drained',120000);
-let browser,page;
+let device,page;
 const clicked=new Set();const scenarios=[];const jsErrors=[];
 async function click(selector,real=false){
  const el=page.locator(selector).first();
@@ -98,9 +98,11 @@ try{
  adb('shell','am','start','-n','pl.drogowskazy.sora/.MainActivity');
  adb('forward','tcp:15433','tcp:5433');
  await until(()=>api('/api/health'),'APK server start',120000);
- await until(()=>{const sockets=adb('shell','cat','/proc/net/unix');const socket=sockets.match(/@?(webview_devtools_remote[_\w]*)/);if(!socket)return false;adb('forward','tcp:9222',`localabstract:${socket[1]}`);return true;},'WebView debug socket');
- browser=await chromium.connectOverCDP('http://127.0.0.1:9222');
- page=await until(()=>browser.contexts()[0]?.pages().find(p=>p.url().includes('127.0.0.1:5433')),'local panel');
+ const devices=await android.devices({omitDriverInstall:true});assert.equal(devices.length,1);
+ device=devices[0];device.setDefaultTimeout(120000);
+ const webview=await device.webView({pkg:'pl.drogowskazy.sora'});
+ page=await webview.page();
+ await until(()=>page.url().includes('127.0.0.1:5433'),'local panel');
  page.on('pageerror',e=>jsErrors.push(e.message));
  await waitJs(()=>window.__drogowskazyNativeInstalled && document.getElementById('backendStatusPill').classList.contains('backend-ok'));
  const inventory=await page.evaluate(()=>Array.from(document.querySelectorAll('button')).map(e=>e.id?`#${e.id}`:['productionView','expertView','previewView','userTextView','view','menuGroup'].map(key=>e.dataset[key]?`[data-${key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())}="${e.dataset[key]}"]`:null).find(Boolean)).filter(Boolean));
@@ -121,7 +123,7 @@ try{
  await waitJs(()=>!importBazyAktywny && document.getElementById('databaseImportFeedback').textContent.includes('duplikaty 1'));assert.equal((await queueDone()).stats.done,2);
  await click('#importFilesToDatabaseBtn',true);await pickFile('empty.txt');
  await waitJs(()=>document.getElementById('databaseImportFeedback').classList.contains('is-error'));
- assert.match(await page.locator('#databaseImportFeedback').textContent(),/pusty|empty/i);
+ assert.match(await page.locator('#databaseImportFeedback').textContent(),/pusty|empty|nie zawiera tekstu/i);
  await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,5);
  await click('#addCompareFolderBtn',true);await pickFolder('RedakcjaB');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,7);
  await click('#addCompareFolderPackBtn',true);await pickFolder();await waitJs(()=>!importBazyAktywny);assert.equal((await queueDone()).stats.done,7);
@@ -228,4 +230,4 @@ try{
  writeFileSync(`${output}/failure.txt`,error.stack || String(error));
  try{writeFileSync(`${output}/android-failure.png`,execFileSync('adb',['exec-out','screencap','-p']));writeFileSync(`${output}/logcat.txt`,adb('logcat','-d','-t','800'));}catch{}
  throw error;
-}finally{if(browser)await browser.close();}
+}finally{if(device)await device.close();}
