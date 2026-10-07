@@ -96,7 +96,12 @@ async function cancelPicker(){
  throw new Error('Document picker did not close after Back');
 }
 async function saveFile(name){
- await downloads();
+ const nodes=await until(()=>{const ns=nativeNodes();return ns.some(n=>/documentsui/.test(n.package||''))?ns:false;},'save picker ready');
+ // Both the raw filesystem root and Android's Downloads provider can save
+ // exports. The print spooler does not set our initial folder URI.
+ if(!nodes.some(n=>/:id\/header_title$/.test(n['resource-id']||'') && /^Files in Downloads?$/i.test(n.text||''))){
+  await nativeTap('Show roots');await nativeTap('Downloads');
+ }
  const edit=await until(()=>nativeNodes().find(n=>n.class==='android.widget.EditText'), 'Save filename');
  adb('shell','input','tap',...point(edit).map(String));
  adb('shell','input','keyevent','123');
