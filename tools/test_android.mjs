@@ -83,7 +83,9 @@ const done=label=>{scenarios.push(label);console.log(`PASS: ${label}`);};
 async function exportButton(selector,name){await click(selector);return saveFile(name);}
 async function databaseView(){await click('#userModeBtn');await click('[data-production-view="baza"]');}
 try{
- adb('push',`${output}/input/Sora-tests`,'/sdcard/Download/');
+ adb('root');adb('wait-for-device');
+ await until(()=>{try{adb('shell','mkdir','-p','/sdcard/Download/Sora-tests');return true;}catch{return false;}},'emulator shared storage ready');
+ adb('push',`${output}/input/Sora-tests/.`,'/sdcard/Download/Sora-tests/');
  adb('install','-r','app/build/outputs/apk/debug/app-debug.apk');
  adb('shell','pm','grant','pl.drogowskazy.sora','android.permission.POST_NOTIFICATIONS');
  adb('shell','am','start','-n','pl.drogowskazy.sora/.MainActivity');
