@@ -73,10 +73,10 @@ def exercise(window,home):
     def finish():
         from PIL import ImageGrab
         window.root.update_idletasks()
-        assert window.evidence.winfo_ismapped() and window.evidence.winfo_height()>60,'Source evidence panel is clipped'
-        assert window.evidence.winfo_rooty()+window.evidence.winfo_height()<=window.root.winfo_rooty()+window.root.winfo_height(),'Evidence below window'
         x,y=window.root.winfo_rootx(),window.root.winfo_rooty();w,h=window.root.winfo_width(),window.root.winfo_height()
         ImageGrab.grab(bbox=(x,y,x+w,y+h)).save(home/'SORA_WYNIK.png')
+        assert window.evidence.winfo_ismapped() and window.evidence.winfo_height()>60,f'Source evidence panel clipped: height={window.evidence.winfo_height()}, window={h}'
+        assert window.evidence.winfo_rooty()+window.evidence.winfo_height()<=y+h,'Evidence below window'
         (home/'smoke-ok.json').write_text(json.dumps({'native_window':True,'engine_phone_parity':True,'database_restart_and_duplicates':True,'safe_restore':True,'benchmark_and_gold':True,'readable_views':True,'report_same_analysis':True,'pdf_polish_font':True,**window.engine.identity},indent=2),encoding='utf-8')
         window.close()
     # No blocking error dialogs in unattended test builds.

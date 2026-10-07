@@ -178,7 +178,7 @@ class Window(Operations):
                 self.expert_selector.pack(fill='x',pady=8);self.expert_selector.bind('<<ComboboxSelected>>',lambda _e:self.render_expert())
             view=RichView(frame);view.text.configure(height=10);view.pack(fill='both',expand=True);self.result_views[key]=view
             view.clear();view.title('Jeszcze nie ma wyniku');view.add('Uruchom analizę dokumentu lub otwórz zapisany wynik z bazy.','muted');view.finish()
-        self.source_panel=ttk.Labelframe(self.results_tab,text='Fragment źródłowy');self.source_panel.pack(fill='x',pady=(10,0))
+        self.source_panel=ttk.Labelframe(self.results_tab,text='Fragment źródłowy');self.source_panel.pack(side='bottom',fill='x',pady=(10,0),before=self.result_modes)
         self.evidence=self.text_widget(self.source_panel,5);self.evidence.pack(fill='x');self.evidence.configure(state='disabled')
         self.evidence.tag_configure('match',background='#2b6f5c',foreground='white')
 
