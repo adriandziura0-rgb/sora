@@ -7,6 +7,7 @@ import socket
 import sqlite3
 import sys
 import tempfile
+import threading
 import time
 import urllib.request
 import zipfile
@@ -48,6 +49,12 @@ with tempfile.TemporaryDirectory(prefix="sora-runtime-test-") as tmp:
     try:
         assert bootstrap.start(str(runtime), port).startswith("started:")
         assert bootstrap.start(str(runtime), port).startswith("already_running:")
+        slow_started, release_slow = threading.Event(), threading.Event()
+        def slow_request():
+            slow_started.set()
+            assert release_slow.wait(10), "Test request was never released"
+            return "finished"
+        bootstrap._MODULE.app.add_url_rule("/test/slow", view_func=slow_request)
         health = json.loads(get("/api/health"))
         assert health["ok"] and health["background_service"]
         assert health["wersja"].startswith("4.5.12")
@@ -67,7 +74,18 @@ with tempfile.TemporaryDirectory(prefix="sora-runtime-test-") as tmp:
         with sqlite3.connect(backup) as db:
             assert db.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
             assert db.execute("SELECT count(*) FROM documents WHERE status='done'").fetchone()[0] == 2
-        assert bootstrap.stop() == "stopped"
+        response, stop_result = [], []
+        request_thread = threading.Thread(target=lambda: response.append(get("/test/slow")))
+        request_thread.start()
+        assert slow_started.wait(5)
+        stop_thread = threading.Thread(target=lambda: stop_result.append(bootstrap.stop()))
+        stop_thread.start()
+        time.sleep(0.7)
+        assert stop_thread.is_alive(), "Shutdown must wait for the running HTTP request"
+        release_slow.set()
+        request_thread.join(10)
+        stop_thread.join(10)
+        assert response == [b"finished"] and stop_result == ["stopped"]
         assert not bootstrap.is_running()
         assert bootstrap.start(str(runtime), port).startswith("started:")
         status = json.loads(get("/api/baza/status"))
@@ -75,7 +93,7 @@ with tempfile.TemporaryDirectory(prefix="sora-runtime-test-") as tmp:
         assert status["background_import"]["recovered_after_restart"] == 0
         with sqlite3.connect(database) as db:
             assert db.execute("SELECT updated_at,analysis_gzip,attempts FROM documents WHERE id=?", (done_id,)).fetchone() == done_before
-        print("PASS: packaged runtime, server start, resumed pending queue, done records unchanged, SQLite export, restart")
+        print("PASS: packaged runtime, server start, resumed pending queue, done records unchanged, SQLite export, safe HTTP drain, restart")
     finally:
         bootstrap.stop()
         os.chdir(original_cwd)

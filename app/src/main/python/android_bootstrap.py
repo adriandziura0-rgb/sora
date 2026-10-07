@@ -21,6 +21,53 @@ _THREAD: Optional[threading.Thread] = None
 _MODULE = None
 _PROJECT_DIR: Optional[str] = None
 _LAST_ERROR = ""
+_REQUESTS = None
+
+
+class _TrackedRequests:
+    """Nie pozwala podmienić programu/bazy podczas trwającego żądania HTTP."""
+
+    def __init__(self, app):
+        self.app = app
+        self.condition = threading.Condition()
+        self.active = 0
+        self.closing = False
+
+    def __call__(self, environ, start_response):
+        with self.condition:
+            if self.closing:
+                start_response("503 Service Unavailable", [("Content-Type", "application/json")])
+                return [b'{"ok":false,"blad":"serwer_jest_zatrzymywany"}']
+            self.active += 1
+        try:
+            response = self.app(environ, start_response)
+        except BaseException:
+            self.finished()
+            raise
+
+        def stream():
+            try:
+                yield from response
+            finally:
+                try:
+                    if hasattr(response, "close"):
+                        response.close()
+                finally:
+                    self.finished()
+        return stream()
+
+    def finished(self):
+        with self.condition:
+            self.active -= 1
+            self.condition.notify_all()
+
+    def begin_stop(self):
+        with self.condition:
+            self.closing = True
+
+    def wait_idle(self, timeout):
+        with self.condition:
+            return self.condition.wait_for(lambda: self.active == 0, timeout=timeout)
 
 
 def _purge_runtime_modules() -> None:
@@ -63,20 +110,18 @@ def _load_app(project_dir: str):
 
 def start(project_dir: str, port: int = 5433) -> str:
     """Uruchom serwer, jeśli jeszcze nie działa. Wywołanie jest idempotentne."""
-    global _SERVER, _THREAD, _PROJECT_DIR, _LAST_ERROR
+    global _SERVER, _THREAD, _PROJECT_DIR, _LAST_ERROR, _REQUESTS
     project_dir = str(Path(project_dir).resolve())
     port = int(port)
     with _LOCK:
         if _THREAD is not None and _THREAD.is_alive() and _PROJECT_DIR == project_dir:
             return f"already_running:{port}"
         try:
-            if _SERVER is not None:
-                try:
-                    _SERVER.shutdown()
-                except Exception:
-                    pass
+            if _MODULE is not None or _SERVER is not None:
+                stop()
             flask_app = _load_app(project_dir)
-            _SERVER = make_server("127.0.0.1", port, flask_app, threaded=True)
+            _REQUESTS = _TrackedRequests(flask_app)
+            _SERVER = make_server("127.0.0.1", port, _REQUESTS, threaded=True)
             _THREAD = threading.Thread(
                 target=_SERVER.serve_forever,
                 name="DrogowskazyFlask",
@@ -92,16 +137,23 @@ def start(project_dir: str, port: int = 5433) -> str:
 
 
 def stop() -> str:
-    global _SERVER, _THREAD, _PROJECT_DIR, _MODULE, _LAST_ERROR
+    global _SERVER, _THREAD, _PROJECT_DIR, _MODULE, _LAST_ERROR, _REQUESTS
     with _LOCK:
+        if _REQUESTS is not None:
+            _REQUESTS.begin_stop()
         if _SERVER is not None:
             try:
                 _SERVER.shutdown()
             finally:
+                _SERVER.server_close()
                 _SERVER = None
         if _THREAD is not None:
             _THREAD.join(timeout=5.0)
             _THREAD = None
+
+        if _REQUESTS is not None and not _REQUESTS.wait_idle(45.0):
+            _LAST_ERROR = "Żądanie HTTP jeszcze zapisuje wynik. Podmiana programu lub bazy została zatrzymana."
+            raise RuntimeError(_LAST_ERROR)
 
         # Nowsze runtime'y udostępniają hook zatrzymujący worker kolejki SQLite.
         # Najpierw przestajemy przyjmować HTTP, potem czekamy na aktywny zapis.
@@ -116,6 +168,7 @@ def stop() -> str:
                 raise
 
         _MODULE = None
+        _REQUESTS = None
         _PROJECT_DIR = None
     return "stopped"
 
