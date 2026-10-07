@@ -2,7 +2,7 @@
 // All documents below are disposable test fixtures, never the user's database.
 import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
-import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
+import {mkdirSync,writeFileSync,readFileSync,copyFileSync} from 'node:fs';
 import {chromium} from 'playwright';
 
 const output='test-output';
@@ -22,6 +22,7 @@ const fixtures={
 };
 for(const [name,text] of Object.entries(fixtures))writeFileSync(`${output}/input/Sora-tests/${name}`,text);
 writeFileSync(`${output}/input/Sora-tests/RedakcjaA/too-large.txt`,Buffer.alloc(3*1024*1024,65));
+copyFileSync('app/src/main/assets/drogowskazy-runtime.zip',`${output}/input/Sora-tests/runtime.zip`);
 const adb=(...args)=>execFileSync('adb',args,{encoding:'utf8',timeout:45000}).trim();
 const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 const until=async(test,label,timeout=60000)=>{
@@ -83,8 +84,14 @@ const done=label=>{scenarios.push(label);console.log(`PASS: ${label}`);};
 async function exportButton(selector,name){await click(selector);return saveFile(name);}
 async function databaseView(){await click('#userModeBtn');await click('[data-production-view="baza"]');}
 try{
- adb('root');adb('wait-for-device');
- await until(()=>{try{adb('shell','mkdir','-p','/sdcard/Download/Sora-tests');return true;}catch{return false;}},'emulator shared storage ready');
+ await until(()=>{
+   try{
+     if(adb('get-state')!=='device')return false;
+     adb('shell','mkdir','-p','/sdcard/Download/Sora-tests');
+     adb('shell','touch','/sdcard/Download/Sora-tests/.ready');
+     return true;
+   }catch{return false;}
+ },'emulator shared storage ready',120000);
  adb('push',`${output}/input/Sora-tests/.`,'/sdcard/Download/Sora-tests/');
  adb('install','-r','app/build/outputs/apk/debug/app-debug.apk');
  adb('shell','pm','grant','pl.drogowskazy.sora','android.permission.POST_NOTIFICATIONS');
@@ -200,6 +207,10 @@ try{
  await nativeTap('Uruchom ponownie usługę');await until(()=>nativeNodes().some(n=>n.text==='Program działa w tle.'),'restart after rejected backup',120000);
  assert.equal((await queueDone()).stats.done,7);
  await nativeTap('Wybierz / zaktualizuj ZIP Drogowskazów');adb('shell','input','keyevent','4');
+ const updated=page.waitForEvent('load',{timeout:120000});
+ await nativeTap('Wybierz / zaktualizuj ZIP Drogowskazów');await pickFile('runtime.zip');
+ await updated;await waitJs(()=>window.__drogowskazyNativeInstalled);assert.equal((await queueDone()).stats.done,7);
+ await click('#appSettingsBtn',true);
  await nativeTap('Zatrzymaj pracę w tle');await until(async()=>{try{await api('/api/health');return false;}catch{return true;}},'service stopped',60000);
  await nativeTap('Uruchom ponownie usługę');await until(()=>api('/api/health'),'service resumed',120000);assert.equal((await queueDone()).stats.done,7);
  await nativeTap('Otwórz panel Drogowskazów');await waitJs(()=>window.__drogowskazyNativeInstalled);
@@ -207,7 +218,7 @@ try{
  assert.equal(await page.locator('.user-result-card').count(),0);
  assert.equal(await page.locator('#statementRelationsSection').textContent(),'');
  assert.equal(await page.locator('#printReport').textContent(),'');
- done('app settings, battery screen, actual service restart/stop/resume, valid restore, invalid restore preserves SQLite, ZIP picker cancellation, clear');
+ done('app settings, battery screen, actual service restart/stop/resume, valid restore, invalid restore preserves SQLite, ZIP cancellation/update preserves SQLite, clear');
  const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
  writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.3',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
