@@ -121,7 +121,7 @@ async function saveFile(name){
 const api=async(path,options)=>{const r=await fetch(`http://127.0.0.1:15433${path}`,options);const value=await r.json();if(!r.ok)throw new Error(JSON.stringify(value));return value;};
 const queueDone=()=>until(async()=>{const s=await api('/api/baza/status');return s.stats.processing===0?s:false;},'queue drained',120000);
 let device,page;
-const clicked=new Set();const scenarios=[];const jsErrors=[];let importResponses=0;
+const clicked=new Set();const scenarios=[];const jsErrors=[];const testFailures=[];let importResponses=0;
 async function click(selector,real=false){
  const el=page.locator(selector).first();
  assert.equal(await el.count(),1,`Missing ${selector}`);
@@ -158,7 +158,7 @@ try{
  const webview=await device.webView({pkg:'pl.drogowskazy.sora'});
  page=await webview.page();
  await until(()=>page.url().includes('127.0.0.1:5433'),'local panel');
- page.on('pageerror',e=>jsErrors.push(e.message));
+ page.on('pageerror',e=>{jsErrors.push(e.message);console.error('WEBVIEW_ERROR',e.message);});
  page.on('response',r=>{if(new URL(r.url()).pathname==='/api/baza/importuj')importResponses++;});
  await waitJs(()=>window.__drogowskazyNativeInstalled && document.getElementById('backendStatusPill').classList.contains('backend-ok'));
  const inventory=await page.evaluate(()=>Array.from(document.querySelectorAll('button')).map(e=>e.id?`#${e.id}`:['productionView','expertView','previewView','userTextView','view','menuGroup'].map(key=>e.dataset[key]?`[data-${key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())}="${e.dataset[key]}"]`:null).find(Boolean)).filter(Boolean));
@@ -259,12 +259,27 @@ try{
  JSON.parse((await exportButton('#downloadResultsBtn','audit-results.json')).toString());
  assert.ok((await exportButton('#downloadMdBtn','audit-report.md')).length>100);
  JSON.parse((await exportButton('#downloadJsonBtn','audit-report.json')).toString());
- await click('#printPdfBtn');
- const print=await until(()=>nativeNodes().find(n=>/:id\/print_button$/.test(n['resource-id']||'') && n.enabled==='true'),'Save PDF print button');
- adb('shell','input','tap',...point(print).map(String));
- const pdf=await saveFile('audit-report.pdf');assert.equal(pdf.subarray(0,5).toString(),'%PDF-');assert.ok(pdf.length>1000);
- await until(()=>nativeNodes().some(n=>n.package==='pl.drogowskazy.sora'),'print returns to application');
- done('analysis, suggestions, all navigation/filter/window buttons, report, native clipboard, JSON/MD/PDF export');
+ done('analysis, suggestions, all navigation/filter/window buttons, report, native clipboard, JSON/MD export');
+ try{
+  await click('#printPdfBtn');
+  const print=await until(()=>nativeNodes().find(n=>/:id\/print_button$/.test(n['resource-id']||'') && n.enabled==='true'),'Save PDF print button');
+  adb('shell','input','tap',...point(print).map(String));
+  const pdf=await saveFile('audit-report.pdf');assert.equal(pdf.subarray(0,5).toString(),'%PDF-');assert.ok(pdf.length>1000);
+  await until(()=>nativeNodes().some(n=>n.package==='pl.drogowskazy.sora'),'print returns to application');
+  done('native PDF report export');
+ }catch(error){
+  testFailures.push('PDF: '+error.message);
+  console.error('PDF_FAILURE',JSON.stringify({error:error.message,jsErrors,native:nativeNodes().map(n=>({package:n.package,text:n.text,id:n['resource-id'],description:n['content-desc'],enabled:n.enabled}))}));
+  console.error('PDF_LOGCAT',adb('logcat','-d','-t','500').split('\n').filter(l=>/print|chromium|Exception|FATAL|WebView|javascript/i.test(l)).join('\n'));
+  writeFileSync(`${output}/android-pdf-failure.png`,execFileSync('adb',['exec-out','screencap','-p']));
+  for(let i=0;i<6;i++){
+   const nodes=nativeNodes();
+   if(nodes.some(n=>n.package==='pl.drogowskazy.sora'))break;
+   adb('shell','input','keyevent','4');await pause(350);
+  }
+  if(nativeNodes().some(n=>matches(n,'Otwórz panel Drogowskazów')))await nativeTap('Otwórz panel Drogowskazów');
+  await waitJs(()=>window.__drogowskazyNativeInstalled);
+ }
 
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const backup=await exportButton('#downloadDatabaseBtn','audit-backup.sqlite3');assert.equal(backup.subarray(0,16).toString(),'SQLite format 3\0');
@@ -320,13 +335,16 @@ try{
  assert.equal(await page.locator('#statementRelationsSection').textContent(),'');
  assert.equal(await page.locator('#printReport').textContent(),'');
  done('app settings, battery screen, actual service restart/stop/resume, valid restore, invalid restore preserves SQLite, ZIP cancellation/update preserves SQLite, clear');
+ assert.deepEqual(testFailures,[],`Integration failures: ${testFailures.join('; ')}`);
  const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
  writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.3',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){
- console.error('FAILURE_STATE',JSON.stringify({scenarios,clicked:[...clicked]}));
+ console.error('FAILURE_STATE',JSON.stringify({scenarios,clicked:[...clicked],testFailures,jsErrors}));
+ try{console.error('FAILURE_NATIVE',JSON.stringify(nativeNodes().map(n=>({package:n.package,text:n.text,id:n['resource-id'],description:n['content-desc'],enabled:n.enabled}))));}catch{}
+ try{console.error('FAILURE_WEB',JSON.stringify(await page.evaluate(()=>({mode:document.body.dataset.interfaceMode,result:!!ostatnieDane,statuses:Array.from(document.querySelectorAll('[id$="Status"],[id$="Feedback"]')).map(e=>({id:e.id,text:e.textContent}))}))));}catch{}
  writeFileSync(`${output}/failure.txt`,error.stack || String(error));
  try{writeFileSync(`${output}/web-state.json`,JSON.stringify(await page.evaluate(()=>({classes:document.body.className,buttons:Array.from(document.querySelectorAll('button[id]')).map(e=>({id:e.id,disabled:e.disabled,visible:!!e.getClientRects().length})),statuses:Array.from(document.querySelectorAll('[id$="Status"],[id$="Feedback"]')).map(e=>({id:e.id,text:e.textContent})),details:Array.from(document.querySelectorAll('details[id]')).map(e=>({id:e.id,open:e.open}))})),null,2));}catch{}
  try{writeFileSync(`${output}/android-failure.png`,execFileSync('adb',['exec-out','screencap','-p']));writeFileSync(`${output}/logcat.txt`,adb('logcat','-d','-t','800'));}catch{}
