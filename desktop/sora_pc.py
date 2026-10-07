@@ -73,7 +73,7 @@ class Window(Operations):
         self.session=home/'session.json';self.buttons=[];self.offset=0;self.cancel_import=threading.Event()
         self.samples={'benchmark':[],'gold':[]};self.sample_index={'benchmark':0,'gold':0}
         self.status=tk.StringVar(value='Gotowy do pracy');self.stats=tk.StringVar(value='Baza dokumentów jest gotowa.')
-        root.title('Drogowskazy Sora');root.geometry('1280x850');root.minsize(1020,700);root.configure(bg=BG)
+        root.title('Drogowskazy Sora');root.geometry(f'{min(1280,root.winfo_screenwidth()-40)}x{min(850,root.winfo_screenheight()-100)}');root.minsize(980,640);root.configure(bg=BG)
         style=ttk.Style(root);style.theme_use('clam')
         style.configure('.',background=BG,foreground=FG,font=('Segoe UI',10))
         style.configure('TFrame',background=BG);style.configure('TLabel',background=BG,foreground=FG)
@@ -132,6 +132,9 @@ class Window(Operations):
         try:
             state=json.loads(self.session.read_text('utf-8'));self.editor.insert('1.0',state.get('text',''));root.geometry(state.get('geometry','1280x850'))
         except (OSError,ValueError,tk.TclError):pass
+        root.update_idletasks()
+        if root.winfo_width()>root.winfo_screenwidth()-20 or root.winfo_height()>root.winfo_screenheight()-80:
+            root.geometry(f'{max(980,min(root.winfo_width(),root.winfo_screenwidth()-40))}x{max(640,min(root.winfo_height(),root.winfo_screenheight()-100))}+10+25')
         self.navigate('editor');root.after(100,self.poll);root.after(400,self.refresh);root.after(5000,self.autosave);root.after(2000,self.tick)
 
     def navigate(self,key):self.tabs.select(self.pages[key]);self.sync_navigation()

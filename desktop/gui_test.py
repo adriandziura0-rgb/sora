@@ -14,6 +14,7 @@ def stable(value):
 
 
 def exercise(window,home):
+    window.root.geometry(f'{max(980,min(1280,window.root.winfo_screenwidth()-40))}x{max(640,min(850,window.root.winfo_screenheight()-100))}+10+25')
     reference=json.loads((Path(sys._MEIPASS)/'engine-reference.json').read_text('utf-8'))
     def job():
         engine=window.engine
