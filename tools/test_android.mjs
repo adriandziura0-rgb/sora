@@ -147,6 +147,7 @@ try{
  await waitJs(()=>document.getElementById('databaseImportFeedback').classList.contains('is-error'));
  assert.match(await page.locator('#databaseImportFeedback').textContent(),/pusty|empty|nie zawiera tekstu/i);
  await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,5);
+ await page.locator('#databaseComparePanel > summary').click();
  await click('#addCompareFolderBtn',true);await pickFolder('RedakcjaB');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,7);
  await click('#addCompareFolderPackBtn',true);await pickFolder();await waitJs(()=>!importBazyAktywny);assert.equal((await queueDone()).stats.done,7);
  await click('#importFolderToDatabaseBtn',true);await nativeTap('Show roots');adb('shell','input','keyevent','4');adb('shell','input','keyevent','4');await pause(500);
@@ -201,7 +202,7 @@ try{
  JSON.parse((await exportButton('#downloadResultsBtn','audit-aggregate.json')).toString());
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  await page.locator('#databaseComparePanel').evaluate(e=>e.open=true);
- await page.locator('#databaseCompareMode').selectOption('folder');await waitJs(()=>document.getElementById('databaseCompareGroups').options.length>=2);
+ await page.locator('#databaseCompareMode').selectOption('folder');await page.evaluate(()=>odswiezGrupyPorownania());await waitJs(()=>document.getElementById('databaseCompareGroups').options.length>=2);
  await page.evaluate(()=>{const s=document.getElementById('databaseCompareGroups');Array.from(s.options).forEach((o,i)=>o.selected=i<2);s.dispatchEvent(new Event('change'));});
  await click('#compareDatabaseBtn');await waitJs(()=>ostatniePorownanieBazy!==null);
  JSON.parse((await exportButton('#downloadDatabaseComparisonBtn','audit-comparison.json')).toString());
