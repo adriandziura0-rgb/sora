@@ -64,6 +64,14 @@ async function nativeTap(label,timeout=20000){
  adb('shell','input','tap',...point(node).map(String));await pause(350);return node;
 }
 async function downloads(){
+ const nodes=await until(()=>{const ns=nativeNodes();return ns.some(n=>/documentsui/.test(n.package||''))?ns:false;},'document picker ready');
+ if(nodes.some(n=>matches(n,'Sora-tests')))return;
+ // Our own pickers set Downloads explicitly. Android's print spooler may
+ // instead remember a different provider, so navigate through local storage.
+ await nativeTap('Show roots');
+ const storage=await until(()=>nativeNodes().find(n=>n.enabled!=='false' && /sdk_gphone|Internal storage/i.test(n.text||n['content-desc']||'')),'local storage root');
+ adb('shell','input','tap',...point(storage).map(String));await pause(350);
+ await nativeTap('Download');
  await until(()=>nativeNodes().some(n=>matches(n,'Sora-tests')),'picker opens filesystem Downloads');
 }
 async function pickFile(name){await downloads();await nativeTap('Sora-tests');await nativeTap(name);}
@@ -93,7 +101,7 @@ async function saveFile(name){
 const api=async(path,options)=>{const r=await fetch(`http://127.0.0.1:15433${path}`,options);const value=await r.json();if(!r.ok)throw new Error(JSON.stringify(value));return value;};
 const queueDone=()=>until(async()=>{const s=await api('/api/baza/status');return s.stats.processing===0?s:false;},'queue drained',120000);
 let device,page;
-const clicked=new Set();const scenarios=[];const jsErrors=[];
+const clicked=new Set();const scenarios=[];const jsErrors=[];let importResponses=0;
 async function click(selector,real=false){
  const el=page.locator(selector).first();
  assert.equal(await el.count(),1,`Missing ${selector}`);
@@ -102,9 +110,14 @@ async function click(selector,real=false){
  clicked.add(selector);await pause(120);
 }
 const waitJs=condition=>page.waitForFunction(condition,null,{timeout:120000});
-const done=label=>{scenarios.push(label);console.log(`PASS: ${label}`);};
+const done=label=>{scenarios.push(label);writeFileSync(`${output}/progress.json`,JSON.stringify({scenarios,clicked:[...clicked]},null,2));console.log(`PASS: ${label}`);};
 async function exportButton(selector,name){await click(selector);return saveFile(name);}
 async function databaseView(){await click('#userModeBtn');await click('[data-production-view="baza"]');}
+async function importAndWait(selector,picker,requests){
+ const expected=importResponses+requests;
+ await click(selector,true);await picker();
+ await until(async()=>importResponses>=expected && !await page.evaluate(()=>importBazyAktywny),'selected files uploaded',120000);
+}
 try{
  await until(()=>{
    try{
@@ -126,6 +139,7 @@ try{
  page=await webview.page();
  await until(()=>page.url().includes('127.0.0.1:5433'),'local panel');
  page.on('pageerror',e=>jsErrors.push(e.message));
+ page.on('response',r=>{if(new URL(r.url()).pathname==='/api/baza/importuj')importResponses++;});
  await waitJs(()=>window.__drogowskazyNativeInstalled && document.getElementById('backendStatusPill').classList.contains('backend-ok'));
  const inventory=await page.evaluate(()=>Array.from(document.querySelectorAll('button')).map(e=>e.id?`#${e.id}`:['productionView','expertView','previewView','userTextView','view','menuGroup'].map(key=>e.dataset[key]?`[data-${key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())}="${e.dataset[key]}"]`:null).find(Boolean)).filter(Boolean));
  done('APK first start, embedded runtime, HTTP health, real Android WebView bridge');
@@ -139,20 +153,20 @@ try{
  done('real SAF single/append/multiple file pickers, recursive folder, unsupported and oversized skips');
 
  await databaseView();
- await click('#importFilesToDatabaseBtn',true);await pickFiles(['single.txt','second.txt']);
- await waitJs(()=>!importBazyAktywny);let state=await queueDone();assert.equal(state.stats.done,2);
- await click('#importFilesToDatabaseBtn',true);await pickFile('single.txt');
+ await importAndWait('#importFilesToDatabaseBtn',()=>pickFiles(['single.txt','second.txt']),2);
+ let state=await queueDone();assert.equal(state.stats.done,2);
+ await importAndWait('#importFilesToDatabaseBtn',()=>pickFile('single.txt'),1);
  await waitJs(()=>!importBazyAktywny && document.getElementById('databaseImportFeedback').textContent.includes('duplikaty 1'));assert.equal((await queueDone()).stats.done,2);
- await click('#importFilesToDatabaseBtn',true);await pickFile('empty.txt');
+ await importAndWait('#importFilesToDatabaseBtn',()=>pickFile('empty.txt'),1);
  await waitJs(()=>document.getElementById('databaseImportFeedback').classList.contains('is-error'));
  assert.match(await page.locator('#databaseImportFeedback').textContent(),/pusty|empty|nie zawiera tekstu/i);
- await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,5);
+ await importAndWait('#importFolderToDatabaseBtn',()=>pickFolder('RedakcjaA'),3);state=await queueDone();assert.equal(state.stats.done,5);
  await page.locator('#databaseComparePanel > summary').click();
- await click('#addCompareFolderBtn',true);await pickFolder('RedakcjaB');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,7);
- await click('#addCompareFolderPackBtn',true);await pickFolder();await waitJs(()=>!importBazyAktywny);assert.equal((await queueDone()).stats.done,7);
+ await importAndWait('#addCompareFolderBtn',()=>pickFolder('RedakcjaB'),2);state=await queueDone();assert.equal(state.stats.done,7);
+ await importAndWait('#addCompareFolderPackBtn',()=>pickFolder(),5);assert.equal((await queueDone()).stats.done,7);
  await click('#importFolderToDatabaseBtn',true);await nativeTap('Show roots');adb('shell','input','keyevent','4');adb('shell','input','keyevent','4');await pause(500);
  assert.equal(await page.evaluate(()=>wymusKlasycznyPickerFolderuBazy),false);
- await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);
+ await importAndWait('#importFolderToDatabaseBtn',()=>pickFolder('RedakcjaA'),3);
  done('real SQLite import: files, duplicate, empty-file error retained, folders, nested HTML, folder pack, cancellation and retry');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
@@ -192,8 +206,12 @@ try{
  JSON.parse((await exportButton('#downloadResultsBtn','audit-results.json')).toString());
  assert.ok((await exportButton('#downloadMdBtn','audit-report.md')).length>100);
  JSON.parse((await exportButton('#downloadJsonBtn','audit-report.json')).toString());
- await click('#printPdfBtn');await nativeTap('Save as PDF');adb('shell','input','keyevent','4');adb('shell','input','keyevent','4');await pause(500);
- done('analysis, suggestions, all navigation/filter/window buttons, report, native clipboard, JSON/MD export and Android print dialog');
+ await click('#printPdfBtn');
+ const print=await until(()=>nativeNodes().find(n=>/:id\/print_button$/.test(n['resource-id']||'') && n.enabled==='true'),'Save PDF print button');
+ adb('shell','input','tap',...point(print).map(String));
+ const pdf=await saveFile('audit-report.pdf');assert.equal(pdf.subarray(0,5).toString(),'%PDF-');assert.ok(pdf.length>1000);
+ await until(()=>nativeNodes().some(n=>n.package==='pl.drogowskazy.sora'),'print returns to application');
+ done('analysis, suggestions, all navigation/filter/window buttons, report, native clipboard, JSON/MD/PDF export');
 
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const backup=await exportButton('#downloadDatabaseBtn','audit-backup.sqlite3');assert.equal(backup.subarray(0,16).toString(),'SQLite format 3\0');
@@ -256,6 +274,7 @@ try{
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){
  writeFileSync(`${output}/failure.txt`,error.stack || String(error));
+ try{writeFileSync(`${output}/web-state.json`,JSON.stringify(await page.evaluate(()=>({classes:document.body.className,buttons:Array.from(document.querySelectorAll('button[id]')).map(e=>({id:e.id,disabled:e.disabled,visible:!!e.getClientRects().length})),statuses:Array.from(document.querySelectorAll('[id$="Status"],[id$="Feedback"]')).map(e=>({id:e.id,text:e.textContent})),details:Array.from(document.querySelectorAll('details[id]')).map(e=>({id:e.id,open:e.open}))})),null,2));}catch{}
  try{writeFileSync(`${output}/android-failure.png`,execFileSync('adb',['exec-out','screencap','-p']));writeFileSync(`${output}/logcat.txt`,adb('logcat','-d','-t','800'));}catch{}
  throw error;
 }finally{if(device)await device.close();}
