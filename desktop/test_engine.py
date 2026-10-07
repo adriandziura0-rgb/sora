@@ -59,6 +59,8 @@ Path(sys.argv[3]).write_text(json.dumps(results,ensure_ascii=False),encoding='ut
     comparison=e.request('/api/baza/porownanie?'+urlencode([('mode','folder')]+[('group',g['id']) for g in groups]))
     assert comparison
     e.backup(Path(tmp)/'copy.sqlite3')
-    with sqlite3.connect(Path(tmp)/'copy.sqlite3') as db:assert db.execute('pragma integrity_check').fetchone()[0]=='ok'
+    db=sqlite3.connect(Path(tmp)/'copy.sqlite3')
+    try:assert db.execute('pragma integrity_check').fetchone()[0]=='ok'
+    finally:db.close()
     (Path(tmp)/'identity.json').write_text(json.dumps(e.identity))
     print('PASS: unchanged shared engine, four PHONE/PC parity cases, report consistency, native file adapter, queue, duplicate detection, group comparison, SQLite backup')
