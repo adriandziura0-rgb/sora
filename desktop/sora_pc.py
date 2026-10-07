@@ -176,7 +176,7 @@ class Window(Operations):
             if key=='expert':
                 self.expert_mode=tk.StringVar();self.expert_selector=ttk.Combobox(frame,textvariable=self.expert_mode,state='readonly')
                 self.expert_selector.pack(fill='x',pady=8);self.expert_selector.bind('<<ComboboxSelected>>',lambda _e:self.render_expert())
-            view=RichView(frame);view.pack(fill='both',expand=True);self.result_views[key]=view
+            view=RichView(frame);view.text.configure(height=10);view.pack(fill='both',expand=True);self.result_views[key]=view
             view.clear();view.title('Jeszcze nie ma wyniku');view.add('Uruchom analizę dokumentu lub otwórz zapisany wynik z bazy.','muted');view.finish()
         self.source_panel=ttk.Labelframe(self.results_tab,text='Fragment źródłowy');self.source_panel.pack(fill='x',pady=(10,0))
         self.evidence=self.text_widget(self.source_panel,5);self.evidence.pack(fill='x');self.evidence.configure(state='disabled')
