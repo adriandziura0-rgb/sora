@@ -194,7 +194,15 @@ try{
     clicked.add(selector);
   }else await click(selector);
  }
- for(const id of ['splitWorkspaceBtn','resultsFocusBtn','clearSectionMenuSearch','openAllWindowsBtn','openSublevelsBtn','closeSublevelsBtn','closeAllWindowsBtn','singleWindowModeBtn','previousSectionBtn','nextSectionBtn','openResultsMenuBtn'])await click(`#${id}`);
+ for(const id of ['splitWorkspaceBtn','resultsFocusBtn','clearSectionMenuSearch','openAllWindowsBtn','openSublevelsBtn','closeSublevelsBtn','closeAllWindowsBtn','singleWindowModeBtn','openResultsMenuBtn'])await click(`#${id}`);
+ const sections=await page.evaluate(()=>Array.from(document.querySelectorAll('#sectionViewMenu .view-btn')).filter(e=>!e.disabled && e.getAttribute('aria-disabled')!=='true').map(e=>e.dataset.view));
+ assert.ok(sections.length>1);
+ assert.equal(await page.locator('#previousSectionBtn').isDisabled(),false);
+ assert.equal(await page.locator('#nextSectionBtn').isDisabled(),false);
+ await click('#previousSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections.at(-1));
+ await click('#openAllWindowsBtn');await click('#nextSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[0]);
+ await click('#nextSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[1]);
+ await click('#previousSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[0]);
  const windowButton=page.locator('.readable-window').first();assert.ok(await windowButton.count());await windowButton.evaluate(e=>e.click());
  assert.equal(await page.locator('#sectionWindowDialog').evaluate(e=>e.open),true);await click('#closeSectionWindowBtn');
  await click('#userModeBtn');
