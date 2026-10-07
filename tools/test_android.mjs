@@ -107,7 +107,14 @@ async function saveFile(name){
  adb('shell','input','keyevent','123');
  adb('shell','input','keyevent',...Array(Math.max(1,edit.text.length)).fill('67'));
  adb('shell','input','text',name);await nativeTap('Save');
- await until(()=>{try{return adb('shell','ls',`/sdcard/Download/${name}`).includes(name);}catch{return false;}},`saved ${name}`);
+ let previousSize=-1,stable=0;
+ await until(()=>{
+  try{
+   const size=Number(adb('shell','stat','-c','%s',`/sdcard/Download/${name}`));
+   stable=size>0 && size===previousSize?stable+1:0;previousSize=size;
+   return stable>=3;
+  }catch{return false;}
+ },`saved and closed ${name}`,120000);
  adb('pull',`/sdcard/Download/${name}`,`${output}/${name}`);
  return readFileSync(`${output}/${name}`);
 }
