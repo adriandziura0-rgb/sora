@@ -180,6 +180,10 @@ try{
  await click('#importFolderToDatabaseBtn',true);await cancelPicker();await pause(250);
  assert.equal(await page.evaluate(()=>wymusKlasycznyPickerFolderuBazy),false);
  await importAndWait('#importFolderToDatabaseBtn',()=>pickFolder('RedakcjaA'),3);
+ await click('#importFilesToDatabaseBtn',true);await pickFile('invalid.sqlite3');
+ await waitJs(()=>document.getElementById('databaseImportFeedback').textContent.includes('Przywróć kopię SQLite'));
+ await click('#refreshDatabaseBtn');await pause(300);assert.match(await page.locator('#databaseImportFeedback').textContent(),/Przywróć kopię SQLite/);
+ assert.equal((await queueDone()).stats.done,7);
  done('real SQLite import: files, duplicate, empty-file error retained, folders, nested HTML, folder pack, cancellation and retry');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
@@ -198,7 +202,14 @@ try{
  await click('#splitWorkspaceBtn');
  await page.locator('#sourceTextDetails').evaluate(e=>e.open=true);
  await page.locator('#textInput').fill(article('TVN24','Eksperci ocenili skutki decyzji.'));
- await click('#analyzeBtn');await waitJs(()=>ostatnieDane && ostatnieDane.analysis_run_id && !document.getElementById('analyzeBtn').disabled);
+ let releaseAnalysis;const analysisGate=new Promise(resolve=>{releaseAnalysis=resolve;});
+ await page.route('**/api/analizuj',async route=>{await analysisGate;await route.continue();});
+ const analysisResponse=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/analizuj' && r.request().method()==='POST');
+ await click('#analyzeBtn');await page.evaluate(()=>odswiezTematyTejSamejSprawy());
+ assert.equal(await page.locator('#analyzeBtn').isDisabled(),true,'Background refresh must preserve the analysis lock');
+ releaseAnalysis();const analyzed=await (await analysisResponse).json();assert.ok(analyzed.analysis_run_id);
+ await page.waitForFunction(run=>ostatnieDane?.analysis_run_id===run && !document.getElementById('analyzeBtn').disabled,analyzed.analysis_run_id,{timeout:120000});
+ await page.unroute('**/api/analizuj');
  for(const selector of inventory.filter(s=>s.startsWith('[data-') && !s.includes('production-view'))){
   if(selector.includes('user-text-view'))continue;
   const el=page.locator(selector).first();
@@ -212,10 +223,10 @@ try{
  assert.ok(sections.length>1);
  assert.equal(await page.locator('#previousSectionBtn').isDisabled(),false);
  assert.equal(await page.locator('#nextSectionBtn').isDisabled(),false);
- await click('#previousSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections.at(-1));
- await click('#openAllWindowsBtn');await click('#nextSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[0]);
- await click('#nextSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[1]);
- await click('#previousSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[0]);
+ await click('#previousSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[sections.indexOf('wszystko')-1]);
+ await click('#openAllWindowsBtn');await click('#nextSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[sections.indexOf('wszystko')+1]);
+ await click('#nextSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[sections.indexOf('wszystko')+2]);
+ await click('#previousSectionBtn');assert.equal(await page.locator('#activeSectionLabel').getAttribute('data-view'),sections[sections.indexOf('wszystko')+1]);
  const windowButton=page.locator('.readable-window').first();assert.ok(await windowButton.count());await windowButton.evaluate(e=>e.click());
  assert.equal(await page.locator('#sectionWindowDialog').evaluate(e=>e.open),true);await click('#closeSectionWindowBtn');
  await click('#userModeBtn');
@@ -308,6 +319,7 @@ try{
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){
+ console.error('FAILURE_STATE',JSON.stringify({scenarios,clicked:[...clicked]}));
  writeFileSync(`${output}/failure.txt`,error.stack || String(error));
  try{writeFileSync(`${output}/web-state.json`,JSON.stringify(await page.evaluate(()=>({classes:document.body.className,buttons:Array.from(document.querySelectorAll('button[id]')).map(e=>({id:e.id,disabled:e.disabled,visible:!!e.getClientRects().length})),statuses:Array.from(document.querySelectorAll('[id$="Status"],[id$="Feedback"]')).map(e=>({id:e.id,text:e.textContent})),details:Array.from(document.querySelectorAll('details[id]')).map(e=>({id:e.id,open:e.open}))})),null,2));}catch{}
  try{writeFileSync(`${output}/android-failure.png`,execFileSync('adb',['exec-out','screencap','-p']));writeFileSync(`${output}/logcat.txt`,adb('logcat','-d','-t','800'));}catch{}
