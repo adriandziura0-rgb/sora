@@ -44,11 +44,17 @@ async function nativeFind(label,timeout=20000){
    const nodes=nativeNodes();
    const node=nodes.find(n=>matches(n,label)&&n.enabled!=='false');
    if(node)return node;
-   const list=nodes.find(n=>n.scrollable==='true' && n.class!=='android.webkit.WebView');
+   const candidates=nodes.filter(n=>n.scrollable==='true' && n.class!=='android.webkit.WebView' && !n.class.includes('Horizontal'));
+   const height=n=>{const b=n.bounds.match(/\d+/g).map(Number);return b[3]-b[1];};
+   const list=candidates.sort((a,b)=>height(b)-height(a)).find(n=>height(n)>300);
    if(list){
      const [left,top,right,bottom]=list.bounds.match(/\d+/g).map(Number);
      const x=String(Math.round((left+right)/2));
-     adb('shell','input','swipe',x,String(bottom-60),x,String(top+60),'400');
+     // Stay clear of Android's bottom navigation gesture area.
+     const screenBottom=Math.max(...nodes.map(n=>Number(n.bounds.match(/\d+/g)?.[3]||0)));
+     const start=Math.min(bottom-200,Math.round(screenBottom*0.82));
+     const end=Math.max(top+120,Math.round(screenBottom*0.24));
+     if(start>end)adb('shell','input','swipe',x,String(start),x,String(end),'400');
    }
    return false;
  },`Android button ${label}`,timeout);
