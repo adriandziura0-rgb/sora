@@ -44,6 +44,14 @@ async function nativeTap(label,timeout=20000){
 }
 async function downloads(){await nativeTap('Show roots');await nativeTap('Downloads');}
 async function pickFile(name){await downloads();await nativeTap('Sora-tests');await nativeTap(name);}
+async function pickFiles(names){
+ await downloads();await nativeTap('Sora-tests');
+ const first=await until(()=>nativeNodes().find(n=>matches(n,names[0])),'first multiple file');
+ const [x,y]=point(first).map(String);adb('shell','input','swipe',x,y,x,y,'900');
+ for(const name of names.slice(1))await nativeTap(name);
+ const select=await until(()=>nativeNodes().find(n=>['Select','Open','com.google.android.documentsui:id/action_menu_select','com.android.documentsui:id/action_menu_select'].some(label=>matches(n,label))),'confirm multiple files');
+ adb('shell','input','tap',...point(select).map(String));await pause(350);
+}
 async function pickFolder(name){
  await downloads();await nativeTap('Sora-tests');if(name)await nativeTap(name);
  await nativeTap('Use this folder');await nativeTap('Allow');
@@ -91,23 +99,23 @@ try{
 
  await click('#loadFileBtn',true);await pickFile('single.txt');await waitJs(()=>document.getElementById('textInput').value.includes('Budowa potrwa'));
  await click('#appendFileBtn',true);await pickFile('second.txt');await waitJs(()=>document.getElementById('textInput').value.includes('Opozycja'));
- await click('#appendManyFilesBtn',true);await pickFile('single.txt');await waitJs(()=>!document.getElementById('appendManyFilesBtn').disabled);
+ await click('#appendManyFilesBtn',true);await pickFiles(['single.txt','second.txt']);await waitJs(()=>document.getElementById('fileLoadStatus').textContent.includes('Dodano 2'));
  await click('#clearBtn');
  await click('#appendAllFilesBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>document.getElementById('textInput').value.includes('Lekarze poparli'));
  assert.match(await page.locator('#fileLoadStatus').textContent(),/Pominięto/);
  done('real SAF single/append/multiple file pickers, recursive folder, unsupported and oversized skips');
 
  await databaseView();
+ await click('#importFilesToDatabaseBtn',true);await pickFiles(['single.txt','second.txt']);
+ await waitJs(()=>!importBazyAktywny);let state=await queueDone();assert.equal(state.stats.done,2);
  await click('#importFilesToDatabaseBtn',true);await pickFile('single.txt');
- await waitJs(()=>!importBazyAktywny);let state=await queueDone();assert.equal(state.stats.done,1);
- await click('#importFilesToDatabaseBtn',true);await pickFile('single.txt');
- await waitJs(()=>!importBazyAktywny && document.getElementById('databaseImportFeedback').textContent.includes('duplikaty 1'));assert.equal((await queueDone()).stats.done,1);
+ await waitJs(()=>!importBazyAktywny && document.getElementById('databaseImportFeedback').textContent.includes('duplikaty 1'));assert.equal((await queueDone()).stats.done,2);
  await click('#importFilesToDatabaseBtn',true);await pickFile('empty.txt');
  await waitJs(()=>document.getElementById('databaseImportFeedback').classList.contains('is-error'));
  assert.match(await page.locator('#databaseImportFeedback').textContent(),/pusty|empty/i);
- await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,4);
- await click('#addCompareFolderBtn',true);await pickFolder('RedakcjaB');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,6);
- await click('#addCompareFolderPackBtn',true);await pickFolder();await waitJs(()=>!importBazyAktywny);assert.equal((await queueDone()).stats.done,6);
+ await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,5);
+ await click('#addCompareFolderBtn',true);await pickFolder('RedakcjaB');await waitJs(()=>!importBazyAktywny);state=await queueDone();assert.equal(state.stats.done,7);
+ await click('#addCompareFolderPackBtn',true);await pickFolder();await waitJs(()=>!importBazyAktywny);assert.equal((await queueDone()).stats.done,7);
  await click('#importFolderToDatabaseBtn',true);await nativeTap('Show roots');adb('shell','input','keyevent','4');await pause(500);
  assert.equal(await page.evaluate(()=>wymusKlasycznyPickerFolderuBazy),false);
  await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');await waitJs(()=>!importBazyAktywny);
@@ -152,7 +160,7 @@ try{
 
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const backup=await exportButton('#downloadDatabaseBtn','audit-backup.sqlite3');assert.equal(backup.subarray(0,16).toString(),'SQLite format 3\0');
- await click('#reanalyzeDatabaseBtn');await waitJs(()=>!document.getElementById('reanalyzeDatabaseBtn').disabled);assert.equal((await queueDone()).stats.done,6);
+ await click('#reanalyzeDatabaseBtn');await waitJs(()=>!document.getElementById('reanalyzeDatabaseBtn').disabled);assert.equal((await queueDone()).stats.done,7);
  await click('#aggregateDatabaseBtn');await waitJs(()=>ostatnieDane?.aggregate_from_database===true);
  JSON.parse((await exportButton('#downloadResultsBtn','audit-aggregate.json')).toString());
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
@@ -180,20 +188,23 @@ try{
 
  await click('#appSettingsBtn',true);await nativeTap('Ustawienia baterii — ustaw Bez ograniczeń');adb('shell','input','keyevent','4');await pause(350);
  await nativeTap('Uruchom ponownie usługę');await until(()=>nativeNodes().some(n=>n.text==='Program działa w tle.'),'runtime restart',120000);
- assert.equal((await queueDone()).stats.done,6);
+ assert.equal((await queueDone()).stats.done,7);
  await nativeTap('Otwórz panel Drogowskazów');await waitJs(()=>window.__drogowskazyNativeInstalled);
  await databaseView();const restored=page.waitForEvent('load',{timeout:120000});
  await click('#restoreDatabaseBackupBtn',true);await downloads();await nativeTap('audit-backup.sqlite3');
- await restored;await waitJs(()=>window.__drogowskazyNativeInstalled);assert.equal((await queueDone()).stats.done,6);
+ await restored;await waitJs(()=>window.__drogowskazyNativeInstalled);assert.equal((await queueDone()).stats.done,7);
  await click('#appSettingsBtn',true);await nativeTap('Przywróć kopię bazy SQLite');await pickFile('invalid.sqlite3');
  await until(()=>nativeNodes().some(n=>/Błąd przywracania|Nie udało się przywrócić/.test(n.text)),'invalid SQLite error',120000);
  await nativeTap('Uruchom ponownie usługę');await until(()=>nativeNodes().some(n=>n.text==='Program działa w tle.'),'restart after rejected backup',120000);
- assert.equal((await queueDone()).stats.done,6);
+ assert.equal((await queueDone()).stats.done,7);
  await nativeTap('Wybierz / zaktualizuj ZIP Drogowskazów');adb('shell','input','keyevent','4');
  await nativeTap('Zatrzymaj pracę w tle');await until(async()=>{try{await api('/api/health');return false;}catch{return true;}},'service stopped',60000);
- await nativeTap('Uruchom ponownie usługę');await until(()=>api('/api/health'),'service resumed',120000);assert.equal((await queueDone()).stats.done,6);
+ await nativeTap('Uruchom ponownie usługę');await until(()=>api('/api/health'),'service resumed',120000);assert.equal((await queueDone()).stats.done,7);
  await nativeTap('Otwórz panel Drogowskazów');await waitJs(()=>window.__drogowskazyNativeInstalled);
  await click('#clearBtn');assert.equal(await page.locator('#textInput').inputValue(),'');assert.equal(await page.evaluate(()=>ostatnieDane),null);
+ assert.equal(await page.locator('.user-result-card').count(),0);
+ assert.equal(await page.locator('#statementRelationsSection').textContent(),'');
+ assert.equal(await page.locator('#printReport').textContent(),'');
  done('app settings, battery screen, actual service restart/stop/resume, valid restore, invalid restore preserves SQLite, ZIP picker cancellation, clear');
  const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
