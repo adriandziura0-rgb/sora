@@ -16,7 +16,7 @@ from engine import runtime_identity
 identity=runtime_identity(asset)
 # Generate reference results through the unmodified PHONE runtime in a fresh
 # process. The packaged EXE must reproduce them, not merely start its window.
-cases=['Premier powiedział, że rząd przedstawi projekt ustawy. Sejm omówi nowe przepisy.',
+cases=['Jan Kowalski powiedział, że projekt wymaga poprawek. Sejm omówi nowe przepisy.',
        'Zdaniem autora decyzja ministra jest błędna. Komisja przeprowadzi kontrolę.']
 reference=root/'build/engine-reference.json'
 script="""import sys,json,os
@@ -32,7 +32,7 @@ Path(sys.argv[3]).write_text(json.dumps({'cases':cases,'results':results},ensure
 subprocess.run([sys.executable,'-c',script,str(extracted),json.dumps(cases),str(reference)],check=True)
 subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--windowed',
     '--name','Sora','--paths',str(extracted),'--collect-submodules','clean_core',
-    '--collect-all','flask','--add-data',str(asset)+';.','--add-data',str(reference)+';.',str(root/'desktop/sora_pc.py')],check=True,cwd=root)
+    '--collect-all','flask','--collect-all','reportlab','--collect-all','PIL','--add-data',str(asset)+';.','--add-data',str(reference)+';.',str(root/'desktop/sora_pc.py')],check=True,cwd=root)
 output=root/'dist/Sora'
 (output/'SILNIK_PHONE_PC.json').write_text(json.dumps(identity,indent=2),encoding='utf-8')
 (output/'INSTRUKCJA.txt').write_text((root/'desktop/README.md').read_text('utf-8'),encoding='utf-8')

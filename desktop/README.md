@@ -1,34 +1,23 @@
-# Drogowskazy Sora PC — natywna aplikacja Windows
+DROGOWSKAZY SORA — APLIKACJA NA WINDOWS 10/11 (64-bit)
 
-Rozpakuj cały ZIP i uruchom Sora.exe. Pozostaw folder _internal obok EXE.
-Nie musisz instalować Pythona, używać pliku BAT ani otwierać przeglądarki.
-Windows 10/11, 64-bit. Wydanie nie ma podpisu wydawcy.
+Rozpakuj cały ZIP. Otwórz folder Sora i uruchom Sora.exe.
+Zachowaj folder _internal obok programu. Python i przeglądarka nie są potrzebne.
 
-Interfejs jest natywny (Tk): tekst i analiza, sugestie, raport, import plików
-oraz folderów z podfolderami, lista zapisanych dokumentów, wynik zbiorczy,
-porównanie 2–10 grup/redakcji, lista wspólnych tematów, eksport JSON/TXT
-i spójna kopia SQLite. Podwójne kliknięcie dokumentu otwiera zapisany wynik.
-Widok wyników zawiera tabelę pól i pełną treść zaznaczonego pola.
+Natywne okno: Dokument, Wynik analizy, Baza dokumentów, Porównania,
+Ta sama sprawa, Kontrola jakości (benchmark i GOLD), Raport i eksport.
+Wyniki mają czytelne karty wypowiedzi, aktorów i źródeł oraz fragmenty tekstu.
+Widok Ekspert udostępnia sekcje silnika i sygnały P0.
+Raport można zapisać jako Markdown, PDF lub JSON.
+Foldery są dodawane do trwałej kolejki, duplikaty rozpoznaje wspólny silnik.
 
-Silnik nie jest przepisywany: EXE zawiera dokładnie drogowskazy-runtime.zip
-używane przez APK w tym samym commicie repozytorium Sora. Reguły, wiedza,
-analizator, kolejka i schemat SQLite są wspólne. PC wywołuje ten kod lokalnie,
-bez uruchamiania serwera HTTP. Test budowy porównuje wyniki tych samych
-tekstów z runtime telefonu i adaptera PC, pomijając tylko identyfikatory
-uruchomienia i znaczniki czasu. To weryfikacja silnika, nie test fizycznego telefonu.
+Silnik jest pobierany bez zmian z zasobu aplikacji Android w tym repozytorium.
+SILNIK_PHONE_PC.json zawiera odcisk. TEST_OK.json opisuje testy gotowego EXE.
+PODGLAD.png przedstawia rzeczywiste okno z testu Windows.
 
-Dane są w %LOCALAPPDATA%\DrogowskazySoraPC\data\drogowskazy.sqlite3.
-Aktualizacja EXE ich nie usuwa. Stan edytora zapisuje się w tym samym katalogu.
-Baza telefonu pozostaje oddzielna. Nie kopiuj otwartej bazy między urządzeniami.
-W tym wydaniu nie ma scalania PHONE ↔ PC ani importu ZIP TRANSFER.
-Plik SILNIK_PHONE_PC.json podaje odcisk silnika oraz schemat bazy.
-
-Analiza importu trwa po zminimalizowaniu okna. Zamknięcie programu czeka
-na zakończenie kolejki. Wymuszone zamknięcie pozostawia rekordy w trwałej
-kolejce do wznowienia po starcie. Zakończone rekordy nie są liczone ponownie.
-Komputer musi pozostać włączony i nieuśpiony.
-
-Natywne menu nie odtwarza wszystkich ekranów eksperckich HTML telefonu.
-Oceny benchmarku/Gold i szczegółowe porównanie wybranego wspólnego tematu
-nie mają jeszcze osobnych formularzy w PC. Nie zmienia to silnika analizy;
-nie należy traktować tego wydania jako pełnej zgodności wszystkich ekranów.
+Dane PC są przechowywane w %LOCALAPPDATA%\DrogowskazySoraPC.
+Aktualizacja programu nie usuwa tej bazy. Zamknięcie kończy rozpoczętą pracę.
+Kopia SQLite używa spójnego mechanizmu kopii bazy.
+Przywrócenie sprawdza schemat, silnik i integralność; zachowuje poprzednią bazę.
+Przywrócenie zastępuje bazę — nie scala rekordów dwóch urządzeń.
+Wersjonowany transfer ZIP PHONE↔PC ze scalaniem nie jest jeszcze wdrożony.
+Nie kopiuj aktywnej bazy ani katalogu aplikacji między urządzeniami.

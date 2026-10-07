@@ -9,7 +9,7 @@ import zipfile
 from engine import Engine, runtime_asset, runtime_identity
 
 TEXTS=[
-    'Premier powiedział, że rząd przedstawi projekt ustawy. Sejm omówi nowe przepisy.',
+    'Jan Kowalski powiedział, że projekt wymaga poprawek. Sejm omówi nowe przepisy.',
     'TYTUŁ: Nowy szpital\nŹRÓDŁO: PAP\nURL: https://example.com/news\nTREŚĆ: Rada miasta zatwierdziła budowę szpitala. Mieszkańcy oceniają projekt pozytywnie.',
     'Zdaniem autora decyzja ministra jest błędna. „To ważny krok” — powiedział burmistrz. Komisja przeprowadzi kontrolę.',
     'Warszawa. Prezydent podpisał ustawę. Opozycja krytykuje koszty projektu, a rząd zapowiada oszczędności.',
@@ -62,5 +62,28 @@ Path(sys.argv[3]).write_text(json.dumps(results,ensure_ascii=False),encoding='ut
     db=sqlite3.connect(Path(tmp)/'copy.sqlite3')
     try:assert db.execute('pragma integrity_check').fetchone()[0]=='ok'
     finally:db.close()
+    previous=e.restore(Path(tmp)/'copy.sqlite3')
+    assert previous.exists() and e.request('/api/baza/status')['stats']['done']==4
+    invalid=Path(tmp)/'invalid.sqlite3'
+    db=sqlite3.connect(invalid);db.execute('pragma user_version=999');db.close()
+    try:e.restore(invalid);raise AssertionError('Invalid schema accepted')
+    except ValueError:pass
+    assert e.request('/api/baza/status')['stats']['done']==4
+    for kind in ['benchmark','gold']:
+        sample=e.request(f'/api/baza/{kind}/proba?size=10&seed=sora&unlabeled=0')['items']
+        assert sample
+        item=sample[0]
+        if kind=='benchmark':
+            payload={'document_id':item['document_id'],'relation_id':item['relation_id'],'overall_label':'correct'};endpoint='ocena'
+        else:
+            payload={'document_id':item['document_id'],'expected_relations':item['predicted_relations'],'completed':True};endpoint='dokument'
+        e.request(f'/api/baza/{kind}/{endpoint}',payload)
+        assert e.request(f'/api/baza/{kind}/wynik')
+    from presentation import materialize,readable_report,evidence_range,write_pdf
+    assert readable_report(materialize(e.request('/api/baza/zbiorczy_wynik')))
+    assert evidence_range({'poczatek':0,'koniec':3,'fragment':'abc','link_status':'linked'},'abc')==(0,3)
+    assert evidence_range({'poczatek':0,'koniec':3,'fragment':'xyz'},'abc') is None
+    write_pdf(Path(tmp)/'report.pdf','Zażółć gęślą jaźń')
+    assert (Path(tmp)/'report.pdf').read_bytes().startswith(b'%PDF')
     (Path(tmp)/'identity.json').write_text(json.dumps(e.identity))
     print('PASS: unchanged shared engine, four PHONE/PC parity cases, report consistency, native file adapter, queue, duplicate detection, group comparison, SQLite backup')

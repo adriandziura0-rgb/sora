@@ -9,6 +9,9 @@ import json
 import os
 import sys
 import zipfile
+import sqlite3
+import tempfile
+from datetime import datetime, timezone
 
 
 def runtime_asset():
@@ -82,9 +85,54 @@ class Engine:
             return result
 
     def backup(self, destination):
+        if Path(destination).resolve() == (self.home / "data/drogowskazy.sqlite3").resolve():
+            raise ValueError("Wybierz osobny plik kopii bazy.")
         self.module.DOCUMENT_DATABASE.backup_to(destination)
         return self.identity.copy()
 
     def stop(self):
         # Stop taking new work and drain the current analysis before exit.
         self.module._IMPORT_QUEUE.join()
+
+    def restore(self, source):
+        """Validate a consistent snapshot, preserve current DB, then restore it."""
+        source = Path(source).resolve()
+        active = (self.home / 'data/drogowskazy.sqlite3').resolve()
+        if source == active or not source.is_file():
+            raise ValueError('Wybierz osobny istniejący plik kopii SQLite.')
+        self.stop()
+        with tempfile.TemporaryDirectory(dir=self.home) as tmp:
+            snapshot = Path(tmp) / 'restore.sqlite3'
+            original = sqlite3.connect(source.as_uri() + '?mode=ro', uri=True)
+            copy = sqlite3.connect(snapshot)
+            try: original.backup(copy)
+            finally: original.close(); copy.close()
+            candidate = sqlite3.connect(snapshot)
+            current = sqlite3.connect(active)
+            try:
+                if candidate.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
+                    raise ValueError('Kopia bazy jest uszkodzona.')
+                if candidate.execute('PRAGMA user_version').fetchone()[0] != self.identity['database_schema']:
+                    raise ValueError('Niezgodna wersja schematu bazy. Przywrócenie anulowane.')
+                tables = current.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchall()
+                for (table,) in tables:
+                    if candidate.execute(f'PRAGMA table_info("{table}")').fetchall() != current.execute(f'PRAGMA table_info("{table}")').fetchall():
+                        raise ValueError('Niezgodna struktura tabeli: ' + table)
+                if candidate.execute('PRAGMA foreign_key_check').fetchone():
+                    raise ValueError('Kopia ma niespójne powiązania rekordów.')
+                versions = candidate.execute("SELECT DISTINCT app_version FROM documents WHERE app_version != ''").fetchall()
+                if any(v != self.version for (v,) in versions):
+                    raise ValueError('Kopia zawiera analizy innej wersji silnika. Przywrócenie anulowane.')
+                backups = self.home / 'backups'; backups.mkdir(exist_ok=True)
+                backup = backups / ('przed_przywroceniem_' + datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S_%f') + '.sqlite3')
+                self.backup(backup)
+                try: candidate.backup(current)
+                except Exception:
+                    rollback = sqlite3.connect(backup)
+                    try: rollback.backup(current)
+                    finally: rollback.close()
+                    raise
+            finally: candidate.close(); current.close()
+        for snap in self.module.DOCUMENT_DATABASE.processing_snapshots():
+            self.module._enqueue_import_job(document_id=int(snap['id']), expected_sha256=str(snap['content_sha256']), text=str(snap.get('text_content') or ''), retried=int(snap.get('attempts') or 1) > 1)
+        return backup
