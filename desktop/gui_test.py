@@ -48,6 +48,11 @@ def exercise(window,home):
             window.samples[kind]=items;window.sample_index[kind]=0;window.render_sample(kind)
         # Walk every page in the actual packaged window.
         for page in window.pages:window.navigate(page);window.root.update_idletasks()
+        for kind in ('benchmark','gold'):
+            window.navigate('quality');panel=window.quality_views[kind].master;panel.master.select(panel);window.root.update_idletasks()
+            save_buttons=[b for b in window.buttons if b.cget('text')=='Zapisz ocenę i następna' and b.master.master==panel]
+            assert len(save_buttons)==1 and save_buttons[0].winfo_ismapped(),'Quality save button is clipped'
+            assert save_buttons[0].winfo_rooty()+save_buttons[0].winfo_height()<=window.root.winfo_rooty()+window.root.winfo_height(),'Quality save button outside window'
         window.editor.delete('1.0','end');window.editor.insert('1.0',reference['cases'][0]);window.navigate('editor');window.analyze()
         wait_analysis()
     def idle(callback):

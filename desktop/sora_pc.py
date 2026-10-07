@@ -383,6 +383,10 @@ class Window(Operations):
                 row=self.bar(frame);self.button(row,'Dodaj relację',lambda:self.edit_gold(new=True));self.button(row,'Edytuj',self.edit_gold);self.button(row,'Usuń relację',self.remove_gold)
             row=self.bar(frame);ttk.Label(row,text='Notatka').pack(side='left',padx=5);note=tk.StringVar();self.quality_note[kind]=note;ttk.Entry(row,textvariable=note).pack(side='left',fill='x',expand=True,padx=5)
             self.button(row,'Zapisz ocenę i następna',lambda k=kind:self.save_quality(k),True);self.button(row,'Pomiń',lambda k=kind:self.next_sample(k))
+            packed=frame.pack_slaves();tail=packed[packed.index(view)+1:]
+            for control in reversed(tail):
+                if kind=='gold' and control==self.gold_tree.master:continue
+                control.pack_configure(side='bottom',before=view)
 
     def sample(self,kind):
         query=urlencode({'size':self.sample_size[kind].get(),'seed':self.sample_seed[kind].get(),'unlabeled':1})
