@@ -87,6 +87,14 @@ async function pickFolder(name){
  await downloads();await nativeTap('Sora-tests');if(name)await nativeTap(name);
  await nativeTap('Use this folder');await nativeTap('Allow');
 }
+async function cancelPicker(){
+ let nodes=await until(()=>{const ns=nativeNodes();return ns.some(n=>/documentsui/.test(n.package||''))?ns:false;},'picker ready to cancel');
+ for(let i=0;i<6;i++){
+  if(!nodes.some(n=>/documentsui/.test(n.package||'')))return;
+  adb('shell','input','keyevent','4');await pause(250);nodes=nativeNodes();
+ }
+ throw new Error('Document picker did not close after Back');
+}
 async function saveFile(name){
  await downloads();
  const edit=await until(()=>nativeNodes().find(n=>n.class==='android.widget.EditText'), 'Save filename');
@@ -164,7 +172,7 @@ try{
  await page.locator('#databaseComparePanel > summary').click();
  await importAndWait('#addCompareFolderBtn',()=>pickFolder('RedakcjaB'),2);state=await queueDone();assert.equal(state.stats.done,7);
  await importAndWait('#addCompareFolderPackBtn',()=>pickFolder(),5);assert.equal((await queueDone()).stats.done,7);
- await click('#importFolderToDatabaseBtn',true);await nativeTap('Show roots');adb('shell','input','keyevent','4');adb('shell','input','keyevent','4');await pause(500);
+ await click('#importFolderToDatabaseBtn',true);await cancelPicker();await pause(250);
  assert.equal(await page.evaluate(()=>wymusKlasycznyPickerFolderuBazy),false);
  await importAndWait('#importFolderToDatabaseBtn',()=>pickFolder('RedakcjaA'),3);
  done('real SQLite import: files, duplicate, empty-file error retained, folders, nested HTML, folder pack, cancellation and retry');
@@ -276,7 +284,7 @@ try{
  await until(()=>nativeNodes().some(n=>/Błąd przywracania|Nie udało się przywrócić/.test(n.text)),'invalid SQLite error',120000);
  await nativeTap('Uruchom ponownie usługę');await until(()=>nativeNodes().some(n=>n.text==='Program działa w tle.'),'restart after rejected backup',120000);
  assert.equal((await queueDone()).stats.done,7);
- await nativeTap('Wybierz / zaktualizuj ZIP Drogowskazów');adb('shell','input','keyevent','4');
+ await nativeTap('Wybierz / zaktualizuj ZIP Drogowskazów');await cancelPicker();
  const updated=page.waitForEvent('load',{timeout:120000});
  await nativeTap('Wybierz / zaktualizuj ZIP Drogowskazów');await pickFile('runtime.zip');
  await updated;await waitJs(()=>window.__drogowskazyNativeInstalled);assert.equal((await queueDone()).stats.done,7);
