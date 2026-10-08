@@ -329,7 +329,8 @@ try{
  await nativeTap('IMPORT Z KOMPUTERA · ZIP');await pickFile('pc-transfer.zip');
  await until(()=>nativeNodes().some(n=>n.text==='TRANSFER'),'transfer summary',120000);await nativeTap('OK');
  await until(()=>api('/api/health'),'service resumes after import',120000);assert.equal((await queueDone()).stats.done,8);
- assert.equal((await api('/api/baza/gold/wynik')).documents.length>=1,true);
+ const transferredGold=await api('/api/baza/gold/wynik');
+ assert.ok(transferredGold.documents>=1 && transferredGold.per_document.some(d=>d.filename==='pc-transfer.txt'),'PC GOLD annotation missing after native merge');
  await nativeTap('IMPORT Z KOMPUTERA · ZIP');await pickFile('pc-transfer.zip');
  await until(()=>nativeNodes().some(n=>n.text==='TRANSFER'),'duplicate transfer summary',120000);await nativeTap('OK');
  await until(()=>api('/api/health'),'service resumes after repeated import',120000);assert.equal((await queueDone()).stats.done,8);
