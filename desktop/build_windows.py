@@ -31,7 +31,7 @@ Path(sys.argv[3]).write_text(json.dumps({'cases':cases,'results':results},ensure
 """
 subprocess.run([sys.executable,'-c',script,str(extracted),json.dumps(cases),str(reference)],check=True)
 subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--windowed',
-    '--name','Sora','--paths',str(extracted),'--collect-submodules','clean_core',
+    '--name','Sora','--paths',str(root/'app/src/main/python'),'--paths',str(extracted),'--collect-submodules','clean_core',
     '--collect-all','flask','--collect-all','reportlab','--collect-all','PIL','--add-data',str(asset)+';.','--add-data',str(reference)+';.',str(root/'desktop/sora_pc.py')],check=True,cwd=root)
 output=root/'dist/Sora'
 (output/'SILNIK_PHONE_PC.json').write_text(json.dumps(identity,indent=2),encoding='utf-8')

@@ -40,6 +40,7 @@ function nativeNodes(){
 function point(node){const n=node.bounds.match(/\d+/g).map(Number);return [Math.round((n[0]+n[2])/2),Math.round((n[1]+n[3])/2)];}
 const matches=(n,label)=>n.text?.toLowerCase()===label.toLowerCase() || n['content-desc']?.toLowerCase()===label.toLowerCase() || n['resource-id']===label;
 async function nativeFind(label,timeout=20000){
+ let attempts=0;
  return until(()=>{
    const nodes=nativeNodes();
    const node=nodes.find(n=>matches(n,label)&&n.enabled!=='false');
@@ -54,7 +55,7 @@ async function nativeFind(label,timeout=20000){
      const screenBottom=Math.max(...nodes.map(n=>Number(n.bounds.match(/\d+/g)?.[3]||0)));
      const start=Math.min(bottom-200,Math.round(screenBottom*0.82));
      const end=Math.max(top+120,Math.round(screenBottom*0.24));
-     if(start>end)adb('shell','input','swipe',x,String(start),x,String(end),'400');
+     if(start>end){const down=attempts++%6<3;adb('shell','input','swipe',x,String(down?start:end),x,String(down?end:start),'400');}
    }
    return false;
  },`Android button ${label}`,timeout);
@@ -321,6 +322,21 @@ try{
  await click('#appSettingsBtn',true);await nativeTap('Ustawienia baterii — ustaw Bez ograniczeń');adb('shell','input','keyevent','4');await pause(350);
  await nativeTap('Uruchom ponownie usługę');await until(()=>nativeNodes().some(n=>n.text==='Program działa w tle.'),'runtime restart',120000);
  assert.equal((await queueDone()).stats.done,7);
+ // Native PHONE exporter, PC packet importer and failed-transfer recovery.
+ await nativeTap('EKSPORT NA KOMPUTER · ZIP');
+ const phoneTransfer=await saveFile('audit-phone-transfer.zip');assert.equal(phoneTransfer.subarray(0,2).toString(),'PK');
+ await until(()=>api('/api/health'),'service resumes after export',120000);
+ await nativeTap('IMPORT Z KOMPUTERA · ZIP');await pickFile('pc-transfer.zip');
+ await until(()=>nativeNodes().some(n=>n.text==='TRANSFER'),'transfer summary',120000);await nativeTap('OK');
+ await until(()=>api('/api/health'),'service resumes after import',120000);assert.equal((await queueDone()).stats.done,8);
+ assert.equal((await api('/api/baza/gold/wynik')).documents.length>=1,true);
+ await nativeTap('IMPORT Z KOMPUTERA · ZIP');await pickFile('pc-transfer.zip');
+ await until(()=>nativeNodes().some(n=>n.text==='TRANSFER'),'duplicate transfer summary',120000);await nativeTap('OK');
+ await until(()=>api('/api/health'),'service resumes after repeated import',120000);assert.equal((await queueDone()).stats.done,8);
+ await nativeTap('IMPORT Z KOMPUTERA · ZIP');await pickFile('runtime.zip');
+ await until(()=>nativeNodes().some(n=>n.text?.includes('TRANSFER anulowany')),'reject program ZIP as transfer',120000);await nativeTap('OK');
+ await until(()=>api('/api/health'),'service resumes after rejection',120000);assert.equal((await queueDone()).stats.done,8);
+ done('native PHONE export, PC→PHONE merge, GOLD, repeated transfer deduplicated, wrong ZIP rejected and service resumed');
  await nativeTap('Otwórz panel Drogowskazów');await waitJs(()=>window.__drogowskazyNativeInstalled);
  await databaseView();const restored=page.waitForEvent('load',{timeout:120000});
  await click('#restoreDatabaseBackupBtn',true);await downloads();await nativeTap('audit-backup.sqlite3');
@@ -345,7 +361,7 @@ try{
  assert.deepEqual(testFailures,[],`Integration failures: ${testFailures.join('; ')}`);
  const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
- writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.3',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
+ writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.4',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){

@@ -37,6 +37,8 @@ def exercise(window,home):
         engine.request('/api/baza/gold/dokument',{'document_id':item['document_id'],'expected_relations':item['predicted_relations'],'completed':True,'note':'EXE integration test'})
         summary={k:engine.request(f'/api/baza/{k}/wynik') for k in samples}
         engine.request('/api/baza/tematy')
+        packet=home/'Sora_TRANSFER_TEST.zip';engine.export_transfer(packet);merged=engine.import_transfer(packet)
+        assert merged['documents_added']==merged['documents_updated']==0
         snapshot=home/'test-copy.sqlite3';engine.backup(snapshot);previous=engine.restore(snapshot);assert previous.exists()
         write_pdf(home/'test-raport.pdf','Zażółć gęślą jaźń\nRaport Drogowskazy Sora')
         assert (home/'test-raport.pdf').read_bytes().startswith(b'%PDF')
@@ -77,7 +79,7 @@ def exercise(window,home):
         ImageGrab.grab(bbox=(x,y,x+w,y+h)).save(home/'SORA_WYNIK.png')
         assert window.evidence.winfo_ismapped() and window.evidence.winfo_height()>60,f'Source evidence panel clipped: height={window.evidence.winfo_height()}, window={h}'
         assert window.evidence.winfo_rooty()+window.evidence.winfo_height()<=y+h,'Evidence below window'
-        (home/'smoke-ok.json').write_text(json.dumps({'native_window':True,'engine_phone_parity':True,'database_restart_and_duplicates':True,'safe_restore':True,'benchmark_and_gold':True,'readable_views':True,'report_same_analysis':True,'pdf_polish_font':True,**window.engine.identity},indent=2),encoding='utf-8')
+        (home/'smoke-ok.json').write_text(json.dumps({'native_window':True,'engine_phone_parity':True,'database_restart_and_duplicates':True,'safe_restore':True,'transfer_zip':True,'benchmark_and_gold':True,'readable_views':True,'report_same_analysis':True,'pdf_polish_font':True,**window.engine.identity},indent=2),encoding='utf-8')
         window.close()
     # No blocking error dialogs in unattended test builds.
     from tkinter import messagebox

@@ -19,5 +19,17 @@ Aktualizacja programu nie usuwa tej bazy. Zamknięcie kończy rozpoczętą prac�
 Kopia SQLite używa spójnego mechanizmu kopii bazy.
 Przywrócenie sprawdza schemat, silnik i integralność; zachowuje poprzednią bazę.
 Przywrócenie zastępuje bazę — nie scala rekordów dwóch urządzeń.
-Wersjonowany transfer ZIP PHONE↔PC ze scalaniem nie jest jeszcze wdrożony.
+TRANSFER PHONE↔PC jest wdrożony jako wersjonowany ZIP.
+Na PC, w Bazie dokumentów: IMPORT Z TELEFONU · ZIP / EKSPORT NA TELEFON · ZIP.
+Na telefonie Sora 1.2.4, w ustawieniach: IMPORT Z KOMPUTERA · ZIP /
+EKSPORT NA KOMPUTER · ZIP. Przenieś tylko ten ZIP wybranym sposobem.
+Import sprawdza format, schemat, identyczny silnik, sumę SHA-256 i integralność.
+Przed zapisem robi kopię bazy. Dokumenty i oceny są scalane w jednej transakcji.
+Ten sam dokument jest rozpoznawany po skrócie treści; lokalne numery rekordów
+są mapowane, a identyfikatory analiz i relacji pozostają zachowane.
+Starsze zmiany nie zastępują nowszych. Równoczesny konflikt zachowuje dane lokalne,
+a pakiet wejściowy zostaje w katalogu transfers obok kopii poprzedniej bazy.
+Powtórny import nie tworzy drugich dokumentów ani drugich ocen.
+Czasy modyfikacji pochodzą z urządzeń: ustaw prawidłową datę na obu.
+ZIP TRANSFER przenosi bazę dokumentów i oceny, nie program ani szkic edytora.
 Nie kopiuj aktywnej bazy ani katalogu aplikacji między urządzeniami.

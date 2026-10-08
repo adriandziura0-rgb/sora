@@ -244,6 +244,7 @@ class Window(Operations):
         for name,action in [('Dodaj pliki',self.import_files),('Dodaj folder',self.import_folder),('Odśwież',self.refresh),('Połącz analizy',self.aggregate)]:self.button(bar,name,action)
         self.cancel_button=ttk.Button(bar,text='Zatrzymaj dodawanie',command=self.cancel_import.set);self.cancel_button.pack(side='right')
         bar=self.bar(self.database_tab);self.button(bar,'Kopia SQLite',self.backup);self.button(bar,'Przywróć kopię',self.restore_database);self.button(bar,'Przelicz całą bazę',self.reanalyze)
+        bar=self.bar(self.database_tab);self.button(bar,'IMPORT Z TELEFONU · ZIP',self.import_transfer,True);self.button(bar,'EKSPORT NA TELEFON · ZIP',self.export_transfer)
         self.docs=self.tree(self.database_tab,[('name','Dokument',220),('path','Folder / ścieżka',380),('state','Stan',140)]);self.docs.bind('<Double-1>',self.document)
         bar=self.bar(self.database_tab);self.button(bar,'Poprzednie',lambda:self.page(-100));self.button(bar,'Następne',lambda:self.page(100))
         self.import_view=RichView(self.database_tab);self.import_view.configure(height=90);self.import_view.pack(fill='x');self.import_view.pack_propagate(False)
@@ -262,6 +263,16 @@ class Window(Operations):
         def done(backup):
             self.analysis=None;self.result=None;self.refresh();messagebox.showinfo('Baza przywrócona','Zachowano poprzednią bazę w:\n'+str(backup))
         self.run(lambda:self.engine.restore(path),done)
+
+    def export_transfer(self):
+        path=filedialog.asksaveasfilename(defaultextension='.zip',initialfile='Sora_TRANSFER_PC.zip',filetypes=[('TRANSFER ZIP','*.zip')])
+        if path:self.run(lambda:self.engine.export_transfer(path),lambda _:messagebox.showinfo('TRANSFER','Zapisano ZIP na telefon. Na telefonie wybierz „IMPORT Z KOMPUTERA · ZIP” w ustawieniach Sory.'))
+    def import_transfer(self):
+        path=filedialog.askopenfilename(filetypes=[('TRANSFER ZIP','*.zip')])
+        if not path:return
+        def done(result):
+            self.refresh();messagebox.showinfo('TRANSFER zakończony',f"Nowe dokumenty: {result['documents_added']}\nNowsze analizy: {result['documents_updated']}\nZachowane dokumenty: {result['documents_unchanged']}\nNowe / nowsze oceny: {result['annotations_updated']}\nKonflikty równoczesnych zmian: {result['conflicts']}\n\nW konflikcie zachowano dane lokalne; pakiet wejściowy i kopia bazy są zachowane.\nKopia: {result['backup']}")
+        self.run(lambda:self.engine.import_transfer(path),done)
 
     def import_folder(self):
         folder=filedialog.askdirectory()

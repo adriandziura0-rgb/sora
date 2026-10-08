@@ -180,3 +180,22 @@ def is_running() -> bool:
 
 def last_error() -> str:
     return _LAST_ERROR
+
+
+def export_transfer(project_dir: str, destination: str) -> str:
+    """Native Android transfer runs after the service and writers stop."""
+    import json
+    from data_transfer import export_zip, runtime_identity
+    with _LOCK:
+        if _MODULE is not None or _SERVER is not None:raise RuntimeError('Najpierw zatrzymaj usługę przed transferem.')
+        root = Path(project_dir).resolve()
+        return json.dumps(export_zip(root / 'data/drogowskazy.sqlite3', destination, runtime_identity(root), 'PHONE'), ensure_ascii=False)
+
+
+def import_transfer(project_dir: str, package: str) -> str:
+    import json
+    from data_transfer import merge_zip, runtime_identity
+    with _LOCK:
+        if _MODULE is not None or _SERVER is not None:raise RuntimeError('Najpierw zatrzymaj usługę przed transferem.')
+        root = Path(project_dir).resolve()
+        return json.dumps(merge_zip(root / 'data/drogowskazy.sqlite3', package, runtime_identity(root), root / 'data/transfers'), ensure_ascii=False)

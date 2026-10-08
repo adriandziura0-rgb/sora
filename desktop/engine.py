@@ -9,6 +9,10 @@ import json
 import os
 import sys
 import zipfile
+# One transfer implementation is packaged into both Android and Windows.
+if not getattr(sys, 'frozen', False):
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app/src/main/python'))
+from data_transfer import export_zip, merge_zip
 import sqlite3
 import tempfile
 from datetime import datetime, timezone
@@ -136,3 +140,14 @@ class Engine:
         for snap in self.module.DOCUMENT_DATABASE.processing_snapshots():
             self.module._enqueue_import_job(document_id=int(snap['id']), expected_sha256=str(snap['content_sha256']), text=str(snap.get('text_content') or ''), retried=int(snap.get('attempts') or 1) > 1)
         return backup
+
+    def export_transfer(self, destination):
+        self.stop()
+        return export_zip(self.home / 'data/drogowskazy.sqlite3', destination, self.identity, 'PC')
+
+    def import_transfer(self, source):
+        self.stop()
+        result = merge_zip(self.home / 'data/drogowskazy.sqlite3', source, self.identity, self.home / 'transfers')
+        for snap in self.module.DOCUMENT_DATABASE.processing_snapshots():
+            self.module._enqueue_import_job(document_id=int(snap['id']), expected_sha256=str(snap['content_sha256']), text=str(snap.get('text_content') or ''), retried=int(snap.get('attempts') or 1) > 1)
+        return result
