@@ -107,6 +107,6 @@ def run():
         if args.verify_phone:
             received=DocumentDatabase(root/'received.sqlite3');merge_zip(received.path,args.verify_phone,identity,root/'received-backups')
             assert received.stats()['done']==7,'Actual PHONE export did not merge into PC'
-        print('PASS: PHONE↔PC shared transfer identity, colliding IDs remapped, union of documents, newer data protected, idempotent import, annotations, backups, concurrent conflicts, invalid packages rejected, complete rollback, Android bootstrap')
+        print('PASS: PHONE-PC shared transfer identity, colliding IDs remapped, union of documents, newer data protected, idempotent import, annotations, backups, concurrent conflicts, invalid packages rejected, complete rollback, Android bootstrap')
 
 if __name__=='__main__':run()
