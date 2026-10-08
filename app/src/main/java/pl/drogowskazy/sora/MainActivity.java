@@ -23,6 +23,14 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.chaquo.python.Python;
+import org.json.JSONObject;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +40,8 @@ public class MainActivity extends Activity {
     private static final int REQUEST_ZIP = 1001;
     private static final int REQUEST_NOTIFICATIONS = 1002;
     private static final int REQUEST_DB_RESTORE = 1003;
+    private static final int REQUEST_TRANSFER_IMPORT = 1004;
+    private static final int REQUEST_TRANSFER_SAVE = 1005;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private TextView status;
@@ -40,6 +50,8 @@ public class MainActivity extends Activity {
     private Button selectButton;
     private Button restoreButton;
     private Button stopButton;
+    private Button transferImportButton;
+    private Button transferExportButton;
     private FrameLayout container;
     private ScrollView settingsView;
     private NativePanel panel;
@@ -136,6 +148,13 @@ public class MainActivity extends Activity {
         restoreButton = restoreDb;
         restoreDb.setOnClickListener(v -> chooseDatabaseBackup());
         root.addView(restoreDb, buttonParams());
+
+        transferImportButton = makeButton("IMPORT Z KOMPUTERA · ZIP");
+        transferImportButton.setOnClickListener(v -> chooseTransfer());
+        root.addView(transferImportButton, buttonParams());
+        transferExportButton = makeButton("EKSPORT NA KOMPUTER · ZIP");
+        transferExportButton.setOnClickListener(v -> runTransfer(null));
+        root.addView(transferExportButton, buttonParams());
 
         startButton = makeButton("Uruchom ponownie usługę");
         startButton.setOnClickListener(v -> restartRuntime());
@@ -250,6 +269,8 @@ public class MainActivity extends Activity {
         if (panel != null && panel.handleActivityResult(requestCode, resultCode, data)) return;
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
+        if (requestCode == REQUEST_TRANSFER_IMPORT) { runTransfer(uri); return; }
+        if (requestCode == REQUEST_TRANSFER_SAVE) { saveTransfer(uri); return; }
         if (requestCode == REQUEST_DB_RESTORE) {
             restoreDatabaseBackup(uri);
             return;
@@ -282,6 +303,95 @@ public class MainActivity extends Activity {
                     setBusy(false);
                 });
             }
+        });
+    }
+
+    private void chooseTransfer() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/zip", "application/x-zip-compressed", "application/octet-stream"});
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        NativePanel.startInDownloads(intent);
+        startActivityForResult(intent, REQUEST_TRANSFER_IMPORT);
+    }
+
+    private void runTransfer(Uri source) {
+        setBusy(true);
+        status.setText("TRANSFER: kończenie bieżącego zapisu i zatrzymywanie usługi…");
+        DrogowskazyService.stopForUpdate(this);
+        executor.execute(() -> {
+            String report;
+            boolean success = false;
+            File temporary = new File(getCacheDir(), source == null ? "Sora_TRANSFER_PHONE.zip" : "Sora_TRANSFER_IMPORT.zip");
+            try {
+                if (!waitForRuntimeStopped(65_000L)) throw new IllegalStateException("Nie udało się bezpiecznie zatrzymać zapisu.");
+                String project = ProjectStore.projectDir(this).getAbsolutePath();
+                if (source == null) {
+                    Python.getInstance().getModule("android_bootstrap").callAttr("export_transfer", project, temporary.getAbsolutePath());
+                    report = "ZIP TRANSFER jest gotowy. Wybierz miejsce zapisu.";
+                } else {
+                    try (InputStream in = getContentResolver().openInputStream(source); OutputStream out = new FileOutputStream(temporary)) {
+                        if (in == null) throw new IOException("Nie można otworzyć ZIP-a.");
+                        copyTransfer(in, out);
+                    }
+                    JSONObject result = new JSONObject(Python.getInstance().getModule("android_bootstrap").callAttr("import_transfer", project, temporary.getAbsolutePath()).toString());
+                    report = "Nowe dokumenty: " + result.getInt("documents_added")
+                            + "\nNowsze analizy: " + result.getInt("documents_updated")
+                            + "\nZachowane dokumenty: " + result.getInt("documents_unchanged")
+                            + "\nNowe / nowsze oceny: " + result.getInt("annotations_updated")
+                            + "\nKonflikty równoczesnych zmian: " + result.getInt("conflicts")
+                            + "\n\nKopia poprzedniej bazy i pakiet wejściowy są zachowane w pamięci aplikacji. W konflikcie zachowano dane lokalne.";
+                    panelNeedsReload = true;
+                }
+                success = true;
+            } catch (Exception error) { report = "TRANSFER anulowany: " + error.getMessage(); }
+            finally { if (source != null) temporary.delete(); }
+            String message = report;
+            boolean completed = success;
+            handler.post(() -> {
+                if (isFinishing() || isDestroyed()) return;
+                setBusy(false);
+                status.setText(message);
+                DrogowskazyService.start(this);
+                waitForServer(false);
+                if (completed && source == null) {
+                    Intent save = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+                    save.addCategory(Intent.CATEGORY_OPENABLE);
+                    save.setType("application/zip");
+                    save.putExtra(Intent.EXTRA_TITLE, "Sora_TRANSFER_PHONE.zip");
+                    NativePanel.startInDownloads(save);
+                    startActivityForResult(save, REQUEST_TRANSFER_SAVE);
+                } else {
+                    new android.app.AlertDialog.Builder(this).setTitle("TRANSFER")
+                            .setMessage(message).setPositiveButton("OK", (dialog, which) -> {}).show();
+                }
+            });
+        });
+    }
+
+    private static void copyTransfer(InputStream in, OutputStream out) throws IOException {
+        byte[] buffer = new byte[64 * 1024]; long total = 0; int count;
+        while ((count = in.read(buffer)) != -1) {
+            total += count;
+            if (total > 512L * 1024 * 1024 + 65536) throw new IOException("ZIP TRANSFER przekracza limit 512 MB.");
+            out.write(buffer, 0, count);
+        }
+    }
+
+    private void saveTransfer(Uri destination) {
+        setBusy(true);
+        executor.execute(() -> {
+            File ready = new File(getCacheDir(), "Sora_TRANSFER_PHONE.zip");
+            String message;
+            try (InputStream in = new FileInputStream(ready); OutputStream out = getContentResolver().openOutputStream(destination, "wt")) {
+                if (out == null) throw new IOException("Nie można zapisać ZIP-a.");
+                copyTransfer(in, out);
+                message = "Zapisano ZIP TRANSFER. Na PC wybierz IMPORT Z TELEFONU · ZIP.";
+            } catch (Exception error) { message = "Nie udało się zapisać ZIP-a: " + error.getMessage(); }
+            finally { ready.delete(); }
+            String report = message;
+            handler.post(() -> { setBusy(false); status.setText(report); toast(report); });
         });
     }
 
@@ -390,6 +500,8 @@ public class MainActivity extends Activity {
         selectButton.setEnabled(!busy);
         restoreButton.setEnabled(!busy);
         stopButton.setEnabled(!busy);
+        transferImportButton.setEnabled(!busy);
+        transferExportButton.setEnabled(!busy);
     }
 
     private void openBatterySettings() {

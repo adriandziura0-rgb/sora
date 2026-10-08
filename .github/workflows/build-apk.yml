@@ -3,13 +3,13 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches: [ main, 'desktop-native-*' ]
 
 permissions:
   contents: read
 
 concurrency:
-  group: sora-apk-main
+  group: sora-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -44,6 +44,7 @@ jobs:
           python tools/test_project_store.py
           node tools/test_native_panel.mjs
           python tools/test_runtime.py
+          python tools/test_transfer.py
 
       - name: Install Android SDK packages
         shell: bash
@@ -80,20 +81,20 @@ jobs:
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Drogowskazy-Sora-1.2.3.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Drogowskazy-Sora-1.2.4.apk
 
       - name: Verify APK signature and embedded runtime
         shell: bash
         run: |
           set -euo pipefail
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Drogowskazy-Sora-1.2.3.apk | tee apk-verification.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Drogowskazy-Sora-1.2.4.apk | tee apk-verification.txt
           grep -q '24ff96996dd176159eb71e1557cf7da9fa720382870b78b42ffa76114b7a4339' apk-verification.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Drogowskazy-Sora-1.2.3.apk > apk-badging.txt
-          grep -q "versionCode='6' versionName='1.2.3'" apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Drogowskazy-Sora-1.2.4.apk > apk-badging.txt
+          grep -q "versionCode='7' versionName='1.2.4'" apk-badging.txt
           head -n 5 apk-badging.txt
           python - <<'PY'
           import zipfile
-          with zipfile.ZipFile('Drogowskazy-Sora-1.2.3.apk') as apk:
+          with zipfile.ZipFile('Drogowskazy-Sora-1.2.4.apk') as apk:
               assert apk.testzip() is None
               assert 'assets/drogowskazy-runtime.zip' in apk.namelist()
               assert 'assets/native-panel.js' in apk.namelist()
@@ -103,6 +104,7 @@ jobs:
 
       - name: Prepare real Android panel tests
         run: |
+          python tools/test_transfer.py --fixture test-output/input/Sora-tests/pc-transfer.zip
           npm install --no-save --no-package-lock playwright@1.56.1
           gradle --no-daemon --stacktrace -PsoraTestAbi=x86_64 :app:assembleDebug
 
@@ -123,6 +125,9 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim
           script: node tools/test_android.mjs
 
+      - name: Verify real PHONE export imports into PC
+        run: python tools/test_transfer.py --verify-phone test-output/audit-phone-transfer.zip
+
       - name: Upload Android test evidence
         if: always()
         uses: actions/upload-artifact@v4
@@ -136,6 +141,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Drogowskazy-Sora-APK
-          path: Drogowskazy-Sora-1.2.3.apk
+          path: Drogowskazy-Sora-1.2.4.apk
           if-no-files-found: error
           retention-days: 30
