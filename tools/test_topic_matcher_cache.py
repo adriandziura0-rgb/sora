@@ -74,4 +74,4 @@ with tempfile.TemporaryDirectory(prefix="sora-topic-test-") as temporary:
     gold = run_gold_benchmark()
     assert gold["case_count"] == 257
     assert gold["all_pass"] and gold["failed_case_count"] == 0, gold["failed_case_ids"]
-    print(f"PASS: silnik; 60 artykułów, 7 redakcji, {calls} porównań w {duration:.3f}s; 257/257 GOLD; niezmienione wyniki")
+    print(f"PASS: engine; 60 documents, 7 publishers, {calls} pair evaluations in {duration:.3f}s; 257/257 GOLD; unchanged output")
