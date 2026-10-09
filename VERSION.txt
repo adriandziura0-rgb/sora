@@ -1,5 +1,8 @@
-1.2.3
+1.2.5
 Drogowskazy Sora Android APK
 Runtime 4.5.12 wbudowany w APK; automatyczny start i panel w aplikacji.
 Aktualizacja zachowuje prywatny katalog data. Bezpośredni import plików do bazy,
 odporny import folderów, przywracanie SQLite w panelu i testy interfejsu Android.
+
+Wydanie 1.2.5: szybsze porównania tej samej sprawy (cache par), bez zmian
+w pobieraniu, interfejsie, SQLite i analizie semantycznej. 257/257 GOLD.
