@@ -36,6 +36,9 @@ jobs:
         with:
           python-version: '3.13'
 
+      - name: Optimize analysis engine without changing file downloads
+        run: python tools/patch_engine_runtime.py
+
       - name: Verify bundled program and installer
         shell: bash
         run: |
@@ -45,6 +48,7 @@ jobs:
           node tools/test_native_panel.mjs
           python tools/test_runtime.py
           python tools/test_transfer.py
+          python tools/test_topic_matcher_cache.py
 
       - name: Install Android SDK packages
         shell: bash
@@ -81,20 +85,20 @@ jobs:
         run: gradle --no-daemon --stacktrace :app:assembleDebug
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk Drogowskazy-Sora-1.2.4.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk Drogowskazy-Sora-1.2.5.apk
 
       - name: Verify APK signature and embedded runtime
         shell: bash
         run: |
           set -euo pipefail
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Drogowskazy-Sora-1.2.4.apk | tee apk-verification.txt
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs Drogowskazy-Sora-1.2.5.apk | tee apk-verification.txt
           grep -q '24ff96996dd176159eb71e1557cf7da9fa720382870b78b42ffa76114b7a4339' apk-verification.txt
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Drogowskazy-Sora-1.2.4.apk > apk-badging.txt
-          grep -q "versionCode='7' versionName='1.2.4'" apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging Drogowskazy-Sora-1.2.5.apk > apk-badging.txt
+          grep -q "versionCode='8' versionName='1.2.5'" apk-badging.txt
           head -n 5 apk-badging.txt
           python - <<'PY'
           import zipfile
-          with zipfile.ZipFile('Drogowskazy-Sora-1.2.4.apk') as apk:
+          with zipfile.ZipFile('Drogowskazy-Sora-1.2.5.apk') as apk:
               assert apk.testzip() is None
               assert 'assets/drogowskazy-runtime.zip' in apk.namelist()
               assert 'assets/native-panel.js' in apk.namelist()
@@ -141,6 +145,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Drogowskazy-Sora-APK
-          path: Drogowskazy-Sora-1.2.4.apk
+          path: Drogowskazy-Sora-1.2.5.apk
           if-no-files-found: error
           retention-days: 30
