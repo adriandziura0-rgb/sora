@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.3
+# Drogowskazy Sora 1.2.5
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -47,3 +47,14 @@ Po budowie sprawdza podpis i obecność zasobów w wynikowym APK.
 Testy zainstalowanego APK na emulatorze Androida uruchamiają prawdziwy WebView,
 systemowe okna wyboru plików i folderów oraz zapis do SQLite. Raport testów
 jest osobnym artefaktem przebiegu; aplikacja wydania zawiera tylko ABI arm64.
+
+## Silnik 1.2.5 — optymalizacja porównywania redakcji
+
+Naprawiono wielokrotne obliczanie par artykułów już obecnych w pamięci podręcznej.
+Wynik rozpoznawania tej samej sprawy i 257 testów GOLD pozostają identyczne.
+Poprawka dotyczy wyłącznie `clean_core/topic_matcher.py` w trakcie budowy
+APK i PC (`tools/patch_engine_runtime.py`). Oryginalny ZIP jest objęty
+kontrolą SHA-256; build przerwie się, jeżeli silnik został nieoczekiwanie
+zmieniony. Pobieranie plików, wybór folderów, panel, format bazy i import
+pozostają bez zmian. PHONE i PC muszą używać tego samego nowego wydania
+przy przekazywaniu ZIP TRANSFER, ponieważ identyfikator silnika się zmienia.
