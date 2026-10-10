@@ -225,29 +225,25 @@ try{
  done('selected-group overview, responsive metric cards, full original tables, import unchanged');
  // ETAP 1: nowy wybór unieważnia stary raport; jeden folder działa oddzielnie
  // od porównania dwóch folderów. Testujemy zarówno zakres, jak i wyświetlanie.
- await page.evaluate(()=>{
-   const checks=[...document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]')];
-   checks.forEach((input,i)=>{input.checked=i===0});
-   checks[0].dispatchEvent(new Event('change',{bubbles:true}));
- });
+ // Używamy PRAWDZIWYCH zdarzeń użytkownika. Ręczne ustawienie
+ // input.checked nie aktualizuje wewnętrznego stanu wyboru głównego panelu.
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
+ await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').nth(1).uncheck();
  await waitJs(()=>document.getElementById('soraFullOverview').hidden);
- assert.match(await page.locator('#soraSelectionScope').textContent(),/Wybrano: 1 folder/);
+ await waitJs(()=>document.getElementById('soraSelectionScope')?.textContent.includes('Wybrano: 1 folder'));
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),1);
  assert.equal(await page.locator('#databaseComparisonResult table').count(),0,
    'Po zmianie zaznaczenia poprzednie porównanie musi zniknąć.');
  await click('#openFullOverviewBtn');
- await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe:'));
- assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/1 wybrana grupa/);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('1 wybrana grupa'));
  assert.equal(await page.locator('#databaseComparisonResult table').count(),0);
- await page.evaluate(()=>{
-   const checks=[...document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]')];
-   checks.forEach((input,i)=>{input.checked=i<2});
-   checks[0].dispatchEvent(new Event('change',{bubbles:true}));
- });
+ await page.locator('#databaseCompareGroupList input[data-compare-group]:not(:checked)').first().check();
  await waitJs(()=>document.getElementById('soraFullOverview').hidden);
- assert.match(await page.locator('#soraSelectionScope').textContent(),/Wybrano: 2 foldery/);
+ await waitJs(()=>document.getElementById('soraSelectionScope')?.textContent.includes('Wybrano: 2 foldery'));
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
  await click('#compareDatabaseBtn');
  await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card').length>=2);
- assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/2 wybrane grupy/);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('2 wybrane grupy'));
  done('stage 1: clear stale results, explicit one/two-folder status, preserve all comparison metrics');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
