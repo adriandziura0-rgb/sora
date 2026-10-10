@@ -164,6 +164,13 @@ try{
  await waitJs(()=>window.__drogowskazyNativeInstalled && document.getElementById('backendStatusPill').classList.contains('backend-ok'));
  const inventory=await page.evaluate(()=>Array.from(document.querySelectorAll('button')).map(e=>e.id?`#${e.id}`:['productionView','expertView','previewView','userTextView','view','menuGroup'].map(key=>e.dataset[key]?`[data-${key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())}="${e.dataset[key]}"]`:null).find(Boolean)).filter(Boolean));
  done('APK first start, embedded runtime, HTTP health, real Android WebView bridge');
+ await click('#openFullOverviewBtn');
+ await waitJs(()=>document.getElementById('soraFullOverview') && !document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ await click('#soraFullOverviewRefresh');
+ await click('#soraFullOverviewBack');
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ done('full-database report, refresh, back; original file pickers untouched');
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const emptyBackup=await exportButton('#downloadDatabaseBtn','audit-empty.sqlite3');
  assert.equal(emptyBackup.subarray(0,16).toString(),'SQLite format 3\0');
@@ -362,7 +369,7 @@ try{
  assert.deepEqual(testFailures,[],`Integration failures: ${testFailures.join('; ')}`);
  const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
- writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.5',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
+ writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.6',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){
