@@ -23,9 +23,14 @@
   const renderedTables = new WeakMap();
   function renderMobileComparison() {
     if (!comparisonHost) return;
-    // Stare żądanie nie może odtworzyć tabeli po zmianie zaznaczenia.
+    // Po zmianie zaznaczenia blokujemy także spóźnioną odpowiedź
+    // wcześniejszego porównania, nawet jeśli przyszła już po wyczyszczeniu.
     if (comparedScope && comparedScope !== selectedScope().key) {
       clearStaleScope();
+      return;
+    }
+    if (!comparedScope) {
+      if (comparisonHost.querySelector('table.database-compare-table')) comparisonHost.replaceChildren();
       return;
     }
     comparisonHost.querySelectorAll('table.database-compare-table').forEach(table => {
@@ -105,7 +110,7 @@
       (labels ? '<div class="sora-scope-labels">' + labels + '</div>' : '') +
       '<p>Wyniki poniżej dotyczą tylko zaznaczonych grup. Komunikat „Brak aktywnego wyniku” u góry dotyczy wyłącznie pojedynczego artykułu.</p>';
     if (opener) opener.disabled = count === 0 || count > 10;
-    if (refresh) refresh.disabled = count === 0 || count > 10;
+    if (refresh && !inFlight) refresh.disabled = count === 0 || count > 10;
     const existing = panel && !panel.hidden && reportScope && reportScope !== current.key;
     const staleTable = comparedScope && comparedScope !== current.key;
     if (existing || staleTable) clearStaleScope();

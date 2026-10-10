@@ -100,3 +100,28 @@
     overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;
   }
 }
+
+
+/* Etap 1 — wybór i status zawsze widoczne, również na małym ekranie. */
+.sora-selection-scope {
+  border:1px solid #b6d8dc;border-left:5px solid #0e7490;
+  background:#ecfeff;color:#164e63;border-radius:13px;
+  padding:12px 14px;margin-bottom:12px;min-width:0;
+  font-size:14px;line-height:1.45;overflow-wrap:anywhere;
+}
+.sora-selection-scope strong {display:block;font-size:15px;line-height:1.35}
+.sora-selection-scope p {margin:9px 0 0;font-size:12px;line-height:1.5}
+.sora-scope-labels {display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-width:0}
+.sora-scope-item {display:inline-flex;max-width:100%;padding:5px 8px;
+  border:1px solid #a5c5d5;border-radius:9px;background:#fff;
+  font-weight:700;font-size:12px;overflow-wrap:anywhere;white-space:normal}
+.sora-overview-nav-btn:disabled {opacity:.55;cursor:not-allowed}
+.sora-overview-status {overflow-wrap:anywhere;min-width:0}
+@media(max-width:760px) {
+  .sora-selection-choice,.sora-selection-report,
+  .sora-full-overview,.sora-overview-header {min-width:0;max-width:100%}
+  .sora-overview-header p {overflow-wrap:anywhere}
+  .sora-overview-actions {flex-direction:column;align-items:stretch}
+  .sora-overview-actions button {width:100%}
+  .sora-selection-scope {margin:8px 0 12px;padding:12px}
+}
