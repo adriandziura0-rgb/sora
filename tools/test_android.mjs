@@ -205,7 +205,7 @@ try{
  await click('#openFullOverviewBtn');
  await waitJs(()=>document.getElementById('soraFullOverview') && !document.getElementById('soraFullOverview').hidden);
  await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
- assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/zaznaczonych grup/);
+ assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/wybrane grupy/);
  await click('#soraFullOverviewRefresh');
  await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
  await click('#soraFullOverviewBack');
