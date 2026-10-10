@@ -53,7 +53,9 @@ public class DrogowskazyService extends Service {
 
     public static void startIfEnabled(Context context) {
         boolean enabled = context.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_AUTO_RUN, true);
-        if (enabled && ProjectStore.isInstalled(context)) {
+        // Także po przerwaniu podmiany APK, gdy katalog current chwilowo
+        // nie istnieje. instalator odzyska previous w ensureRuntime().
+        if (enabled) {
             startInternal(context, new Intent(context, DrogowskazyService.class));
         }
     }
@@ -159,18 +161,15 @@ public class DrogowskazyService extends Service {
     private void startWatchdog() {
         watchdog = Executors.newSingleThreadScheduledExecutor();
         watchdog.scheduleWithFixedDelay(() -> {
-            if (!ProjectStore.isInstalled(this)) return;
-            if (!isHealthy()) ensureRuntime();
+            if (!isHealthy() || ProjectStore.needsBundledInstall(this)
+                    || ProjectStore.hasInterruptedRestore(this)) ensureRuntime();
         }, 20, 20, TimeUnit.SECONDS);
     }
 
     private void ensureRuntime() {
         if (stopRequested) return;
-        if (!ProjectStore.isInstalled(this)) {
-            RUNTIME_STOPPED.set(true);
-            updateNotification("Wybierz ZIP programu w aplikacji");
-            return;
-        }
+        // Po aktualizacji APK lub po przerwanym przenoszeniu current/previous
+        // instalator sam odtworzy program; nie blokujemy się na isInstalled().
         // Po aktualizacji APK nie wolno pozostawić działającego starego panelu.
         // Dotyczy także startu z MY_PACKAGE_REPLACED i BOOT_COMPLETED.
         boolean installRequired = ProjectStore.needsBundledInstall(this);
