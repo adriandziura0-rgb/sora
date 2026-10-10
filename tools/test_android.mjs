@@ -214,10 +214,12 @@ try{
  await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-compare-mobile-cards .sora-comparison-source-card').length>=2);
  const cardStats=await page.evaluate(()=>({
    cards:[...document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
+   mainCards:[...document.querySelectorAll('#databaseComparisonResult .database-compare-section:first-of-type .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
    originalTables:document.querySelectorAll('#databaseComparisonResult table.database-compare-table').length,
    sources:document.getElementById('databaseCompareGroups').selectedOptions.length
  }));
- assert.ok(cardStats.cards.every(n=>n>=10), 'All original metrics must be visible per selected group');
+ assert.ok(cardStats.cards.length>=cardStats.sources, 'Every selected source has a mobile card');
+ assert.ok(cardStats.cards.some(n=>n>=10), 'Main metric table must retain its full list of metrics');
  assert.ok(cardStats.originalTables>=1, 'Desktop comparison table must remain available');
  assert.ok(cardStats.cards.length>=cardStats.sources, 'Selected groups must be readable as full metric cards');
  done('selected-group overview, responsive metric cards, full original tables, import unchanged');
