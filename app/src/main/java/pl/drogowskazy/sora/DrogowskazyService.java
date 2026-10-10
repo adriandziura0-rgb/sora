@@ -176,6 +176,7 @@ public class DrogowskazyService extends Service {
         boolean installRequired = ProjectStore.needsBundledInstall(this);
         boolean recoveryRequired = ProjectStore.hasInterruptedRestore(this);
         if (!installRequired && !recoveryRequired && isHealthy()) {
+            RUNTIME_STOPPED.set(false);
             updateNotification("Działa w tle • 127.0.0.1:" + PORT);
             return;
         }
@@ -197,8 +198,12 @@ public class DrogowskazyService extends Service {
                 PyObject bootstrap = Python.getInstance().getModule("android_bootstrap");
                 bootstrap.callAttr("start", ProjectStore.projectDir(this).getAbsolutePath(), PORT);
                 for (int i = 0; i < 30 && !isHealthy(); i++) Thread.sleep(500);
-                if (isHealthy()) updateNotification("Działa w tle • 127.0.0.1:" + PORT);
-                else updateNotification("Serwer startuje — sprawdź aplikację");
+                if (isHealthy()) {
+                    RUNTIME_STOPPED.set(false);
+                    updateNotification("Działa w tle • 127.0.0.1:" + PORT);
+                } else {
+                    updateNotification("Serwer startuje — sprawdź aplikację");
+                }
             } catch (Throwable error) {
                 updateNotification("Błąd uruchomienia — otwórz aplikację");
             } finally {
