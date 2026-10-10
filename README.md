@@ -59,15 +59,21 @@ zmieniony. Pobieranie plików, wybór folderów, panel, format bazy i import
 pozostają bez zmian. PHONE i PC muszą używać tego samego nowego wydania
 przy przekazywaniu ZIP TRANSFER, ponieważ identyfikator silnika się zmienia.
 
-## Cała baza — raport i porównania (1.2.6)
+## Wyniki wybranych materiałów obok zaznaczenia (1.2.6)
 
-W trybie Użytkownik otwórz przycisk **Cała baza — wyniki i porównania**.
-Widok pokazuje dane ze wszystkich gotowych analiz zapisanych w SQLite:
-liczby dokumentów i błędów, wszystkie redakcje (bez limitu 10), relacje,
-aktorów, tematy, P0–P5, pokrycie analityczne i ranking wskaźników
-normalizowanych na 1000 słów. Zaznaczony artykuł można otworzyć z raportu.
-Raport nie uruchamia analizy ponownie i nie zmienia bazy. Starsze
-porównania szczegółowe 2–10 grup oraz przyciski importu pozostają bez zmian.
-Na PC działa ten sam endpoint silnika; osobny ekran natywny PC można
-rozwinąć niezależnie. Testy weryfikują 12 redakcji, brak zapisów do SQLite,
-oraz działanie istniejących funkcji folderów i pobierania.
+W **Użytkownik → Baza / porównania → Porównaj linie redakcyjne / foldery**
+zaznacz od **1 do 10** folderów lub redakcji. Po kliknięciu
+**„Pokaż analizę zaznaczonych”** zobaczysz wyniki WYŁĄCZNIE wybranych
+materiałów. Dla dwóch i więcej grup przycisk **„Porównaj zaznaczone”**
+pokazuje także dotychczasową szczegółową tabelę porównawczą.
+
+Wyniki to nie jedna tabela: karty podsumowania, liczba artykułów i relacji,
+pokrycie P1–P5, ranking redakcji według wskaźników normalizowanych,
+TOP tematów, aktorów, targetów, źródeł i P0 oraz ostatnie dokumenty.
+Na PC zaznaczenie jest po lewej, a wyniki po prawej; na telefonie
+wyniki są bezpośrednio pod zaznaczeniem w tym samym widoku.
+
+Endpoint `/api/baza/analiza_wybranych` bez listy grup zwraca błąd 400 —
+nie istnieje automatyczna analiza całej bazy w tym ekranie. Odczyt
+używa wyłącznie już gotowych zapisanych analiz i nie modyfikuje SQLite.
+Pobieranie, katalogi/SD, import, format danych i stare porównania bez zmian.
