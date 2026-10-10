@@ -95,6 +95,26 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
                 "SELECT id, content_sha256, status, analysis_run_id FROM documents ORDER BY id"
             ).fetchall()
         assert state_before == state_after, "Raport nie może modyfikować danych"
+        # 15 dodatkowych dokumentów tej samej wybranej grupy: najnowsze 12
+        # bez gromadzenia historii dokumentów w pamięci.
+        for index in range(15):
+            source_text = f"TYTUŁ: uzupełnienie {index}\\nŹRÓDŁO: TVN24\\nTREŚĆ: seria {index}"
+            entry = sora.DOCUMENT_DATABASE.begin_import(
+                text=source_text, filename=f"extra-{index}.txt",
+                relative_path=f"TVN24/extra-{index}.txt", extension=".txt",
+                encoding="utf-8", source_bytes=len(source_text.encode("utf-8")),
+                app_version="test",
+            )
+            doc = entry["document"]
+            sora.DOCUMENT_DATABASE.mark_success(
+                doc["id"], {"analysis_run_id": f"extra-{index}", "sekcje": {}},
+                expected_content_sha256=doc["content_sha256"],
+            )
+        extra = client.get("/api/baza/analiza_wybranych?mode=publisher&group=TVN24")
+        assert extra.status_code == 200
+        most_recent = extra.get_json()["recent_documents"]
+        assert len(most_recent) == 12 and len({item["id"] for item in most_recent}) == 12
+        assert all(item["publisher"] == "TVN24" for item in most_recent)
         html = client.get("/").get_data(as_text=True)
         assert "Pokaż analizę zaznaczonych" in html
         assert "Cała baza — wyniki i porównania" not in html
