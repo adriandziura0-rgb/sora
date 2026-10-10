@@ -9,7 +9,7 @@ import hashlib
 import os
 from pathlib import Path
 import tempfile
-from zipfile import ZipFile, ZIP_DEFLATED, ZipInfo
+from zipfile import ZipFile, ZIP_STORED, ZipInfo
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET = ROOT / "app/src/main/assets/drogowskazy-runtime.zip"
@@ -119,7 +119,7 @@ def apply_patch(asset: Path = ASSET) -> str:
                 patched.writestr(info,updates.get(info.filename,data))
             for name,path in SOURCES.items():
                 info = ZipInfo(name, date_time=(2026, 10, 10, 0, 0, 0))
-                info.compress_type = ZIP_DEFLATED
+                info.compress_type = ZIP_STORED
                 info.create_system = 3
                 info.external_attr = 0o644 << 16
                 patched.writestr(info, path.read_bytes())
