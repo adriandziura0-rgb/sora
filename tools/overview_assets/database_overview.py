@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from collections import Counter
 from datetime import datetime, timezone
+from heapq import heappush, heapreplace
 from typing import Any, Iterable
 
 from .document_kind import is_article_document
@@ -42,7 +43,7 @@ def build_selected_database_overview(
     stats = {"selected_groups": len(names)}
     all_articles = _GroupAccumulator("Zaznaczone artykuły")
     by_publisher: dict[str, _GroupAccumulator] = {}
-    last_documents: list[dict[str, Any]] = []
+    recent_heap: list[tuple[tuple[str, int], dict[str, Any]]] = []
 
     for document, result in rows:
         if not isinstance(document, dict) or not isinstance(result, dict):
@@ -63,13 +64,18 @@ def build_selected_database_overview(
             by_publisher[publisher] = _GroupAccumulator(publisher)
         all_articles.add(document, result)
         by_publisher[publisher].add(document, result)
-        last_documents.append({
+        recent_document = {
             "id": document_id,
             "name": str(document.get("filename") or ""),
             "path": str(document.get("relative_path") or ""),
             "publisher": publisher,
             "analyzed_at": str(document.get("analyzed_at") or ""),
-        })
+        }
+        recent_key = (recent_document["analyzed_at"], document_id)
+        if len(recent_heap) < 12:
+            heappush(recent_heap, (recent_key, recent_document))
+        elif recent_key > recent_heap[0][0]:
+            heapreplace(recent_heap, (recent_key, recent_document))
 
 
     # Nie dopisujemy danych do SQLite i nie zmieniamy zapisanych analiz.
@@ -118,7 +124,7 @@ def build_selected_database_overview(
             "p4": _ranking(all_articles.p4),
             "p5": _ranking(all_articles.p5),
         },
-        "recent_documents": sorted(last_documents, key=lambda item: (item["analyzed_at"], item["id"]), reverse=True)[:12],
+        "recent_documents": [item[1] for item in sorted(recent_heap, key=lambda item: item[0], reverse=True)],
         "notes": notes,
         "method": (
             "Wyłącznie zaznaczone grupy, tylko ukończone artykuły; "
