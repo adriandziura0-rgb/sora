@@ -23,6 +23,11 @@
   const renderedTables = new WeakMap();
   function renderMobileComparison() {
     if (!comparisonHost) return;
+    // Stare żądanie nie może odtworzyć tabeli po zmianie zaznaczenia.
+    if (comparedScope && comparedScope !== selectedScope().key) {
+      clearStaleScope();
+      return;
+    }
     comparisonHost.querySelectorAll('table.database-compare-table').forEach(table => {
       const wrapper = table.closest('.database-compare-table-wrap');
       const headers = [...(table.tHead?.rows?.[0]?.cells || [])].map(c => (c.textContent || '').trim());
@@ -63,8 +68,64 @@
 
   let report = null;
   let active = false;
-  let busy = false;
   let metric = 'relations_per_1000_words';
+  let inFlight = null;
+  let comparedScope = null;
+  let reportScope = null;
+  const choices = document.getElementById('databaseCompareGroups');
+  const modeChoice = document.getElementById('databaseCompareMode');
+  const comparePanel = document.getElementById('databaseComparePanel');
+  const compareButton = document.getElementById('compareDatabaseBtn');
+  const selectionHost = comparePanel?.querySelector('.sora-selection-choice');
+  const scopeLabel = document.createElement('div');
+  scopeLabel.id = 'soraSelectionScope';
+  scopeLabel.className = 'sora-selection-scope';
+  scopeLabel.setAttribute('role', 'status');
+  scopeLabel.setAttribute('aria-live', 'polite');
+  if (selectionHost) selectionHost.prepend(scopeLabel);
+
+  const selectedScope = () => {
+    const mode = modeChoice?.value || 'folder';
+    const selected = [...(choices?.selectedOptions || [])].filter(option => option.value);
+    const groups = selected.map(option => option.value);
+    return {mode, groups, labels: selected.map(option => option.textContent?.trim() || option.value),
+      key: JSON.stringify([mode, groups])};
+  };
+  function paintScope() {
+    const current = selectedScope();
+    if (!selectionHost) return;
+    const name = current.mode === 'publisher' ? 'redakcja' : 'folder';
+    const count = current.groups.length;
+    let text = count === 0
+      ? 'Nie zaznaczono ' + (name === 'folder' ? 'folderu' : 'redakcji') + '.'
+      : 'Wybrano: ' + count + ' ' +
+        (name === 'folder' ? (count === 1 ? 'folder' : 'foldery') : (count === 1 ? 'redakcję' : 'redakcje')) + '.';
+    const labels = current.labels.map(label => '<span class="sora-scope-item">' + esc(label) + '</span>').join('');
+    scopeLabel.innerHTML = '<strong>Aktualny zakres: ' + esc(text) + '</strong>' +
+      (labels ? '<div class="sora-scope-labels">' + labels + '</div>' : '') +
+      '<p>Wyniki poniżej dotyczą tylko zaznaczonych grup. Komunikat „Brak aktywnego wyniku” u góry dotyczy wyłącznie pojedynczego artykułu.</p>';
+    if (opener) opener.disabled = count === 0 || count > 10;
+    if (refresh) refresh.disabled = count === 0 || count > 10;
+    const existing = panel && !panel.hidden && reportScope && reportScope !== current.key;
+    const staleTable = comparedScope && comparedScope !== current.key;
+    if (existing || staleTable) clearStaleScope();
+  }
+  function clearStaleScope() {
+    if (inFlight) { inFlight.abort(); inFlight = null; }
+    reportScope = null;
+    comparedScope = null;
+    report = null;
+    if (panel) panel.hidden = true;
+    active = false;
+    opener?.classList.remove('active');
+    opener?.removeAttribute('aria-current');
+    if (output) output.replaceChildren();
+    if (comparisonHost) comparisonHost.replaceChildren();
+    if (status) status.textContent = 'Zmieniono zaznaczenie. Poprzedni wynik ukryto. Pokaż analizę zaznaczonych.';
+    const download = document.getElementById('downloadDatabaseComparisonBtn');
+    if (download) download.disabled = true;
+  }
+
   const metricTypes = [
     ['relations_per_1000_words', 'Relacje / 1000 słów', 'number'],
     ['coverage_relation_documents', 'Dokumenty z relacją', 'percent'],
@@ -173,58 +234,91 @@
     });
   }
   async function load() {
-    if (busy) return;
-    busy=true;
-    if(refresh) refresh.disabled=true;
-    if(status) status.textContent='Odczytuję wyniki wyłącznie zaznaczonych materiałów…';
+    const scope = selectedScope();
+    if (inFlight) inFlight.abort();
+    const controller = new AbortController();
+    inFlight = controller;
+    if (refresh) refresh.disabled = true;
+    if (status) status.textContent = 'Odczytuję wyniki wybranych materiałów…';
     try {
-      const mode=document.getElementById('databaseCompareMode')?.value||'folder';
-      const chosen=Array.from(document.getElementById('databaseCompareGroups')?.selectedOptions||[]).map(x=>x.value).filter(Boolean);
-      if(!chosen.length) throw new Error('Zaznacz co najmniej jeden folder lub redakcję.');
-      if(chosen.length>10) throw new Error('Jednocześnie możesz zaznaczyć do 10 grup.');
-      const params=new URLSearchParams({mode});
-      chosen.forEach(name=>params.append('group',name));
-      const response=await fetch('/api/baza/analiza_wybranych?'+params.toString(), {cache:'no-store'});
-      const data=await response.json();
-      if(!response.ok || !data.ok) throw new Error(data.wiadomosc || data.szczegoly || 'Nie udało się odczytać bazy.');
-      report=data;
+      if (!scope.groups.length) throw new Error('Najpierw zaznacz folder lub redakcję.');
+      if (scope.groups.length > 10) throw new Error('Możesz zaznaczyć maksymalnie 10 grup.');
+      const params = new URLSearchParams({mode: scope.mode});
+      scope.groups.forEach(group => params.append('group', group));
+      const response = await fetch('/api/baza/analiza_wybranych?' + params.toString(),
+                                   {cache: 'no-store', signal: controller.signal});
+      const data = await response.json();
+      if (inFlight !== controller || selectedScope().key !== scope.key) return;
+      if (!response.ok || !data.ok) throw new Error(data.szczegoly || data.wiadomosc || 'Nie udało się odczytać wyniku.');
+      report = data;
+      reportScope = scope.key;
       render();
-      if(status) status.textContent='Gotowe · ' + int(report.analyzed_articles) +
-        ' artykułów z ' + int(report.selected_groups?.length) + ' zaznaczonych grup · zapisane analizy bez zmian.';
+      if (status) {
+        status.textContent = data.analyzed_articles === 0
+          ? 'Brak ukończonych analiz w zaznaczonych materiałach. Sprawdź ich stan w bazie.'
+          : 'Gotowe: ' + int(data.analyzed_articles) + ' przeanalizowanych artykułów; ' +
+            int(scope.groups.length) + ' wybranych grup. Pozostałe foldery pominięto.';
+      }
     } catch(error) {
-      if(status) status.textContent='Błąd raportu: ' + (error?.message || 'Sprawdź backend.');
-      report=null;output.innerHTML='<p class="sora-overview-empty">Brak wyników dla bieżącego zaznaczenia. Pobieranie i zapis dokumentów pozostają bez zmian.</p>';
-    } finally {busy=false;if(refresh)refresh.disabled=false;}
+      if (inFlight !== controller || error?.name === 'AbortError') return;
+      report = null;
+      reportScope = null;
+      if (status) status.textContent = 'Błąd wyświetlania: ' + (error?.message || 'Spróbuj ponownie.');
+      if (output) output.innerHTML = '<p class="sora-overview-empty">Brak aktualnych wyników dla tego wyboru. Dane w bazie nie zostały zmienione.</p>';
+    } finally {
+      if (inFlight === controller) {
+        inFlight = null;
+        if (refresh) refresh.disabled = selectedScope().groups.length === 0;
+      }
+    }
   }
   function close() {
-    active=false;
-    panel.hidden=true;
+    if (inFlight) { inFlight.abort(); inFlight = null; }
+    active = false;
+    panel.hidden = true;
     opener.classList.remove('active');
     opener.removeAttribute('aria-current');
   }
   function open() {
-    active=true;
-    panel.hidden=false;
+    const scope = selectedScope();
+    if (!scope.groups.length || scope.groups.length > 10) {
+      paintScope();
+      return;
+    }
+    active = true;
+    panel.hidden = false;
     opener.classList.add('active');
-    opener.setAttribute('aria-current','page');
+    opener.setAttribute('aria-current', 'page');
+    reportScope = scope.key;
     void load();
   }
-  opener.addEventListener('click',()=>active?close():open());
-  back?.addEventListener('click',close);
-  refresh?.addEventListener('click',()=>void load());
-  // Gdy porównanie kilku grup zostanie uruchomione, pokaż także pełne karty
-  // analityczne obok wyboru — nie tylko istniejącą tabelę.
-  document.getElementById('compareDatabaseBtn')?.addEventListener('click',()=>{
-    const chosen=document.getElementById('databaseCompareGroups')?.selectedOptions?.length||0;
-    if(chosen>=2 && chosen<=10) {active=true;panel.hidden=false;void load();}
-  });
-  document.getElementById('databaseComparePanel')?.addEventListener('change',event=>{
-    const target=event.target;
-    if(target?.matches?.('[data-compare-group], #databaseCompareMode')) {
-      report=null;
-      close();
-      if(status) status.textContent='Zmieniono wybór. Kliknij „Pokaż analizę zaznaczonych”.';
-      output.innerHTML='';
+  opener.addEventListener('click', () => active ? close() : open());
+  back?.addEventListener('click', close);
+  refresh?.addEventListener('click', () => void load());
+  compareButton?.addEventListener('click', () => {
+    const scope = selectedScope();
+    if (scope.groups.length < 2 || scope.groups.length > 10) return;
+    comparedScope = scope.key;
+    if (!active) {
+      active = true;
+      panel.hidden = false;
+      opener.classList.add('active');
+      opener.setAttribute('aria-current', 'page');
     }
-  },true);
+    reportScope = scope.key;
+    void load();
+  });
+  comparePanel?.addEventListener('change', event => {
+    if (event.target === choices || event.target === modeChoice ||
+        event.target?.matches?.('[data-compare-group]')) {
+      const scope = selectedScope();
+      if (comparedScope && comparedScope !== scope.key) clearStaleScope();
+      if (reportScope && reportScope !== scope.key) clearStaleScope();
+      paintScope();
+    }
+  }, true);
+  if (choices && typeof MutationObserver !== 'undefined') {
+    new MutationObserver(paintScope).observe(choices, {childList:true,subtree:true});
+  }
+  paintScope();
 })();
