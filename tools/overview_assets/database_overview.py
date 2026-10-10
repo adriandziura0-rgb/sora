@@ -1,7 +1,7 @@
-"""Lekki, przekrojowy raport tylko do odczytu dla całej bazy Sory.
+"""Przekrojowy raport tylko do odczytu dla zaznaczonych artykułów Sory.
 
 Nie przelicza analiz, nie dotyka kolektora, importu ani schematu SQLite.
-Zwraca zbiorcze metryki WSZYSTKICH gotowych artykułów (bez limitu 10 redakcji).
+Zwraca metryki wyłącznie 1–10 grup jawnie wybranych przez użytkownika.
 """
 from __future__ import annotations
 
@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 from typing import Any, Iterable
 
 from .document_kind import is_article_document
-from .editorial_compare import _GroupAccumulator, comparison_group
+from .editorial_compare import _GroupAccumulator, comparison_group, VALID_MODES, MAX_COMPARE_GROUPS
 
-OVERVIEW_SCHEMA = "sora_full_database_overview_v1"
+OVERVIEW_SCHEMA = "sora_selected_database_overview_v1"
 
 
 def _ranking(counter: Counter, maximum: int = 12) -> list[dict[str, Any]]:
@@ -20,13 +20,22 @@ def _ranking(counter: Counter, maximum: int = 12) -> list[dict[str, Any]]:
             for label, count in counter.most_common(maximum) if count > 0]
 
 
-def build_full_database_overview(
+def build_selected_database_overview(
     rows: Iterable[tuple[dict[str, Any], dict[str, Any]]],
     *,
-    database_stats: dict[str, Any] | None = None,
+    mode: str,
+    groups: list[str],
 ) -> dict[str, Any]:
-    stats = dict(database_stats or {})
-    all_articles = _GroupAccumulator("Wszystkie artykuły")
+    """Nigdy nie odczytuje analizy całej bazy bez jawnego zaznaczenia."""
+    safe_mode = str(mode or "").strip().casefold()
+    if safe_mode not in VALID_MODES:
+        raise ValueError("Wybierz foldery lub redakcje.")
+    names = list(dict.fromkeys(str(n).strip() for n in groups if str(n).strip()))
+    if not 1 <= len(names) <= MAX_COMPARE_GROUPS:
+        raise ValueError("Zaznacz od 1 do 10 folderów lub redakcji.")
+    wanted = {name.casefold() for name in names}
+    stats = {"selected_groups": len(names)}
+    all_articles = _GroupAccumulator("Zaznaczone artykuły")
     by_publisher: dict[str, _GroupAccumulator] = {}
     last_documents: list[dict[str, Any]] = []
 
@@ -37,6 +46,9 @@ def build_full_database_overview(
             continue
         document_id = int(document.get("id") or 0)
         if document_id <= 0:
+            continue
+        group = comparison_group(document, result, safe_mode)
+        if group.casefold() not in wanted:
             continue
         publisher = comparison_group(document, result, "publisher") or "(nieustalona redakcja)"
         if publisher not in by_publisher:
@@ -57,17 +69,10 @@ def build_full_database_overview(
     groups = [group.summary() for group in by_publisher.values()]
     groups.sort(key=lambda g: (-g["documents"], g["name"].casefold()))
     used = all_articles.documents
-    done_articles = int(stats.get("done_articles") or 0)
-    notes: list[str] = []
-    if used != done_articles:
-        notes.append(
-            f"W bazie jest {done_articles} gotowych artykułów, a odczytać udało się {used}. "
-            "Brakujące albo uszkodzone wyniki nie są liczone do analiz."
-        )
-    if int(stats.get("processing") or 0):
-        notes.append("Część dokumentów jest nadal analizowana. Raport dotyczy wyłącznie wyników zapisanych jako gotowe.")
+    stats.update(articles=used, done_articles=used, processing=0, error=0, duplicates=0, support_files=0)
+    notes = ["Raport dotyczy wyłącznie ukończonych analiz w zaznaczonych grupach. Nie obejmuje całej bazy."]
     if len(groups) < 2:
-        notes.append("Porównania redakcji pojawią się po zapisaniu gotowych analiz co najmniej dwóch źródeł.")
+        notes.append("Do porównania redakcji zaznacz co najmniej dwie. Analiza jednej grupy również jest dostępna.")
     if groups and min(g["documents"] for g in groups) < 5:
         notes.append("Niektóre redakcje mają mniej niż 5 artykułów. Różnice wskaźników są bardzo niestabilne.")
     if groups and max(g["documents"] for g in groups) >= 4 * max(1, min(g["documents"] for g in groups)):
@@ -82,7 +87,9 @@ def build_full_database_overview(
         "ok": True,
         "schema": OVERVIEW_SCHEMA,
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "scope": "wszystkie ukończone analizy artykułów ze wszystkich redakcji",
+        "scope": "tylko zaznaczone foldery lub redakcje",
+        "selection_mode": safe_mode,
+        "selected_groups": names,
         "read_only": True,
         "stats": stats,
         "analyzed_articles": used,
@@ -105,7 +112,7 @@ def build_full_database_overview(
         "recent_documents": list(reversed(last_documents)),
         "notes": notes,
         "method": (
-            "Cała baza, wszystkie gotowe artykuły, bez limitu liczby redakcji; "
+            "Wyłącznie zaznaczone grupy, tylko ukończone artykuły; "
             "pliki techniczne wyłączone. Wyniki tylko z zapisanych analiz SQLite. "
             "Nie uruchamia ponownie silnika ani nie zmienia dokumentów."
         ),
