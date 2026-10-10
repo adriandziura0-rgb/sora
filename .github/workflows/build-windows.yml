@@ -2,13 +2,16 @@ name: Build Sora Windows native EXE
 on:
   workflow_dispatch:
   push:
-    branches: [main, 'desktop-native-*']
+    branches: [main, 'desktop-native-*', 'sora-full-*']
     paths:
       - 'desktop/**'
       - 'app/src/main/python/data_transfer.py'
       - 'tools/test_transfer.py'
       - 'tools/test_topic_matcher_cache.py'
       - 'tools/patch_engine_runtime.py'
+      - 'tools/overview_assets/**'
+      - 'tools/patch_full_database_dashboard.py'
+      - 'tools/test_full_database_overview.py'
       - 'app/src/main/assets/drogowskazy-runtime.zip'
       - '.github/workflows/build-windows.yml'
 permissions:
@@ -29,6 +32,10 @@ jobs:
         run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0
       - name: Optimize shared PHONE and PC analysis engine
         run: python tools/patch_engine_runtime.py
+      - name: Enable full database analytics in shared PC and PHONE engine
+        run: python tools/patch_full_database_dashboard.py
+      - name: Verify whole-database analytics across 12 publishers
+        run: python tools/test_full_database_overview.py
       - name: Verify optimized matcher and GOLD quality
         run: python tools/test_topic_matcher_cache.py
       - name: Verify identical PHONE and PC engine and results
