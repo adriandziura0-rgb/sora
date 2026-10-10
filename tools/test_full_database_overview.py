@@ -1,4 +1,4 @@
-"""Read-only whole-database analysis: all sources, figures, and mobile UI assets."""
+"""Read-only analytics for EXPLICIT selection; unselected documents never appear."""
 from pathlib import Path
 import os
 import sqlite3
@@ -19,15 +19,15 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
     os.environ["DROGOWSKAZY_DB_PATH"] = str(Path(tmp) / "isolated-test.sqlite3")
     sys.path.insert(0, tmp)
     import app as sora
-    from clean_core.database_overview import build_full_database_overview
+    from clean_core.database_overview import build_selected_database_overview
 
     with sora.app.test_client() as client:
-        blank = client.get("/api/baza/raport_calosciowy")
-        assert blank.status_code == 200, blank.get_data(as_text=True)
-        empty = blank.get_json()
-        assert empty["ok"] is True and empty["analyzed_articles"] == 0
-        assert empty["publisher_count"] == 0
-
+        blank = client.get("/api/baza/analiza_wybranych")
+        assert blank.status_code == 400, "Brak zaznaczenia nie może uruchomić całej bazy"
+        assert client.get("/api/baza/raport_calosciowy").status_code == 404
+        empty = client.get("/api/baza/analiza_wybranych?mode=folder&group=Brak")
+        assert empty.status_code == 200 and empty.get_json()["analyzed_articles"] == 0
+        assert client.get("/api/baza/analiza_wybranych?mode=all&group=TVN24").status_code == 400
         sources = ("TVN24","PAP","Onet","Interia","RMF24","Polsat News",
                    "TVP Info","Gazeta Wyborcza","Do Rzeczy","Dziennik.pl",
                    "Gazeta.pl","Money.pl")
@@ -68,21 +68,24 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
             state_before = db.execute(
                 "SELECT id, content_sha256, status, analysis_run_id FROM documents ORDER BY id"
             ).fetchall()
-        response = client.get("/api/baza/raport_calosciowy")
+        response = client.get("/api/baza/analiza_wybranych?mode=publisher&group=TVN24&group=PAP")
         assert response.status_code == 200, response.get_data(as_text=True)
-        full = response.get_json()
-        assert full["ok"] is True and full["read_only"] is True
-        assert full["analyzed_articles"] == len(sources), full
-        assert full["publisher_count"] == len(sources), full["sources"]
-        assert len(full["sources"]) == len(sources), "Nie ograniczaj raportu do 10 redakcji"
-        assert full["summary"]["relations"] == len(sources)
-        assert full["summary"]["documents_with_relation"] == len(sources)
-        assert full["stats"]["done_articles"] == len(sources)
-        assert sum(item["documents"] for item in full["sources"]) == len(sources)
-        assert full["rankings"]["speakers"][0] == {"name":"minister","count":len(sources)}
-        assert full["rankings"]["topics"][0] == {"name":"badanie","count":len(sources)}
-        assert full["rankings"]["p0"][0] == {"name":"Sygnał","count":len(sources)}
-        assert len(full["recent_documents"]) == len(sources)
+        selected = response.get_json()
+        assert selected["ok"] and selected["read_only"]
+        assert selected["selected_groups"] == ["TVN24","PAP"]
+        assert selected["analyzed_articles"] == 2, selected
+        assert selected["publisher_count"] == 2, selected["sources"]
+        assert selected["summary"]["relations"] == 2
+        assert selected["summary"]["documents_with_relation"] == 2
+        assert selected["stats"]["done_articles"] == 2
+        assert all(d["publisher"] in {"TVN24","PAP"} for d in selected["recent_documents"])
+        assert selected["rankings"]["speakers"][0] == {"name":"minister","count":2}
+        assert selected["rankings"]["topics"][0] == {"name":"badanie","count":2}
+        assert selected["rankings"]["p0"][0] == {"name":"Sygnał","count":2}
+        assert client.get("/api/baza/analiza_wybranych?mode=publisher&group=TVN24").get_json()["analyzed_articles"] == 1
+        assert client.get("/api/baza/analiza_wybranych?mode=folder&group=PAP").get_json()["analyzed_articles"] == 1
+        too_many = "&".join("group=" + x.replace(" ","%20") for x in sources[:11])
+        assert client.get("/api/baza/analiza_wybranych?mode=folder&" + too_many).status_code == 400
         assert sora.DOCUMENT_DATABASE.stats() == before
         with sqlite3.connect(os.environ["DROGOWSKAZY_DB_PATH"]) as db:
             state_after = db.execute(
@@ -90,11 +93,13 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
             ).fetchall()
         assert state_before == state_after, "Raport nie może modyfikować danych"
         html = client.get("/").get_data(as_text=True)
-        assert "Cała baza — wyniki i porównania" in html
+        assert "Pokaż analizę zaznaczonych" in html
+        assert "Cała baza — wyniki i porównania" not in html
+        assert "sora-selection-layout" in html
         assert 'id="soraFullOverview"' in html
         assert client.get("/static/full-database.js").status_code == 200
         assert client.get("/static/full-database.css").status_code == 200
         assert client.get("/api/baza/status").status_code == 200
         assert client.get("/api/baza/porownanie/grupy").status_code == 200
-        print("PASS: 12 publishers, whole SQLite data, 12 relations, topic/actor/P0 rankings,"
-              " no writes, UI assets and existing APIs")
+        print("PASS: 12 documents in database; only two selected analyzed, one selected supported,"
+              " empty selection rejected, no writes, Android UI and original imports intact")
