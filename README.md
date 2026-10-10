@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.8
+# Drogowskazy Sora 1.2.9
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -93,3 +93,19 @@ jest ukrywany, a niezakończony odczyt anulowany; spóźnione wyniki nie
 powinny wracać na ekran. Na telefonie wartości porównań pozostają
 w pionowych kartach. To wyłącznie zmiany warstwy wyświetlania;
 nie zmieniono silnika, SQLite, importu, folderów ani transferu.
+
+## Android 1.2.9 — niezawodne uaktualnianie panelu
+
+W wersjach 1.2.4–1.2.8 identyfikator wbudowanego programu
+`4.5.12-inapp-2` nie zmieniał się przy kolejnych APK. Po aktualizacji
+Android niekiedy uruchamiał poprzednie pliki HTML i JavaScript, dlatego
+nie było widać „Aktualnego zakresu” i nowego panelu zaznaczonych.
+
+Od 1.2.9 identyfikator wbudowanego pakietu wynika z wersji zainstalowanego
+APK. Przy instalacji aktualizacji aplikacja bezpiecznie zatrzymuje
+runtime, wypakowuje nowy interfejs i **zachowuje cały katalog data**
+(w tym bazę SQLite, WAL, wyniki i pozostałe pliki użytkownika).
+Przy nieudanym wdrożeniu wraca do poprzedniej wersji plików programu.
+Przy kolejnych wersjach APK trzeba zwiększać `versionCode` i `versionName`.
+Test automatyczny symuluje aktualizację 1.2.8 → 1.2.9 oraz
+migrację z identyfikatora `4.5.12-inapp-2`. Silnik i pobieranie niezmienione.
