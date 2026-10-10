@@ -171,13 +171,27 @@ public class DrogowskazyService extends Service {
             updateNotification("Wybierz ZIP programu w aplikacji");
             return;
         }
-        if (isHealthy()) {
+        // Po aktualizacji APK nie wolno pozostawić działającego starego panelu.
+        // Dotyczy także startu z MY_PACKAGE_REPLACED i BOOT_COMPLETED.
+        boolean installRequired = ProjectStore.needsBundledInstall(this);
+        boolean recoveryRequired = ProjectStore.hasInterruptedRestore(this);
+        if (!installRequired && !recoveryRequired && isHealthy()) {
             updateNotification("Działa w tle • 127.0.0.1:" + PORT);
             return;
         }
         if (!starting.compareAndSet(false, true)) return;
         runtimeExecutor.execute(() -> {
             try {
+                if (stopRequested) return;
+                if (ProjectStore.hasInterruptedRestore(this) || ProjectStore.needsBundledInstall(this)) {
+                    updateNotification("Zabezpieczanie danych i aktualizowanie programu…");
+                    if (Python.isStarted() && !stopRuntime()) {
+                        throw new IllegalStateException("Nie można zatrzymać poprzedniej wersji.");
+                    }
+                    ProjectStore.recoverInterruptedRestore(this);
+                    if (stopRequested) return;
+                    ProjectStore.installBundled(this);
+                }
                 if (stopRequested) return;
                 if (!Python.isStarted()) Python.start(new AndroidPlatform(getApplicationContext()));
                 PyObject bootstrap = Python.getInstance().getModule("android_bootstrap");
