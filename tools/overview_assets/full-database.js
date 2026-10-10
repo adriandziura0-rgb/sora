@@ -83,6 +83,82 @@
   scopeLabel.setAttribute('aria-live', 'polite');
   if (selectionHost) selectionHost.prepend(scopeLabel);
 
+  // Zachowujemy wyłącznie zakres i rodzaj widoku, nigdy treść artykułów
+  // ani wynik analizy. Raport jest ponownie odczytywany z istniejącej SQLite.
+  const VIEW_STORAGE_KEY = 'sora-zaznaczone-raport-v1';
+  function readSavedView() {
+    try {
+      const value = JSON.parse(window.localStorage.getItem(VIEW_STORAGE_KEY) || 'null');
+      if (!value || !['folder', 'publisher'].includes(value.mode) ||
+          !Array.isArray(value.groups) || !['report', 'comparison', 'hidden'].includes(value.view)) return null;
+      const groups = [...new Set(value.groups.filter(x => typeof x === 'string' && x.length > 0 && x.length <= 400))];
+      if (!groups.length || groups.length > 10) return null;
+      return {mode:value.mode, groups, view:value.view};
+    } catch (_) {
+      return null;  // Wyłączona pamięć WebView nie może zepsuć raportu.
+    }
+  }
+  function saveView(view) {
+    if (restoringSaved) return;
+    const scope = selectedScope();
+    if (!scope.groups.length || scope.groups.length > 10) return;
+    try {
+      window.localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify({
+        mode:scope.mode, groups:scope.groups, view
+      }));
+    } catch (_) { /* LocalStorage może być wyłączony, działanie bieżące bez zmian. */ }
+  }
+  let savedView = readSavedView();
+  let restoredSavedView = !savedView;
+  let restoringSaved = false;
+  function restoreSavedView() {
+    if (restoredSavedView || restoringSaved || !savedView || !modeChoice || !choices) return;
+    // Grupy w bazie są pobierane asynchronicznie. Nie odtwarzamy wyboru
+    // na pustej lub niepełnej liście, żeby nie pokazać niewłaściwych danych.
+    if (modeChoice.value !== savedView.mode) {
+      restoringSaved = true;
+      try {
+        modeChoice.value = savedView.mode;
+        modeChoice.dispatchEvent(new Event('change', {bubbles:true}));
+      } finally { restoringSaved = false; }
+      return; // Zaczekaj na przerysowanie grup po zmianie trybu.
+    }
+    const checkboxes = [...(comparePanel?.querySelectorAll('#databaseCompareGroupList input[data-compare-group]') || [])];
+    const options = [...choices.options].filter(o => o.value);
+    const available = checkboxes.length
+      ? checkboxes.map(c => c.dataset.compareGroup || c.value)
+      : options.map(o => o.value);
+    if (!available.length || !savedView.groups.every(name => available.includes(name))) return;
+    restoringSaved = true;
+    try {
+      const wanted = new Set(savedView.groups);
+      if (checkboxes.length) {
+        // W aplikacji mobilnej checkboxy są sterowaniem źródłowym,
+        // select jest używany na PC i przez oryginalny eksport.
+        for (const checkbox of checkboxes) {
+          checkbox.checked = wanted.has(checkbox.dataset.compareGroup || checkbox.value);
+        }
+      }
+      for (const option of options) option.selected = wanted.has(option.value);
+      choices.dispatchEvent(new Event('change', {bubbles:true}));
+      // Program może zaktualizować jedną listę po synchronizacji drugiej;
+      // otwieramy wynik dopiero wtedy, gdy aktualny zakres jest poprawny.
+      const scope = selectedScope();
+      if (scope.mode !== savedView.mode || scope.groups.length !== savedView.groups.length ||
+          !scope.groups.every(name => wanted.has(name))) return;
+      restoredSavedView = true;
+      paintScope();
+      if (savedView.view === 'comparison' && scope.groups.length >= 2) {
+        comparedScope = scope.key;
+        compareButton?.click();
+      } else if (savedView.view === 'report') {
+        open();
+      }
+    } finally {
+      restoringSaved = false;
+    }
+  }
+
   const selectedScope = () => {
     const mode = modeChoice?.value || 'folder';
     const checkboxes = [...(comparePanel?.querySelectorAll('#databaseCompareGroupList input[data-compare-group]') || [])];
@@ -122,6 +198,11 @@
     if (existing || staleTable) clearStaleScope();
   }
   function clearStaleScope() {
+    if (!restoringSaved) {
+      // Po zmianie wybranych folderów poprzedni raport nie może wrócić
+      // samoczynnie przy następnym uruchomieniu.
+      saveView('hidden');
+    }
     if (inFlight) { inFlight.abort(); inFlight = null; }
     reportScope = null;
     comparedScope = null;
@@ -287,6 +368,7 @@
     }
   }
   function close() {
+    saveView('hidden');
     if (inFlight) { inFlight.abort(); inFlight = null; }
     active = false;
     panel.hidden = true;
@@ -304,6 +386,7 @@
     opener.classList.add('active');
     opener.setAttribute('aria-current', 'page');
     reportScope = scope.key;
+    saveView('report');
     void load();
   }
   opener.addEventListener('click', () => active ? close() : open());
@@ -320,6 +403,7 @@
       opener.setAttribute('aria-current', 'page');
     }
     reportScope = scope.key;
+    saveView('comparison');
     void load();
   });
   comparePanel?.addEventListener('change', event => {
@@ -329,14 +413,18 @@
       if (comparedScope && comparedScope !== scope.key) clearStaleScope();
       if (reportScope && reportScope !== scope.key) clearStaleScope();
       paintScope();
+      if (!restoringSaved && event.isTrusted) saveView('hidden');
+      if (!restoringSaved) restoreSavedView();
     }
   }, true);
   if (typeof MutationObserver !== 'undefined') {
-    if (choices) new MutationObserver(paintScope).observe(choices, {childList:true,subtree:true});
+    const syncChoices = () => { paintScope(); restoreSavedView(); };
+    if (choices) new MutationObserver(syncChoices).observe(choices, {childList:true,subtree:true});
     const groupList = document.getElementById('databaseCompareGroupList');
-    if (groupList) new MutationObserver(paintScope).observe(groupList, {childList:true,subtree:true});
+    if (groupList) new MutationObserver(syncChoices).observe(groupList, {childList:true,subtree:true});
   }
   paintScope();
+  restoreSavedView();
   // Initialize the comparison observer LAST: selectedScope, comparedScope and
   // the surrounding handlers must be initialized before the first callback.
   if (comparisonHost && typeof MutationObserver !== 'undefined') {
