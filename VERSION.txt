@@ -7,6 +7,6 @@ odporny import folderów, przywracanie SQLite w panelu i testy interfejsu Androi
 Wydanie 1.2.5: szybsze porównania tej samej sprawy (cache par), bez zmian
 w pobieraniu, interfejsie, SQLite i analizie semantycznej. 257/257 GOLD.
 
-Wydanie 1.2.6: pełny raport całej bazy, wszystkie źródła, TOP tematów,
-aktorzy, relacje, pokrycie P1–P5, porównania redakcji bez limitu 10.
-Raport tylko do odczytu; pobieranie plików i folderów bez zmian.
+Wydanie 1.2.6: analiza 1–10 jawnie zaznaczonych grup (folderów i redakcji),
+wielowymiarowe wyniki obok wyboru, na telefonie bezpośrednio pod wyborem.
+Żadnych automatycznych odczytów całej bazy, zmian pobierania ani SQLite.
