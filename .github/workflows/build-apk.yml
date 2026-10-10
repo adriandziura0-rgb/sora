@@ -53,6 +53,7 @@ jobs:
           python tools/test_transfer.py
           python tools/test_topic_matcher_cache.py
           python tools/test_full_database_overview.py
+          node tools/test_view_persistence.mjs
 
       - name: Install Android SDK packages
         shell: bash
