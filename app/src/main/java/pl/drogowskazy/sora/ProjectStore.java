@@ -1,6 +1,8 @@
 package pl.drogowskazy.sora;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -19,7 +21,6 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 final class ProjectStore {
-    static final String BUNDLED_VERSION = "4.5.12-inapp-2";
     private static final String BUNDLE_PREFS = "drogowskazy_bundle";
     private static final long MAX_UNPACKED_BYTES = 700L * 1024L * 1024L;
     private static final int MAX_ENTRIES = 20_000;
@@ -38,8 +39,19 @@ final class ProjectStore {
                 && new File(root, "static/app.js").isFile();
     }
 
+    // Identyfikator wbudowanego programu musi zmieniać się wraz z aktualizacją APK.
+    // Stała 4.5.12-inapp-2 powodowała, że APK 1.2.8 uruchamiało stary panel.
+    private static String bundledVersion(Context context) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            return "apk-runtime-" + packageInfo.versionName;
+        } catch (PackageManager.NameNotFoundException error) {
+            throw new IllegalStateException("Nie można sprawdzić wersji zainstalowanej aplikacji.", error);
+        }
+    }
+
     static boolean needsBundledInstall(Context context) {
-        return !isInstalled(context) || !BUNDLED_VERSION.equals(context
+        return !isInstalled(context) || !bundledVersion(context).equals(context
                 .getSharedPreferences(BUNDLE_PREFS, Context.MODE_PRIVATE)
                 .getString("installed_version", ""));
     }
@@ -65,7 +77,7 @@ final class ProjectStore {
 
     private static void markBundleInstalled(Context context) throws IOException {
         if (!context.getSharedPreferences(BUNDLE_PREFS, Context.MODE_PRIVATE).edit()
-                .putString("installed_version", BUNDLED_VERSION).commit()) {
+                .putString("installed_version", bundledVersion(context)).commit()) {
             throw new IOException("Nie można zapisać wersji zainstalowanego programu.");
         }
     }

@@ -1,4 +1,4 @@
-1.2.5
+1.2.9
 Drogowskazy Sora Android APK
 Runtime 4.5.12 wbudowany w APK; automatyczny start i panel w aplikacji.
 Aktualizacja zachowuje prywatny katalog data. Bezpośredni import plików do bazy,
@@ -6,3 +6,18 @@ odporny import folderów, przywracanie SQLite w panelu i testy interfejsu Androi
 
 Wydanie 1.2.5: szybsze porównania tej samej sprawy (cache par), bez zmian
 w pobieraniu, interfejsie, SQLite i analizie semantycznej. 257/257 GOLD.
+
+Wydanie 1.2.8: analiza 1–10 jawnie zaznaczonych grup (folderów i redakcji),
+wielowymiarowe wyniki obok wyboru, na telefonie bezpośrednio pod wyborem.
+Żadnych automatycznych odczytów całej bazy, zmian pobierania ani SQLite.
+
+Na Androidzie każda wybrana grupa ma kartę wszystkich wskaźników zamiast uciętych
+kolumn szerszej tabeli. Bez zmian silnika analizy i pobierania.
+
+Etap 1: opis zaznaczenia, rozróżnienie wyniku artykułu i porównania,
+ukrywanie poprzednich wyników przy zmianie zakresu, responsywne statusy.
+Tylko warstwa wyświetlania. Pobieranie i silnik bez zmian.
+
+Wydanie 1.2.9: naprawa aktualizacji wbudowanego runtime'u. Telefon
+wczytuje nowe pliki widoku przy instalacji APK, zamiast zachowywać stare.
+SQLite, WAL, foldery, pobieranie i klasyfikator bez zmian.

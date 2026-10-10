@@ -28,6 +28,20 @@ public final class SharedPreferences {
     public boolean commit(){data.put(key,value);return true;}
   }
 }''',
+"android/content/pm/PackageInfo.java": r'''package android.content.pm;
+public final class PackageInfo {
+  public String versionName;
+}''',
+"android/content/pm/PackageManager.java": r'''package android.content.pm;
+public final class PackageManager {
+  private final String version;
+  public PackageManager(String version){this.version=version;}
+  public PackageInfo getPackageInfo(String name,int flags)throws NameNotFoundException{
+    if(!"pl.drogowskazy.sora".equals(name))throw new NameNotFoundException();
+    PackageInfo info=new PackageInfo();info.versionName=version;return info;
+  }
+  public static final class NameNotFoundException extends Exception{}
+}''',
 "android/content/res/AssetManager.java": r'''package android.content.res;
 import java.io.*;
 public final class AssetManager {
@@ -44,15 +58,20 @@ public final class ContentResolver {
 "android/content/Context.java": r'''package android.content;
 import java.io.File;
 import android.content.res.AssetManager;
+import android.content.pm.PackageManager;
 public final class Context {
   public static final int MODE_PRIVATE=0;
   private final File root,assets;
+  private String apkVersion="1.2.8";
   private final SharedPreferences prefs=new SharedPreferences();
   public Context(File root,File assets){this.root=root;this.assets=assets;getFilesDir().mkdirs();getCacheDir().mkdirs();}
   public File getFilesDir(){return new File(root,"files");}
   public File getCacheDir(){return new File(root,"cache");}
   public AssetManager getAssets(){return new AssetManager(assets);}
   public ContentResolver getContentResolver(){return new ContentResolver();}
+  public String getPackageName(){return "pl.drogowskazy.sora";}
+  public PackageManager getPackageManager(){return new PackageManager(apkVersion);}
+  public void setPackageVersion(String version){apkVersion=version;}
   public SharedPreferences getSharedPreferences(String name,int mode){return prefs;}
 }''',
 "android/database/Cursor.java": r'''package android.database;
@@ -124,18 +143,30 @@ public final class ProjectStoreTest {
     try{ProjectStore.importZip(context,Uri.parse(traversal.toString()));throw new AssertionError("Traversal ZIP accepted");}
     catch(IOException expected){}
     check(!new File(current.getParentFile(),"escape.txt").exists(),"Traversal blocked");
-    context.getSharedPreferences("drogowskazy_bundle",0).edit().putString("installed_version","previous-apk").commit();
-    check(ProjectStore.needsBundledInstall(context),"APK upgrade recognized");
+    // Symulacja faktycznej aktualizacji APK, bez kasowania SharedPreferences
+    // ani prywatnych danych użytkownika. Stara stała wersji nie przechodzi tego testu.
+    context.setPackageVersion("1.2.9");
+    check(ProjectStore.needsBundledInstall(context),"New APK version must reinstall bundled runtime");
     ProjectStore.installBundled(context);
     check(!Files.readString(new File(current,"app.py").toPath()).equals("manual-version"),"Upgrade activates bundled runtime");
+    check(!ProjectStore.needsBundledInstall(context),"Updated APK does not reinstall repeatedly");
     check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Upgrade preserves database");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Upgrade preserves WAL");
+    check(new File(current,"data/notes/user.txt").isFile(),"Upgrade preserves user notes");
+    // Istniejące instalacje 1.2.4–1.2.8 zachowały ten sam identyfikator,
+    // mimo że zawierały już nową paczkę APK. Teraz muszą ją rozpakować.
+    context.getSharedPreferences("drogowskazy_bundle",0).edit().putString("installed_version","4.5.12-inapp-2").commit();
+    check(ProjectStore.needsBundledInstall(context),"Legacy bundled version must not suppress new APK assets");
+    ProjectStore.installBundled(context);
+    check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Legacy migration keeps private database");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Legacy migration keeps WAL");
     File previous=new File(current.getParentFile(),"previous");
     check(current.renameTo(previous),"Simulate interruption after old installation was moved");
     ProjectStore.installBundled(context);
     check(ProjectStore.isInstalled(context),"Interrupted installation recovered");
     check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Recovery preserves database");
     check(!previous.exists()&&!new File(current.getParentFile(),"staging").exists(),"Temporary files removed");
-    System.out.println("PASS: fresh install, idempotency, manual update, database and WAL preservation, invalid ZIP rollback, traversal, APK upgrade, interruption recovery");
+    System.out.println("PASS: fresh install, idempotency, manual update, database and WAL preservation, invalid ZIP rollback, traversal, real APK version upgrade, preserved WAL/data, interruption recovery");
   }
 }'''
 }

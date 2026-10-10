@@ -199,6 +199,52 @@ try{
  await click('#refreshDatabaseBtn');await pause(300);assert.match(await page.locator('#databaseImportFeedback').textContent(),/Przywróć kopię SQLite/);
  assert.equal((await queueDone()).stats.done,7);
  done('real SQLite import: files, duplicate, empty-file error retained, folders, nested HTML, folder pack, cancellation and retry');
+ await databaseView();
+ await page.locator('#databaseComparePanel').evaluate(e=>e.open=true);
+ await until(()=>page.evaluate(()=>document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]').length>=2),'selectable folders');
+ await click('#openFullOverviewBtn');
+ await waitJs(()=>document.getElementById('soraFullOverview') && !document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/wybrane grupy/);
+ await click('#soraFullOverviewRefresh');
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ await click('#soraFullOverviewBack');
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ await click('#compareDatabaseBtn');
+ await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-compare-mobile-cards .sora-comparison-source-card').length>=2);
+ const cardStats=await page.evaluate(()=>({
+   cards:[...document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
+   mainCards:[...document.querySelectorAll('#databaseComparisonResult .database-compare-section:first-of-type .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
+   originalTables:document.querySelectorAll('#databaseComparisonResult table.database-compare-table').length,
+   sources:document.getElementById('databaseCompareGroups').selectedOptions.length
+ }));
+ assert.ok(cardStats.cards.length>=cardStats.sources, 'Every selected source has a mobile card');
+ assert.ok(cardStats.cards.some(n=>n>=10), 'Main metric table must retain its full list of metrics');
+ assert.ok(cardStats.originalTables>=1, 'Desktop comparison table must remain available');
+ assert.ok(cardStats.cards.length>=cardStats.sources, 'Selected groups must be readable as full metric cards');
+ done('selected-group overview, responsive metric cards, full original tables, import unchanged');
+ // ETAP 1: nowy wybór unieważnia stary raport; jeden folder działa oddzielnie
+ // od porównania dwóch folderów. Testujemy zarówno zakres, jak i wyświetlanie.
+ // Używamy PRAWDZIWYCH zdarzeń użytkownika. Ręczne ustawienie
+ // input.checked nie aktualizuje wewnętrznego stanu wyboru głównego panelu.
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
+ await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').nth(1).uncheck();
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraSelectionScope')?.textContent.includes('Wybrano: 1 folder'));
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),1);
+ assert.equal(await page.locator('#databaseComparisonResult table').count(),0,
+   'Po zmianie zaznaczenia poprzednie porównanie musi zniknąć.');
+ await click('#openFullOverviewBtn');
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('1 wybrana grupa'));
+ assert.equal(await page.locator('#databaseComparisonResult table').count(),0);
+ await page.locator('#databaseCompareGroupList input[data-compare-group]:not(:checked)').first().check();
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraSelectionScope')?.textContent.includes('Wybrano: 2 foldery'));
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
+ await click('#compareDatabaseBtn');
+ await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card').length>=2);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('2 wybrane grupy'));
+ done('stage 1: clear stale results, explicit one/two-folder status, preserve all comparison metrics');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
  await page.route('**/api/baza/importuj',async route=>{await pause(700);await route.continue();});
@@ -362,7 +408,7 @@ try{
  assert.deepEqual(testFailures,[],`Integration failures: ${testFailures.join('; ')}`);
  const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
- writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.5',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
+ writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.9',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){
