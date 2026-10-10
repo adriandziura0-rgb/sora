@@ -1,4 +1,4 @@
-/* Raport wszystkich analiz z SQLite — tylko odczyt; import i pobieranie bez zmian. */
+/* Raport TYLKO zaznaczonych materiałów — bez zmian w pobieraniu. */
 (() => {
   'use strict';
   const panel = document.getElementById('soraFullOverview');
@@ -72,17 +72,14 @@
     ).join('');
     output.innerHTML =
       '<div class="sora-overview-kpis">' +
-      card('Artykuły w bazie',int(stats.articles),'Wszystkie rozpoznane artykuły') +
-      card('Przeanalizowane',int(ready),'Zapisane wyniki z całej bazy') +
-      card('Redakcje',int(report.publisher_count),'Wszystkie rozpoznane źródła') +
+      card('Artykuły w zaznaczeniu',int(ready),'Tylko wskazane foldery lub redakcje') +
+      card('Przeanalizowane',int(ready),'Gotowe wyniki w zaznaczeniu') +
+      card('Redakcje',int(report.publisher_count),'Tylko źródła z zaznaczenia') +
       card('Relacje wypowiedzi',int(summary.relations),'Suma relacji z dokumentów') +
-      card('Oczekujące',int(stats.processing),'Analiza może trwać w tle') +
-      card('Błędy',int(stats.error),'Rekordy wymagające kontroli') +
-      card('Duplikaty importu',int(stats.duplicates),'Zdarzenia wykrycia duplikatu') +
-      card('Pliki techniczne',int(stats.support_files),'Wyłączone z porównań') +
+      card('Wybrane grupy',int(report.selected_groups?.length),'Od 1 do 10 wskazanych folderów lub redakcji') +
       '</div>' +
-      (ready === 0 ? '<p class="sora-overview-empty">Baza nie ma jeszcze ukończonych analiz artykułów. Po ich zapisaniu wyniki pojawią się tutaj automatycznie po odświeżeniu.</p>' : '') +
-      '<div class="sora-overview-columns"><section class="sora-overview-section"><h3>Cała baza — pokrycie P1–P5</h3>' +
+      (ready === 0 ? '<p class="sora-overview-empty">Zaznaczone grupy nie mają jeszcze ukończonych analiz artykułów. Po ich zapisaniu wyniki pojawią się tutaj automatycznie po odświeżeniu.</p>' : '') +
+      '<div class="sora-overview-columns"><section class="sora-overview-section"><h3>Wybrane materiały — pokrycie P1–P5</h3>' +
       layerRows(report) +
       '<p class="sora-overview-muted">Odsetek artykułów, w których wykryto co najmniej jeden element danej warstwy.</p></section>' +
       '<section class="sora-overview-section"><h3>Podsumowanie relacji</h3><div class="sora-overview-facts">' +
@@ -92,7 +89,7 @@
       '<div><strong>' + pct(summary.relation_review_rate) + '</strong><span>Relacji do sprawdzenia</span></div>' +
       '</div></section></div>' +
       '<section class="sora-overview-section"><h3>Porównanie wszystkich redakcji</h3>' +
-      '<p class="sora-overview-muted">Porównanie obejmuje każdą rozpoznaną redakcję, bez limitu 10 źródeł. Wybierz wskaźnik, by zobaczyć ranking znormalizowany.</p>' +
+      '<p class="sora-overview-muted">Raport liczy tylko zaznaczone materiały. Wybierz wskaźnik, aby zobaczyć różnice między redakcjami w tym wyborze.</p>' +
       '<label class="sora-overview-control">Wskaźnik porównania <select id="soraOverviewMetric">' + opts + '</select></label>' +
       '<div id="soraOverviewSourceBars">' + metricsTable(sources, metric, metricTypes.find(x=>x[0]===metric)?.[2]) + '</div></section>' +
       '<div class="sora-overview-columns">' +
@@ -133,40 +130,55 @@
     if (busy) return;
     busy=true;
     if(refresh) refresh.disabled=true;
-    if(status) status.textContent='Liczenie przekrojowych wyników całej bazy…';
+    if(status) status.textContent='Odczytuję wyniki wyłącznie zaznaczonych materiałów…';
     try {
-      const response=await fetch('/api/baza/raport_calosciowy', {cache:'no-store'});
+      const mode=document.getElementById('databaseCompareMode')?.value||'folder';
+      const chosen=Array.from(document.getElementById('databaseCompareGroups')?.selectedOptions||[]).map(x=>x.value).filter(Boolean);
+      if(!chosen.length) throw new Error('Zaznacz co najmniej jeden folder lub redakcję.');
+      if(chosen.length>10) throw new Error('Jednocześnie możesz zaznaczyć do 10 grup.');
+      const params=new URLSearchParams({mode});
+      chosen.forEach(name=>params.append('group',name));
+      const response=await fetch('/api/baza/analiza_wybranych?'+params.toString(), {cache:'no-store'});
       const data=await response.json();
       if(!response.ok || !data.ok) throw new Error(data.wiadomosc || data.szczegoly || 'Nie udało się odczytać bazy.');
       report=data;
       render();
       if(status) status.textContent='Gotowe · ' + int(report.analyzed_articles) +
-        ' artykułów z ' + int(report.publisher_count) + ' redakcji · raport bez zmiany danych.';
+        ' artykułów z ' + int(report.selected_groups?.length) + ' zaznaczonych grup · zapisane analizy bez zmian.';
     } catch(error) {
       if(status) status.textContent='Błąd raportu: ' + (error?.message || 'Sprawdź backend.');
-      if(!report) output.innerHTML='<p class="sora-overview-empty">Nie udało się odczytać analiz z bazy. Pobieranie i zapis dokumentów pozostają bez zmian.</p>';
+      report=null;output.innerHTML='<p class="sora-overview-empty">Brak wyników dla bieżącego zaznaczenia. Pobieranie i zapis dokumentów pozostają bez zmian.</p>';
     } finally {busy=false;if(refresh)refresh.disabled=false;}
   }
   function close() {
     active=false;
     panel.hidden=true;
-    document.body.classList.remove('sora-full-overview-mode');
     opener.classList.remove('active');
     opener.removeAttribute('aria-current');
   }
   function open() {
     active=true;
     panel.hidden=false;
-    document.body.classList.add('sora-full-overview-mode');
     opener.classList.add('active');
     opener.setAttribute('aria-current','page');
-    panel.scrollIntoView({behavior:'smooth',block:'start'});
     void load();
   }
   opener.addEventListener('click',()=>active?close():open());
   back?.addEventListener('click',close);
   refresh?.addEventListener('click',()=>void load());
-  document.querySelectorAll('.production-nav-btn').forEach(x=>x.addEventListener('click',close, true));
-  document.getElementById('expertModeBtn')?.addEventListener('click',close,true);
-  document.getElementById('userModeBtn')?.addEventListener('click',close,true);
+  // Gdy porównanie kilku grup zostanie uruchomione, pokaż także pełne karty
+  // analityczne obok wyboru — nie tylko istniejącą tabelę.
+  document.getElementById('compareDatabaseBtn')?.addEventListener('click',()=>{
+    const chosen=document.getElementById('databaseCompareGroups')?.selectedOptions?.length||0;
+    if(chosen>=2 && chosen<=10) {active=true;panel.hidden=false;void load();}
+  });
+  document.getElementById('databaseComparePanel')?.addEventListener('change',event=>{
+    const target=event.target;
+    if(target?.matches?.('[data-compare-group], #databaseCompareMode')) {
+      report=null;
+      close();
+      if(status) status.textContent='Zmieniono wybór. Kliknij „Pokaż analizę zaznaczonych”.';
+      output.innerHTML='';
+    }
+  },true);
 })();
