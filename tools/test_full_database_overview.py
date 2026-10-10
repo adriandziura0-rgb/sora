@@ -78,6 +78,9 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
         assert selected["summary"]["relations"] == 2
         assert selected["summary"]["documents_with_relation"] == 2
         assert selected["stats"]["done_articles"] == 2
+        assert "processing" not in selected["stats"], "Nie podajemy zmyślonej liczby oczekujących"
+        assert "error" not in selected["stats"], "Nie podajemy zmyślonej liczby błędów"
+        assert client.get("/api/baza/analiza_wybranych?mode=publisher&group=TVN24&group=tvn24").get_json()["selected_groups"] == ["TVN24"]
         assert all(d["publisher"] in {"TVN24","PAP"} for d in selected["recent_documents"])
         assert selected["rankings"]["speakers"][0] == {"name":"minister","count":2}
         assert selected["rankings"]["topics"][0] == {"name":"badanie","count":2}
