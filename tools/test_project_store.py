@@ -1,7 +1,7 @@
 """Exercise the real ProjectStore filesystem installer on the JVM.
 
-Android stubs supply only paths, streams and preferences; SQLite restore is not
-mock-tested here. Runtime SQLite behavior is checked by test_runtime.py.
+Android stubs exercise installer, restore rollback metadata, WAL/SHM snapshots
+and interrupted restore recovery. Real SQLite integrity is checked by test_runtime.py.
 """
 from pathlib import Path
 import subprocess
@@ -83,10 +83,26 @@ public interface Cursor extends AutoCloseable {
 }''',
 "android/database/sqlite/SQLiteDatabase.java": r'''package android.database.sqlite;
 import android.database.Cursor;
+import java.io.*;
 public final class SQLiteDatabase {
   public static final int OPEN_READONLY=1;
-  public static SQLiteDatabase openDatabase(String path,Object factory,int flags){throw new UnsupportedOperationException();}
-  public Cursor rawQuery(String sql,String[] args){throw new UnsupportedOperationException();}
+  public static SQLiteDatabase openDatabase(String path,Object factory,int flags) {
+    try(FileInputStream in=new FileInputStream(path)){
+      byte[] header=new byte[16];
+      if(in.read(header)!=16 || !new String(header,java.nio.charset.StandardCharsets.US_ASCII).equals("SQLite format 3\0"))
+        throw new IllegalArgumentException("Not SQLite");
+    }catch(IOException e){throw new IllegalStateException(e);}
+    return new SQLiteDatabase();
+  }
+  public Cursor rawQuery(String sql,String[] args) {
+    String value=sql.startsWith("PRAGMA integrity")?"ok":"1";
+    return new Cursor(){
+      public boolean moveToFirst(){return !sql.contains("LIMIT 0");}
+      public String getString(int i){return value;}
+      public int getColumnCount(){return 7;}
+      public void close(){}
+    };
+  }
   public void close(){}
 }''',
 "pl/drogowskazy/sora/ProjectStoreTest.java": r'''package pl.drogowskazy.sora;
@@ -166,7 +182,39 @@ public final class ProjectStoreTest {
     check(ProjectStore.isInstalled(context),"Interrupted installation recovered");
     check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Recovery preserves database");
     check(!previous.exists()&&!new File(current.getParentFile(),"staging").exists(),"Temporary files removed");
-    System.out.println("PASS: fresh install, idempotency, manual update, database and WAL preservation, invalid ZIP rollback, traversal, real APK version upgrade, preserved WAL/data, interruption recovery");
+    // Przywracanie: zły plik nie może naruszyć ani DB, ani WAL.
+    File badBackup=new File(dir,"badbackup.sqlite3");
+    write(badBackup,"invalid".getBytes());
+    try{ProjectStore.restoreDatabase(context,Uri.parse(badBackup.toString()));throw new AssertionError("Bad SQLite accepted");}
+    catch(IOException expected){}
+    check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Invalid restore preserved DB");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Invalid restore preserved WAL");
+
+    byte[] shm="synthetic-shared-memory".getBytes();
+    write(new File(current,"data/drogowskazy.sqlite3-shm"),shm);
+    byte[] good=new byte[256];
+    byte[] header="SQLite format 3\0".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
+    System.arraycopy(header,0,good,0,header.length);
+    File validBackup=new File(dir,"validbackup.sqlite3");
+    write(validBackup,good);
+    ProjectStore.restoreDatabase(context,Uri.parse(validBackup.toString()));
+    check(Arrays.equals(good,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Restored SQLite active");
+    File[] archived=new File(current,"data").listFiles(f->f.isDirectory()&&f.getName().startsWith("backup-before-restore-"));
+    check(archived!=null&&archived.length==1,"Persistent restore backup created");
+    File archivedData=archived[0];
+    check(Arrays.equals(database,Files.readAllBytes(new File(archivedData,"drogowskazy.sqlite3").toPath())),"Original DB retained");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(archivedData,"drogowskazy.sqlite3-wal").toPath())),"Original WAL retained");
+    check(Arrays.equals(shm,Files.readAllBytes(new File(archivedData,"drogowskazy.sqlite3-shm").toPath())),"Original SHM retained");
+    // Symulacja przerwania przywracania po uszkodzeniu aktywnego pliku.
+    write(new File(current,"data/drogowskazy.sqlite3"),"interrupted".getBytes());
+    write(new File(current,"data/.restore-pending"),archivedData.getName().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    check(ProjectStore.hasInterruptedRestore(context),"Interrupted restore marker detected");
+    ProjectStore.recoverInterruptedRestore(context);
+    check(!ProjectStore.hasInterruptedRestore(context),"Restore marker removed after recovery");
+    check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Recovered old DB after interruption");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Recovered old WAL after interruption");
+    check(Arrays.equals(shm,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-shm").toPath())),"Recovered old SHM after interruption");
+    System.out.println("PASS: installer, upgrades, SQLite invalid restore, durable DB/WAL/SHM snapshot, interrupted restore recovery");
   }
 }'''
 }
