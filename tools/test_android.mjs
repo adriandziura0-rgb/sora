@@ -247,7 +247,7 @@ try{
  assert.match(await page.locator('#soraSelectionScope').textContent(),/Wybrano: 2 foldery/);
  await click('#compareDatabaseBtn');
  await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card').length>=2);
- assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/wybranych grup/);
+ assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/2 wybrane grupy/);
  done('stage 1: clear stale results, explicit one/two-folder status, preserve all comparison metrics');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
