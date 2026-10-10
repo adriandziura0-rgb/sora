@@ -109,3 +109,22 @@ Przy nieudanym wdrożeniu wraca do poprzedniej wersji plików programu.
 Przy kolejnych wersjach APK trzeba zwiększać `versionCode` i `versionName`.
 Test automatyczny symuluje aktualizację 1.2.8 → 1.2.9 oraz
 migrację z identyfikatora `4.5.12-inapp-2`. Silnik i pobieranie niezmienione.
+
+## Trwałość widoku Baza / porównania (PR #3)
+
+Przy ponownym otwarciu aplikacji ekran **Baza / porównania** przywraca ostatnio
+wybrane 1–10 folderów/redakcji oraz raport lub porównanie, jeżeli były widoczne
+przed zamknięciem. Stan wyboru przechowuje WebView w `localStorage`; **nie ma tam
+tekstów artykułów, analiz ani kopii bazy**. Raport pobiera świeże wyniki z
+istniejących zapisów SQLite i nie uruchamia ponownie analizy.
+
+Ręczne kliknięcie **Ukryj wyniki** jest zapamiętywane. Jeśli folder nie istnieje
+już w bazie, aplikacja nie pokazuje cudzych danych pod starym zaznaczeniem.
+Wyłączenie lub wyczyszczenie pamięci WebView może usunąć wybór ekranu, ale
+nie powinno usunąć prywatnej bazy SQLite. Nowy test `node
+tools/test_view_persistence.mjs` oraz scenariusz w `tools/test_android.mjs`
+weryfikują odtworzenie widoku bez zmiany artykułów.
+
+**Uwaga wydaniowa:** te poprawki będą dostępne na telefonie dopiero po
+zbudowaniu i zainstalowaniu nowego APK z bieżącej gałęzi PR. Przed aktualizacją
+należy wykonać eksport TRANSFER oraz potwierdzić zielony build.
