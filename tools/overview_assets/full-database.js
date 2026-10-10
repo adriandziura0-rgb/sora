@@ -65,12 +65,6 @@
       wrapper.classList.add('sora-has-mobile-cards');
     });
   }
-  if (comparisonHost && typeof MutationObserver !== 'undefined') {
-    const observer = new MutationObserver(renderMobileComparison);
-    observer.observe(comparisonHost, {childList:true, subtree:true, characterData:true});
-    renderMobileComparison();
-  }
-
   let report = null;
   let active = false;
   let metric = 'relations_per_1000_words';
@@ -343,4 +337,11 @@
     if (groupList) new MutationObserver(paintScope).observe(groupList, {childList:true,subtree:true});
   }
   paintScope();
+  // Initialize the comparison observer LAST: selectedScope, comparedScope and
+  // the surrounding handlers must be initialized before the first callback.
+  if (comparisonHost && typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(renderMobileComparison);
+    observer.observe(comparisonHost, {childList:true, subtree:true, characterData:true});
+    renderMobileComparison();
+  }
 })();
