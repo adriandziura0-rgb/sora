@@ -12,6 +12,7 @@ on:
       - 'tools/overview_assets/**'
       - 'tools/patch_full_database_dashboard.py'
       - 'tools/test_full_database_overview.py'
+      - 'tools/test_view_persistence.mjs'
       - 'app/src/main/assets/drogowskazy-runtime.zip'
       - '.github/workflows/build-windows.yml'
 permissions:
@@ -36,6 +37,8 @@ jobs:
         run: python tools/patch_full_database_dashboard.py
       - name: Verify whole-database analytics across 12 publishers
         run: python tools/test_full_database_overview.py
+      - name: Verify persistent selected dashboard after restart
+        run: node tools/test_view_persistence.mjs
       - name: Verify optimized matcher and GOLD quality
         run: python tools/test_topic_matcher_cache.py
       - name: Verify identical PHONE and PC engine and results
