@@ -98,7 +98,7 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
         # 15 dodatkowych dokumentów tej samej wybranej grupy: najnowsze 12
         # bez gromadzenia historii dokumentów w pamięci.
         for index in range(15):
-            source_text = f"TYTUŁ: uzupełnienie {index}\\nŹRÓDŁO: TVN24\\nTREŚĆ: seria {index}"
+            source_text = f"TYTUŁ: uzupełnienie {index}\nŹRÓDŁO: TVN24\nTREŚĆ: seria {index}"
             entry = sora.DOCUMENT_DATABASE.begin_import(
                 text=source_text, filename=f"extra-{index}.txt",
                 relative_path=f"TVN24/extra-{index}.txt", extension=".txt",
