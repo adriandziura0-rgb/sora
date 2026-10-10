@@ -153,6 +153,13 @@ public final class ProjectStoreTest {
     check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Upgrade preserves database");
     check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Upgrade preserves WAL");
     check(new File(current,"data/notes/user.txt").isFile(),"Upgrade preserves user notes");
+    // Istniejące instalacje 1.2.4–1.2.8 zachowały ten sam identyfikator,
+    // mimo że zawierały już nową paczkę APK. Teraz muszą ją rozpakować.
+    context.getSharedPreferences("drogowskazy_bundle",0).edit().putString("installed_version","4.5.12-inapp-2").commit();
+    check(ProjectStore.needsBundledInstall(context),"Legacy bundled version must not suppress new APK assets");
+    ProjectStore.installBundled(context);
+    check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Legacy migration keeps private database");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Legacy migration keeps WAL");
     File previous=new File(current.getParentFile(),"previous");
     check(current.renameTo(previous),"Simulate interruption after old installation was moved");
     ProjectStore.installBundled(context);
