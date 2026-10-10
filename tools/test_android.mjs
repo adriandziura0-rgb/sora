@@ -226,9 +226,9 @@ try{
  // ETAP 1: nowy wybór unieważnia stary raport; jeden folder działa oddzielnie
  // od porównania dwóch folderów. Testujemy zarówno zakres, jak i wyświetlanie.
  await page.evaluate(()=>{
-   const select=document.getElementById('databaseCompareGroups');
-   Array.from(select.options).forEach((option,i)=>{option.selected=i===0});
-   select.dispatchEvent(new Event('change',{bubbles:true}));
+   const checks=[...document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]')];
+   checks.forEach((input,i)=>{input.checked=i===0});
+   checks[0].dispatchEvent(new Event('change',{bubbles:true}));
  });
  await waitJs(()=>document.getElementById('soraFullOverview').hidden);
  assert.match(await page.locator('#soraSelectionScope').textContent(),/Wybrano: 1 folder/);
@@ -236,12 +236,12 @@ try{
    'Po zmianie zaznaczenia poprzednie porównanie musi zniknąć.');
  await click('#openFullOverviewBtn');
  await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe:'));
- assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/1 wybranych grup/);
+ assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/1 wybrana grupa/);
  assert.equal(await page.locator('#databaseComparisonResult table').count(),0);
  await page.evaluate(()=>{
-   const select=document.getElementById('databaseCompareGroups');
-   Array.from(select.options).forEach((option,i)=>{option.selected=i<2});
-   select.dispatchEvent(new Event('change',{bubbles:true}));
+   const checks=[...document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]')];
+   checks.forEach((input,i)=>{input.checked=i<2});
+   checks[0].dispatchEvent(new Event('change',{bubbles:true}));
  });
  await waitJs(()=>document.getElementById('soraFullOverview').hidden);
  assert.match(await page.locator('#soraSelectionScope').textContent(),/Wybrano: 2 foldery/);

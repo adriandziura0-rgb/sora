@@ -91,20 +91,32 @@
 
   const selectedScope = () => {
     const mode = modeChoice?.value || 'folder';
+    const checkboxes = [...(comparePanel?.querySelectorAll('#databaseCompareGroupList input[data-compare-group]') || [])];
+    const checked = checkboxes.filter(input => input.checked && !input.disabled);
     const selected = [...(choices?.selectedOptions || [])].filter(option => option.value);
-    const groups = selected.map(option => option.value);
-    return {mode, groups, labels: selected.map(option => option.textContent?.trim() || option.value),
-      key: JSON.stringify([mode, groups])};
+    // Na telefonie rzeczywistym sterowaniem są checkboxy, a select może
+    // pozostać pusty mimo komunikatu „Zaznaczone: 2”.
+    const useChecks = checkboxes.length > 0;
+    const groups = useChecks ? checked.map(input => input.dataset.compareGroup || input.value).filter(Boolean)
+      : selected.map(option => option.value);
+    const labels = useChecks ? checked.map(input => {
+      const value = input.dataset.compareGroup || input.value;
+      const option = [...(choices?.options || [])].find(o => o.value === value);
+      return option?.textContent?.trim() || input.closest('label')?.textContent?.trim() || value;
+    }) : selected.map(option => option.textContent?.trim() || option.value);
+    return {mode, groups, labels, key: JSON.stringify([mode, groups])};
   };
   function paintScope() {
     const current = selectedScope();
     if (!selectionHost) return;
     const name = current.mode === 'publisher' ? 'redakcja' : 'folder';
     const count = current.groups.length;
+    const few = count % 10 >= 2 && count % 10 <= 4 && !(count % 100 >= 12 && count % 100 <= 14);
     let text = count === 0
       ? 'Nie zaznaczono ' + (name === 'folder' ? 'folderu' : 'redakcji') + '.'
       : 'Wybrano: ' + count + ' ' +
-        (name === 'folder' ? (count === 1 ? 'folder' : 'foldery') : (count === 1 ? 'redakcję' : 'redakcje')) + '.';
+        (name === 'folder' ? (count === 1 ? 'folder' : few ? 'foldery' : 'folderów')
+          : (count === 1 ? 'redakcję' : few ? 'redakcje' : 'redakcji')) + '.';
     const labels = current.labels.map(label => '<span class="sora-scope-item">' + esc(label) + '</span>').join('');
     scopeLabel.innerHTML = '<strong>Aktualny zakres: ' + esc(text) + '</strong>' +
       (labels ? '<div class="sora-scope-labels">' + labels + '</div>' : '') +
@@ -259,10 +271,13 @@
       reportScope = scope.key;
       render();
       if (status) {
+        const count = scope.groups.length;
+        const few = count % 10 >= 2 && count % 10 <= 4 && !(count % 100 >= 12 && count % 100 <= 14);
+        const noun = count === 1 ? 'wybrana grupa' : (few ? 'wybrane grupy' : 'wybranych grup');
         status.textContent = data.analyzed_articles === 0
           ? 'Brak ukończonych analiz w zaznaczonych materiałach. Sprawdź ich stan w bazie.'
           : 'Gotowe: ' + int(data.analyzed_articles) + ' przeanalizowanych artykułów; ' +
-            int(scope.groups.length) + ' wybranych grup. Pozostałe foldery pominięto.';
+            int(count) + ' ' + noun + '. Pozostałe foldery pominięto.';
       }
     } catch(error) {
       if (inFlight !== controller || error?.name === 'AbortError') return;
@@ -322,8 +337,10 @@
       paintScope();
     }
   }, true);
-  if (choices && typeof MutationObserver !== 'undefined') {
-    new MutationObserver(paintScope).observe(choices, {childList:true,subtree:true});
+  if (typeof MutationObserver !== 'undefined') {
+    if (choices) new MutationObserver(paintScope).observe(choices, {childList:true,subtree:true});
+    const groupList = document.getElementById('databaseCompareGroupList');
+    if (groupList) new MutationObserver(paintScope).observe(groupList, {childList:true,subtree:true});
   }
   paintScope();
 })();
