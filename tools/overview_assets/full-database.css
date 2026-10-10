@@ -1,10 +1,18 @@
-/* Czytelny, oddzielny raport całościowy — nie zmienia istniejącego panelu pobierania. */
+/* Analiza wyłącznie zaznaczonych materiałów, obok wyboru, bez zmian w pobieraniu. */
 .sora-overview-nav-btn {display:block;width:100%;padding:14px 18px;margin:3px 0 12px;border-radius:15px;background:#155e75;color:#fff;font-size:16px;font-weight:850;letter-spacing:.01em}
 .sora-overview-nav-btn.active {box-shadow:0 0 0 3px #67e8f9 inset}
 .sora-full-overview[hidden] {display:none!important}
-body.sora-full-overview-mode #splitLayout {display:none!important}
-body.sora-full-overview-mode #operationProgress {display:none!important}
-.sora-full-overview {max-width:1180px;margin:12px auto 36px;padding:0 16px 28px;box-sizing:border-box;color:#0f172a}
+.sora-selection-layout {display:grid;grid-template-columns:minmax(220px,0.9fr) minmax(0,1.5fr);gap:16px;align-items:start}
+.sora-selection-choice,.sora-selection-report {min-width:0}
+.sora-selection-choice {position:sticky;top:10px}
+.sora-selection-report {display:grid;gap:12px}
+.sora-full-overview {max-width:100%;margin:0;padding:0;box-sizing:border-box;color:#0f172a}
+.sora-selection-report #databaseComparisonResult {margin-top:8px}
+.sora-selection-report .database-compare-table-wrap {max-width:100%}
+@media(max-width:850px) {
+ .sora-selection-layout {grid-template-columns:1fr;gap:12px}
+ .sora-selection-choice {position:static}
+}
 .sora-overview-header {background:#0f172a;color:#fff;padding:22px 24px;border-radius:20px;box-shadow:0 15px 30px rgba(15,23,42,.12)}
 .sora-overview-header h2 {margin:0;font-size:26px;color:#fff}
 .sora-overview-header p {margin:8px 0 18px;color:#cbd5e1;line-height:1.5}
@@ -12,7 +20,7 @@ body.sora-full-overview-mode #operationProgress {display:none!important}
 .sora-overview-actions button {background:#e2e8f0;color:#0f172a;border-radius:12px;padding:11px 16px;font-weight:800}
 .sora-overview-actions button:disabled {opacity:.6}
 .sora-overview-status {margin:14px 0;padding:12px 14px;border-radius:12px;background:#f0fdfa;border:1px solid #5eead4;color:#115e59;font-weight:750;overflow-wrap:anywhere}
-.sora-overview-kpis {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.sora-overview-kpis {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
 .sora-overview-kpi {background:#fff;border:1px solid #dbe3ef;border-radius:15px;padding:14px;min-width:0;display:flex;flex-direction:column}
 .sora-overview-kpi span {font-weight:750;font-size:14px;color:#475569}
 .sora-overview-kpi strong {font-size:30px;line-height:1.35;color:#0f172a;margin:6px 0}
