@@ -164,13 +164,6 @@ try{
  await waitJs(()=>window.__drogowskazyNativeInstalled && document.getElementById('backendStatusPill').classList.contains('backend-ok'));
  const inventory=await page.evaluate(()=>Array.from(document.querySelectorAll('button')).map(e=>e.id?`#${e.id}`:['productionView','expertView','previewView','userTextView','view','menuGroup'].map(key=>e.dataset[key]?`[data-${key.replace(/[A-Z]/g,c=>'-'+c.toLowerCase())}="${e.dataset[key]}"]`:null).find(Boolean)).filter(Boolean));
  done('APK first start, embedded runtime, HTTP health, real Android WebView bridge');
- await click('#openFullOverviewBtn');
- await waitJs(()=>document.getElementById('soraFullOverview') && !document.getElementById('soraFullOverview').hidden);
- await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
- await click('#soraFullOverviewRefresh');
- await click('#soraFullOverviewBack');
- await waitJs(()=>document.getElementById('soraFullOverview').hidden);
- done('full-database report, refresh, back; original file pickers untouched');
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const emptyBackup=await exportButton('#downloadDatabaseBtn','audit-empty.sqlite3');
  assert.equal(emptyBackup.subarray(0,16).toString(),'SQLite format 3\0');
@@ -206,6 +199,18 @@ try{
  await click('#refreshDatabaseBtn');await pause(300);assert.match(await page.locator('#databaseImportFeedback').textContent(),/Przywróć kopię SQLite/);
  assert.equal((await queueDone()).stats.done,7);
  done('real SQLite import: files, duplicate, empty-file error retained, folders, nested HTML, folder pack, cancellation and retry');
+ await databaseView();
+ await page.locator('#databaseComparePanel').evaluate(e=>e.open=true);
+ await until(()=>page.evaluate(()=>document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]').length>=2),'selectable folders');
+ await click('#openFullOverviewBtn');
+ await waitJs(()=>document.getElementById('soraFullOverview') && !document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/zaznaczonych grup/);
+ await click('#soraFullOverviewRefresh');
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ await click('#soraFullOverviewBack');
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ done('checked-only overview appears alongside folders, refresh and hide, no import regression');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
  await page.route('**/api/baza/importuj',async route=>{await pause(700);await route.continue();});
