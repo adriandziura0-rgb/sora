@@ -1,4 +1,4 @@
-"""Assemble a read-only, full-database dashboard into the SAME engine ZIP for PC/PHONE.
+"""Assemble a read-only, selected-groups dashboard into the SAME engine ZIP for PC/PHONE.
 
 Run after tools/patch_engine_runtime.py in both workflows. Existing collector,
 picker, download, database schema, and analysis classifier files remain untouched.
@@ -36,25 +36,28 @@ def update_html(html: str) -> str:
         '<link href="/static/full-database.css?v={{ app_version }}" rel="stylesheet"/>',
     )
     html = insert_once(
-        html,
-        '</nav>\n<div class="active-result-status no-result"',
-        '</nav>\n<button type="button" id="openFullOverviewBtn" class="sora-overview-nav-btn"'
-        ' aria-controls="soraFullOverview">Cała baza — wyniki i porównania</button>\n'
-        '<div class="active-result-status no-result"',
+        html, '<div class="database-compare-controls database-compare-controls-main">',
+        '<div class="sora-selection-layout"><div class="sora-selection-choice">\n'
+        '<div class="database-compare-controls database-compare-controls-main">',
     )
     html = insert_once(
-        html, '<main class="split-layout" id="splitLayout">',
-        '<section id="soraFullOverview" class="sora-full-overview" hidden aria-label="Całościowe wyniki i porównania bazy">'
-        '<div class="sora-overview-header"><h2>Cała baza — raport i porównania</h2>'
-        '<p>Wszystkie zapisane analizy artykułów. Zestawienia redakcji, relacji, aktorów,'
-        ' tematów i warstw P0–P5. Nie otwiera pojedynczego wyniku ani nie przelicza dokumentów.</p>'
+        html, '<div class="database-comparison-result" id="databaseComparisonResult"></div>',
+        '</div><div class="sora-selection-report">\n'
+        '<button type="button" id="openFullOverviewBtn" class="sora-overview-nav-btn" '
+        'aria-controls="soraFullOverview">Pokaż analizę zaznaczonych</button>\n'
+        '<section id="soraFullOverview" class="sora-full-overview" hidden '
+        'aria-label="Analiza tylko wybranych folderów i redakcji">'
+        '<div class="sora-overview-header"><h2>Wyniki zaznaczonych materiałów</h2>'
+        '<p>Wybierz foldery lub redakcje po lewej, a następnie pokaż ich analizę. '
+        'Nie obejmuje pozostałych danych z bazy.</p>'
         '<div class="sora-overview-actions">'
-        '<button type="button" id="soraFullOverviewRefresh">Odśwież całą bazę</button>'
-        '<button type="button" id="soraFullOverviewBack">Wróć do aplikacji</button>'
+        '<button type="button" id="soraFullOverviewRefresh">Odśwież zaznaczone</button>'
+        '<button type="button" id="soraFullOverviewBack">Ukryj wyniki</button>'
         '</div></div><p class="sora-overview-status" id="soraFullOverviewStatus" role="status"'
-        ' aria-live="polite">Wybierz „Odśwież całą bazę”, aby odczytać aktualny stan.</p>'
+        ' aria-live="polite">Zaznacz grupę, aby wyświetlić jej wyniki.</p>'
         '<div id="soraFullOverviewContent" aria-live="off"></div></section>\n'
-        '<main class="split-layout" id="splitLayout">',
+        '<div class="database-comparison-result" id="databaseComparisonResult"></div>\n'
+        '</div></div>',
     )
     html = insert_once(
         html, '<script src="/static/app.js?v={{ app_version }}"></script>',
@@ -69,23 +72,28 @@ def update_backend(app: str) -> str:
         app,
         'from clean_core.database_aggregate import build_database_aggregate',
         'from clean_core.database_aggregate import build_database_aggregate\n'
-        'from clean_core.database_overview import build_full_database_overview',
+        'from clean_core.database_overview import build_selected_database_overview',
     )
     app = insert_once(
         app,
         '@app.get("/api/baza/porownanie/grupy")',
-        '@app.get("/api/baza/raport_calosciowy")\n'
-        'def api_database_full_overview():\n'
-        '    """Wszystkie gotowe artykuły, wszystkie redakcje; nie zmienia bazy."""\n'
+        '@app.get("/api/baza/analiza_wybranych")\n'
+        'def api_database_selected_overview():\n'
+        '    """Odczyt tylko zaznaczonych grup, bez modyfikacji SQLite."""\n'
         '    try:\n'
-        '        report = build_full_database_overview(\n'
+        '        groups = request.args.getlist("group")\n'
+        '        mode = request.args.get("mode", "folder")\n'
+        '        if not groups:\n'
+        '            return jsonify({"ok": False, "szczegoly": "Najpierw zaznacz folder lub redakcję."}), 400\n'
+        '        report = build_selected_database_overview(\n'
         '            DOCUMENT_DATABASE.iter_completed_results(include_text=True, article_only=True),\n'
-        '            database_stats=DOCUMENT_DATABASE.stats(),\n'
+        '            mode=mode, groups=groups,\n'
         '        )\n'
         '        return jsonify(report)\n'
+        '    except ValueError as exc:\n'
+        '        return jsonify({"ok": False, "szczegoly": str(exc)}), 400\n'
         '    except Exception as exc:\n'
-        '        return jsonify({"ok": False, "blad": "nie_udalo_sie_zbudowac_raportu",\n'
-        '                        "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\n\n\n'
+        '        return jsonify({"ok": False, "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\n\n\n'
         '@app.get("/api/baza/porownanie/grupy")',
     )
     return app
@@ -100,7 +108,7 @@ def apply_patch(asset: Path = ASSET) -> str:
         entries = [(info, original.read(info)) for info in original.infolist()]
     original_names = {info.filename for info, _ in entries}
     if all(name in original_names for name in SOURCES):
-        if "soraFullOverview" in dict((i.filename, b) for i,b in entries)["templates/index.html"].decode():
+        if "sora-selection-layout" in dict((i.filename, b) for i,b in entries)["templates/index.html"].decode():
             return before_sha
         raise ValueError("Niepełne wdrożenie panelu — wymagany przegląd.")
     if before_sha != EXPECTED_OPTIMIZED_SHA256:
@@ -138,4 +146,4 @@ def apply_patch(asset: Path = ASSET) -> str:
 
 
 if __name__ == "__main__":
-    print("Full database overview: packaged engine SHA-256 " + apply_patch())
+    print("Selected materials overview: packaged engine SHA-256 " + apply_patch())
