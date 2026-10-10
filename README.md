@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.5
+# Drogowskazy Sora 1.2.6
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -58,3 +58,16 @@ kontrolą SHA-256; build przerwie się, jeżeli silnik został nieoczekiwanie
 zmieniony. Pobieranie plików, wybór folderów, panel, format bazy i import
 pozostają bez zmian. PHONE i PC muszą używać tego samego nowego wydania
 przy przekazywaniu ZIP TRANSFER, ponieważ identyfikator silnika się zmienia.
+
+## Cała baza — raport i porównania (1.2.6)
+
+W trybie Użytkownik otwórz przycisk **Cała baza — wyniki i porównania**.
+Widok pokazuje dane ze wszystkich gotowych analiz zapisanych w SQLite:
+liczby dokumentów i błędów, wszystkie redakcje (bez limitu 10), relacje,
+aktorów, tematy, P0–P5, pokrycie analityczne i ranking wskaźników
+normalizowanych na 1000 słów. Zaznaczony artykuł można otworzyć z raportu.
+Raport nie uruchamia analizy ponownie i nie zmienia bazy. Starsze
+porównania szczegółowe 2–10 grup oraz przyciski importu pozostają bez zmian.
+Na PC działa ten sam endpoint silnika; osobny ekran natywny PC można
+rozwinąć niezależnie. Testy weryfikują 12 redakcji, brak zapisów do SQLite,
+oraz działanie istniejących funkcji folderów i pobierania.
