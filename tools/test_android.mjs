@@ -210,7 +210,17 @@ try{
  await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
  await click('#soraFullOverviewBack');
  await waitJs(()=>document.getElementById('soraFullOverview').hidden);
- done('checked-only overview appears alongside folders, refresh and hide, no import regression');
+ await click('#compareDatabaseBtn');
+ await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-compare-mobile-cards .sora-comparison-source-card').length>=2);
+ const cardStats=await page.evaluate(()=>({
+   cards:[...document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
+   originalTables:document.querySelectorAll('#databaseComparisonResult table.database-compare-table').length,
+   sources:document.getElementById('databaseCompareGroups').selectedOptions.length
+ }));
+ assert.ok(cardStats.cards.every(n=>n>=10), 'All original metrics must be visible per selected group');
+ assert.ok(cardStats.originalTables>=1, 'Desktop comparison table must remain available');
+ assert.equal(cardStats.cards.length,cardStats.sources, 'Only selected groups receive cards');
+ done('selected-group overview, responsive metric cards, full original tables, import unchanged');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
  await page.route('**/api/baza/importuj',async route=>{await pause(700);await route.continue();});
