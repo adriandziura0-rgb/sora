@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.6
+# Drogowskazy Sora 1.2.7
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -59,7 +59,7 @@ zmieniony. Pobieranie plików, wybór folderów, panel, format bazy i import
 pozostają bez zmian. PHONE i PC muszą używać tego samego nowego wydania
 przy przekazywaniu ZIP TRANSFER, ponieważ identyfikator silnika się zmienia.
 
-## Wyniki wybranych materiałów obok zaznaczenia (1.2.6)
+## Wyniki wybranych materiałów obok zaznaczenia (1.2.7)
 
 W **Użytkownik → Baza / porównania → Porównaj linie redakcyjne / foldery**
 zaznacz od **1 do 10** folderów lub redakcji. Po kliknięciu
@@ -77,3 +77,9 @@ Endpoint `/api/baza/analiza_wybranych` bez listy grup zwraca błąd 400 —
 nie istnieje automatyczna analiza całej bazy w tym ekranie. Odczyt
 używa wyłącznie już gotowych zapisanych analiz i nie modyfikuje SQLite.
 Pobieranie, katalogi/SD, import, format danych i stare porównania bez zmian.
+
+### Widok mobilny 1.2.7
+Porównanie 2–10 zaznaczonych grup pokazuje wszystkie metryki również w
+pionowych kartach na telefonie. Żadna kolumna nie jest ucinana. Oryginalna
+tabela pozostaje dostępna w programie (na komputerze) i nie zmieniono
+pobierania, importu, bazy danych ani klasyfikatora.

@@ -386,7 +386,7 @@ try{
  assert.deepEqual(testFailures,[],`Integration failures: ${testFailures.join('; ')}`);
  const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
- writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.6',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
+ writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.7',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){
