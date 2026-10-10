@@ -63,3 +63,40 @@
   .sora-overview-docs {grid-template-columns:1fr}
   .sora-overview-facts strong {font-size:20px}
 }
+
+
+/* Smartfon: szeroka tabela (>580px) otrzymuje czytelne pionowe karty grup.
+   Zachowujemy oryginalną tabelę w DOM i nie zmieniamy obliczeń. */
+.sora-compare-mobile-cards {display:none}
+@media (max-width:760px) {
+  .sora-compare-mobile-cards {display:grid;gap:12px;min-width:0;margin:12px 0}
+  .sora-compare-mobile-cards + .database-compare-table-wrap.sora-has-mobile-cards {
+    display:none !important;
+  }
+  .sora-comparison-source-card {
+    display:block;min-width:0;max-width:100%;padding:14px;
+    background:#fff;border:1px solid #cbd5e1;border-radius:14px;
+    box-shadow:0 3px 8px rgba(15,23,42,.045);
+  }
+  .sora-comparison-source-card h5 {
+    margin:0 0 10px;color:#0f172a;font-size:16px;line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+  .sora-comparison-source-card dl {margin:0;display:grid;gap:0}
+  .sora-comparison-metric {
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,auto);
+    gap:12px;align-items:start;padding:9px 0;
+    border-top:1px solid #edf2f7;
+    font-size:13px;line-height:1.5;
+  }
+  .sora-comparison-metric dt {color:#475569;overflow-wrap:anywhere}
+  .sora-comparison-metric dd {
+    margin:0;font-weight:800;text-align:right;color:#0f172a;
+    max-width:155px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;
+  }
+  .sora-selection-report,.sora-selection-layout,.database-compare-body,
+  .database-comparison-result {min-width:0;max-width:100%;box-sizing:border-box}
+  .sora-selection-report .database-compare-table-wrap:not(.sora-has-mobile-cards) {
+    overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;
+  }
+}
