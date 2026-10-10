@@ -30,10 +30,15 @@ def build_selected_database_overview(
     safe_mode = str(mode or "").strip().casefold()
     if safe_mode not in VALID_MODES:
         raise ValueError("Wybierz foldery lub redakcje.")
-    names = list(dict.fromkeys(str(n).strip() for n in groups if str(n).strip()))
+    names = []
+    wanted = set()
+    for raw_name in groups:
+        name = str(raw_name).strip()
+        if name and name.casefold() not in wanted:
+            names.append(name)
+            wanted.add(name.casefold())
     if not 1 <= len(names) <= MAX_COMPARE_GROUPS:
         raise ValueError("Zaznacz od 1 do 10 folderów lub redakcji.")
-    wanted = {name.casefold() for name in names}
     stats = {"selected_groups": len(names)}
     all_articles = _GroupAccumulator("Zaznaczone artykuły")
     by_publisher: dict[str, _GroupAccumulator] = {}
@@ -44,7 +49,10 @@ def build_selected_database_overview(
             continue
         if not is_article_document(document):
             continue
-        document_id = int(document.get("id") or 0)
+        try:
+            document_id = int(document.get("id") or 0)
+        except (TypeError, ValueError):
+            continue
         if document_id <= 0:
             continue
         group = comparison_group(document, result, safe_mode)
@@ -62,14 +70,15 @@ def build_selected_database_overview(
             "publisher": publisher,
             "analyzed_at": str(document.get("analyzed_at") or ""),
         })
-        if len(last_documents) > 12:
-            last_documents.pop(0)
+
 
     # Nie dopisujemy danych do SQLite i nie zmieniamy zapisanych analiz.
     groups = [group.summary() for group in by_publisher.values()]
     groups.sort(key=lambda g: (-g["documents"], g["name"].casefold()))
     used = all_articles.documents
-    stats.update(articles=used, done_articles=used, processing=0, error=0, duplicates=0, support_files=0)
+    # Odczyt dotyczy tylko ukończonych analiz. Nie zgadujemy liczby
+    # dokumentów w kolejce, błędów ani duplikatów w zaznaczonych grupach.
+    stats.update(articles=used, done_articles=used, stats_scope="tylko ukończone analizy")
     notes = ["Raport dotyczy wyłącznie ukończonych analiz w zaznaczonych grupach. Nie obejmuje całej bazy."]
     if len(groups) < 2:
         notes.append("Do porównania redakcji zaznacz co najmniej dwie. Analiza jednej grupy również jest dostępna.")
@@ -109,7 +118,7 @@ def build_selected_database_overview(
             "p4": _ranking(all_articles.p4),
             "p5": _ranking(all_articles.p5),
         },
-        "recent_documents": list(reversed(last_documents)),
+        "recent_documents": sorted(last_documents, key=lambda item: (item["analyzed_at"], item["id"]), reverse=True)[:12],
         "notes": notes,
         "method": (
             "Wyłącznie zaznaczone grupy, tylko ukończone artykuły; "
