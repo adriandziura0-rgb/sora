@@ -15,6 +15,52 @@
   const int = value => (Number(value) || 0).toLocaleString('pl-PL', {maximumFractionDigits: 0});
   const num = value => (Number(value) || 0).toLocaleString('pl-PL', {maximumFractionDigits: 2});
   const pct = value => num(value) + '%';
+
+  // Mobilny widok oryginalnej tabeli porównania: każda zaznaczona grupa
+  // otrzymuje własną kartę z WSZYSTKIMI metrykami, bez obcinania kolumn.
+  // Tabela źródłowa jest zachowana i nadal działa na PC / w eksporcie.
+  const comparisonHost = document.getElementById('databaseComparisonResult');
+  const renderedTables = new WeakMap();
+  function renderMobileComparison() {
+    if (!comparisonHost) return;
+    comparisonHost.querySelectorAll('table.database-compare-table').forEach(table => {
+      const wrapper = table.closest('.database-compare-table-wrap');
+      const headers = [...(table.tHead?.rows?.[0]?.cells || [])].map(c => (c.textContent || '').trim());
+      const rows = [...(table.tBodies?.[0]?.rows || [])];
+      if (!wrapper || headers.length < 2 || !rows.length) return;
+      const signature = headers.join('|') + '#' + rows.map(r => r.textContent || '').join('|');
+      if (renderedTables.get(table) === signature) return;
+      const groupCards = headers.slice(1).map((group, index) => {
+        const metrics = rows.flatMap(row => {
+          const cells = [...row.cells];
+          if (cells.length <= index + 1) return [];
+          const label = (cells[0]?.textContent || '').trim();
+          const value = (cells[index + 1]?.textContent || '').trim();
+          if (!label || !value) return [];
+          return '<div class="sora-comparison-metric"><dt>' + esc(label) +
+            '</dt><dd>' + esc(value) + '</dd></div>';
+        }).join('');
+        return '<article class="sora-comparison-source-card"><h5>' +
+          esc(group || ('Grupa ' + (index + 1))) + '</h5><dl>' + metrics + '</dl></article>';
+      }).join('');
+      let cards = wrapper.previousElementSibling;
+      if (!cards || !cards.classList.contains('sora-compare-mobile-cards')) {
+        cards = document.createElement('div');
+        cards.className = 'sora-compare-mobile-cards';
+        wrapper.parentNode.insertBefore(cards, wrapper);
+      }
+      renderedTables.set(table, signature);
+      cards.innerHTML = '<p class="sora-overview-muted">Pełne wyniki dla zaznaczonych grup — przewijaj w dół, nie w bok.</p>' +
+        groupCards;
+      wrapper.classList.add('sora-has-mobile-cards');
+    });
+  }
+  if (comparisonHost && typeof MutationObserver !== 'undefined') {
+    const observer = new MutationObserver(renderMobileComparison);
+    observer.observe(comparisonHost, {childList:true, subtree:true, characterData:true});
+    renderMobileComparison();
+  }
+
   let report = null;
   let active = false;
   let busy = false;
