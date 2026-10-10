@@ -246,6 +246,27 @@ try{
  await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('2 wybrane grupy'));
  done('stage 1: clear stale results, explicit one/two-folder status, preserve all comparison metrics');
 
+ // Regresja: po ponownym wczytaniu WebView wciąż są te same artykuły,
+ // a ostatni jawnie wybrany raport i porównanie wracają z zapisanych analiz.
+ const beforeReload = (await api('/api/baza/status')).stats.done;
+ const savedOverview = await page.evaluate(() =>
+   JSON.parse(localStorage.getItem('sora-zaznaczone-raport-v1') || 'null'));
+ assert.equal(savedOverview?.view,'comparison');
+ assert.equal(savedOverview?.groups?.length,2);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await waitJs(()=>window.__drogowskazyNativeInstalled &&
+   document.getElementById('backendStatusPill')?.classList.contains('backend-ok'));
+ await databaseView();
+ await page.locator('#databaseComparePanel').evaluate(e=>e.open=true);
+ await waitJs(()=>document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]').length>=2);
+ await waitJs(()=>!document.getElementById('soraFullOverview').hidden &&
+   document.getElementById('soraFullOverviewStatus').textContent.includes('2 wybrane grupy'));
+ await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card').length>=2);
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
+ assert.equal((await api('/api/baza/status')).stats.done,beforeReload,
+   'Restoring the view must never reimport or remove articles');
+ done('persistent selected-group comparison after WebView reload; articles unchanged');
+
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
  await page.route('**/api/baza/importuj',async route=>{await pause(700);await route.continue();});
  await click('#importFolderToDatabaseBtn',true);await pickFolder('RedakcjaA');
