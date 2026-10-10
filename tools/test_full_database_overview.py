@@ -8,7 +8,7 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSET = ROOT / "app/src/main/assets/drogowskazy-runtime.zip"
-with tempfile.TemporaryDirectory(prefix="sora-full-db-") as tmp:
+with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=True) as tmp:
     with zipfile.ZipFile(ASSET) as archive:
         assert archive.testzip() is None
         assert "clean_core/database_overview.py" in archive.namelist()
