@@ -65,8 +65,18 @@ async function nativeTap(label,timeout=20000){
  adb('shell','input','tap',...point(node).map(String));await pause(350);return node;
 }
 async function downloads(){
+ // Android DocumentsUI bywa gotowy zanim dorysuje wpis Sora-tests.
+ // Przed próbą otwarcia nawigacji czekamy na folder, żeby nie pomylić
+ // opóźnionego widoku z brakiem lokalnego katalogu.
  const nodes=await until(()=>{const ns=nativeNodes();return ns.some(n=>/documentsui/.test(n.package||''))?ns:false;},'document picker ready');
  if(nodes.some(n=>matches(n,'Sora-tests')))return;
+ const ready=await until(()=>{
+   const ns=nativeNodes();
+   if(ns.some(n=>matches(n,'Sora-tests'))) return 'folder';
+   if(ns.some(n=>matches(n,'Show roots')&&n.enabled!=='false')) return 'roots';
+   return false;
+ },'Sora-tests folder or accessible root navigation',30000);
+ if(ready==='folder')return;
  // Our own pickers set Downloads explicitly. Android's print spooler may
  // instead remember a different provider, so navigate through local storage.
  await nativeTap('Show roots');
