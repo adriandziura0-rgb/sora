@@ -166,7 +166,17 @@ try{
  await until(()=>api('/api/health'),'APK server start',120000);
  const devices=await android.devices({omitDriverInstall:true});assert.equal(devices.length,1);
  device=devices[0];device.setDefaultTimeout(120000);
- const webview=await device.webView({pkg:'pl.drogowskazy.sora'});
+ let webview;
+ try {
+   webview=await device.webView({pkg:'pl.drogowskazy.sora'});
+ } catch (firstError) {
+   // Android 16 / emulator CDP may miss the first WebView debugging socket,
+   // even when the APK has rendered correctly and HTTP /api/health is ready.
+   console.warn('WebView debugger not attached; retry after foregrounding:',firstError.message);
+   adb('shell','am','start','-n','pl.drogowskazy.sora/.MainActivity');
+   await pause(2000);
+   webview=await device.webView({pkg:'pl.drogowskazy.sora'});
+ }
  page=await webview.page();
  await until(()=>page.url().includes('127.0.0.1:5433'),'local panel');
  page.on('pageerror',e=>{jsErrors.push(e.message);console.error('WEBVIEW_ERROR',e.message);});
