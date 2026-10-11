@@ -8,6 +8,7 @@ on:
       - 'app/src/main/python/data_transfer.py'
       - 'tools/test_transfer.py'
       - 'tools/test_topic_matcher_cache.py'
+      - 'tools/overview_assets/topic_report_cache.py'
       - 'tools/patch_engine_runtime.py'
       - 'tools/overview_assets/**'
       - 'tools/patch_full_database_dashboard.py'
