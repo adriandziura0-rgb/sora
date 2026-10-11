@@ -513,7 +513,8 @@ class Window(Operations):
         except queue.Empty:pass
         if self.busy:self.busy_bar.start(12)
         else:self.busy_bar.stop()
-        if not self.busy and str(self.pages['database'])==self.tabs.select():self.refresh()
+        # Nie odpytuj całej bazy co 1,5 sekundy bez żądania użytkownika.
+        # Ręczne „Odśwież” oraz odświeżenie po imporcie pozostają dostępne.
         self.root.after(1500,self.tick)
 
 
