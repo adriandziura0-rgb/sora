@@ -133,11 +133,11 @@ def update_ui_js(source: str) -> str:
         '    Array.from(sel.options).slice(0,10).forEach(o=>o.selected=true);',
         '    // Nie zaznaczaj redakcji bez decyzji użytkownika.')
     source = insert_once(source,
-        '    void porownajGrupyBazy();',
-        '    // Przywracamy wybór, nie rozpoczynamy ponownego porównania.')
+        '    void porownajGrupyBazy();\n  }\n  if(!topicsReady) return;',
+        '    // Przywracamy wybór, nie rozpoczynamy ponownego porównania.\n  }\n  if(!topicsReady) return;')
     source = insert_once(source,
-        '    void porownajTaSamaSprawe();',
-        '    // Przywracamy wybór, nie rozpoczynamy ponownego porównania.')
+        '    void porownajTaSamaSprawe();\n  }\n  oczekujacyStanBazySesji=null;',
+        '    // Przywracamy wybór, nie rozpoczynamy ponownego porównania.\n  }\n  oczekujacyStanBazySesji=null;')
     source = insert_once(source,
         '  const button=$(\'reanalyzeDatabaseBtn\');\n'
         '  if(button) button.disabled=true;',
