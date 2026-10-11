@@ -111,6 +111,14 @@ jobs:
           print('PASS: APK CRC, embedded runtime and native panel assets')
           PY
 
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Drogowskazy-Sora-APK
+          path: Drogowskazy-Sora-1.2.10.apk
+          if-no-files-found: error
+          retention-days: 30
+
       - name: Prepare real Android panel tests
         run: |
           python tools/test_transfer.py --fixture test-output/input/Sora-tests/pc-transfer.zip
@@ -146,10 +154,3 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: Drogowskazy-Sora-APK
-          path: Drogowskazy-Sora-1.2.10.apk
-          if-no-files-found: error
-          retention-days: 30
