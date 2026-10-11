@@ -161,7 +161,7 @@ public final class ProjectStoreTest {
     check(!new File(current.getParentFile(),"escape.txt").exists(),"Traversal blocked");
     // Symulacja faktycznej aktualizacji APK, bez kasowania SharedPreferences
     // ani prywatnych danych użytkownika. Stara stała wersji nie przechodzi tego testu.
-    context.setPackageVersion("1.2.9");
+    context.setPackageVersion("1.2.10");
     check(ProjectStore.needsBundledInstall(context),"New APK version must reinstall bundled runtime");
     ProjectStore.installBundled(context);
     check(!Files.readString(new File(current,"app.py").toPath()).equals("manual-version"),"Upgrade activates bundled runtime");
