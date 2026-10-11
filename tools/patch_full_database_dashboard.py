@@ -18,6 +18,7 @@ EXPECTED_OPTIMIZED_SHA256 = "80dbabee2320d7084c2b95856df31be531d92a22ef168b698a6
 
 SOURCES = {
     "clean_core/database_overview.py": ASSETS / "database_overview.py",
+    "clean_core/topic_report_cache.py": ASSETS / "topic_report_cache.py",
     "static/full-database.js": ASSETS / "full-database.js",
     "static/full-database.css": ASSETS / "full-database.css",
 }
@@ -72,7 +73,8 @@ def update_backend(app: str) -> str:
         app,
         'from clean_core.database_aggregate import build_database_aggregate',
         'from clean_core.database_aggregate import build_database_aggregate\n'
-        'from clean_core.database_overview import build_selected_database_overview',
+        'from clean_core.database_overview import build_selected_database_overview\n'
+        'from clean_core.topic_report_cache import cached_topics, cached_comparison',
     )
     app = insert_once(
         app,
@@ -96,7 +98,72 @@ def update_backend(app: str) -> str:
         '        return jsonify({"ok": False, "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\n\n\n'
         '@app.get("/api/baza/porownanie/grupy")',
     )
+    app = insert_once(
+        app,
+        'payload = discover_same_story_topics(DOCUMENT_DATABASE.iter_completed_results(include_text=True, article_only=True))',
+        'payload = cached_topics(DOCUMENT_DATABASE, discover_same_story_topics)',
+    )
+    app = insert_once(
+        app,
+        'payload = build_same_story_comparison(\n'
+        '            DOCUMENT_DATABASE.iter_completed_results(include_text=True, article_only=True),\n'
+        '            topic_id=topic_id, group_a=group_a, group_b=group_b, groups=groups, mode=mode,\n'
+        '        )',
+        'payload = cached_comparison(\n'
+        '            DOCUMENT_DATABASE, build_same_story_comparison,\n'
+        '            topic_id=topic_id, group_a=group_a, group_b=group_b, groups=groups, mode=mode,\n'
+        '        )',
+    )
     return app
+
+
+def update_ui_js(source: str) -> str:
+    """No automatic report/whole-database work; explicit user controls only."""
+    # Normal folder list refresh is cheap; cluster comparisons are NOT.
+    source = insert_once(source,
+        '    void odswiezTematyTejSamejSprawy().then(()=>{ if(oczekujacyStanBazySesji) przywrocStanBazyPoOdswiezeniu(true); });',
+        '    // Wspólne sprawy obliczamy dopiero po kliknięciu użytkownika.')
+    source = insert_once(source,
+        '    void odswiezWynikBenchmarku();',
+        '    // Wyniki benchmarku wczytujemy wyłącznie w jego sekcji.')
+    source = insert_once(source,
+        '      if(current.length<2){ sel.options[0].selected=true; sel.options[1].selected=true; }',
+        '      // Brak automatycznego zaznaczania folderów.')
+    source = insert_once(source,
+        '    Array.from(sel.options).slice(0,10).forEach(o=>o.selected=true);',
+        '    // Nie zaznaczaj redakcji bez decyzji użytkownika.')
+    source = insert_once(source,
+        '    void porownajGrupyBazy();',
+        '    // Przywracamy wybór, nie rozpoczynamy ponownego porównania.')
+    source = insert_once(source,
+        '    void porownajTaSamaSprawe();',
+        '    // Przywracamy wybór, nie rozpoczynamy ponownego porównania.')
+    source = insert_once(source,
+        '  const button=$(\'reanalyzeDatabaseBtn\');\n'
+        '  if(button) button.disabled=true;',
+        '  if(!window.confirm("Przeliczyć WSZYSTKIE zapisane artykuły? Ta operacja może potrwać długo. Wykonaj najpierw kopię bazy/TRANSFER. Bez potwierdzenia nic nie zostanie uruchomione.")) return null;\n'
+        '  const button=$(\'reanalyzeDatabaseBtn\');\n'
+        '  if(button) button.disabled=true;')
+    source = insert_once(source,
+        "const sameStoryTopic = $('sameStoryTopic'); if(sameStoryTopic) sameStoryTopic.addEventListener('change',()=>{ ustawRedakcjeDlaTematu(); zaplanujZapisSesji(120); });",
+        "const sameStoryTopic = $('sameStoryTopic'); if(sameStoryTopic) sameStoryTopic.addEventListener('change',()=>{ ustawRedakcjeDlaTematu(); zaplanujZapisSesji(120); });\n"
+        "if(sameStoryTopic){\n"
+        "  const searchTopicsBtn=document.createElement('button');\n"
+        "  searchTopicsBtn.type='button'; searchTopicsBtn.id='searchSameStoryTopicsBtn';\n"
+        "  searchTopicsBtn.className='secondary';\n"
+        "  searchTopicsBtn.textContent='Wyszukaj wspólne sprawy';\n"
+        "  sameStoryTopic.insertAdjacentElement('beforebegin',searchTopicsBtn);\n"
+        "  searchTopicsBtn.addEventListener('click',async()=>{\n"
+        "    if(searchTopicsBtn.disabled) return;\n"
+        "    searchTopicsBtn.disabled=true;\n"
+        "    try{ await odswiezTematyTejSamejSprawy();\n"
+        "      if(oczekujacyStanBazySesji) przywrocStanBazyPoOdswiezeniu(true);\n"
+        "    } finally { searchTopicsBtn.disabled=false; }\n"
+        "  });\n"
+        "  const storyStatus=$('sameStoryStatus');\n"
+        "  if(storyStatus) storyStatus.textContent='Wyszukiwanie tematów tylko na żądanie. Naciśnij „Wyszukaj wspólne sprawy”.';\n"
+        "}")
+    return source
 
 
 def apply_patch(asset: Path = ASSET) -> str:
@@ -118,6 +185,7 @@ def apply_patch(asset: Path = ASSET) -> str:
     updates = {
         "app.py": update_backend(next(data for info, data in entries if info.filename == "app.py").decode("utf-8")).encode("utf-8"),
         "templates/index.html": update_html(next(data for info, data in entries if info.filename == "templates/index.html").decode("utf-8")).encode("utf-8"),
+        "static/app.js": update_ui_js(next(data for info, data in entries if info.filename == "static/app.js").decode("utf-8")).encode("utf-8"),
     }
     fd, temp_name = tempfile.mkstemp(dir=asset.parent, suffix=".zip", prefix="sora-overview-")
     os.close(fd)
