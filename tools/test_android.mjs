@@ -212,6 +212,10 @@ try{
  await databaseView();
  await page.locator('#databaseComparePanel').evaluate(e=>e.open=true);
  await until(()=>page.evaluate(()=>document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]').length>=2),'selectable folders');
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),0,
+   'Brak automatycznego zaznaczenia folderów.');
+ await page.locator('#databaseCompareGroupList input[data-compare-group]').first().check();
+ await page.locator('#databaseCompareGroupList input[data-compare-group]').nth(1).check();
  await click('#openFullOverviewBtn');
  await waitJs(()=>document.getElementById('soraFullOverview') && !document.getElementById('soraFullOverview').hidden);
  await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
