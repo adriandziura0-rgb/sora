@@ -62,6 +62,16 @@ class Engine:
         spec = importlib.util.spec_from_file_location('sora_shared_runtime', runtime / 'app.py')
         self.module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(self.module)
+        # Stary interfejs Tk korzystał wyłącznie z API JSON, dlatego Flask
+        # nie potrzebował template/static. Pełny panel PHONE wymaga tego
+        # samego katalogu templates/ i static/ co oryginalne APK.
+        # Moduł jest dynamicznie importowany spoza standardowego sys.path;
+        # bez jawnych ścieżek Flask zwracał HTTP 500 TemplateNotFound.
+        from jinja2 import FileSystemLoader
+        self.module.app.root_path = str(runtime)
+        self.module.app.template_folder = str(runtime / "templates")
+        self.module.app.static_folder = str(runtime / "static")
+        self.module.app.jinja_loader = FileSystemLoader(str(runtime / "templates"))
         self.version = self.module.APP_VERSION
         self.identity['engine_version'] = self.version
 
