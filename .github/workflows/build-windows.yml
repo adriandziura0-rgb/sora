@@ -31,6 +31,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - name: Verify Windows Python sources compile before packaging
+        run: python -m py_compile desktop/sora_pc_webview.py desktop/engine.py desktop/local_session.py desktop/build_windows.py
       - name: Dependencies
         run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0 "pywebview[qt]==6.2.1"
       - name: Diagnose native Qt without PyInstaller (audit only)
