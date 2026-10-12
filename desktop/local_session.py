@@ -40,7 +40,9 @@ class ProtectedLocalApp:
             return self._deny(start_response)
         if path == "/" and method == "GET":
             key = parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=True).get("sora_launch", [""])[0]
-            if key and hmac.compare_digest(key, self.secret):
+            # compare_digest dla napisów Unicode podnosi TypeError;
+            # każdy nie-ASCII token odrzucamy bez wycieku błędu HTTP 500.
+            if key and key.isascii() and hmac.compare_digest(key, self.secret):
                 # Redirect to remove bootstrap token from page URL/history.
                 start_response("302 Found", [
                     ("Location", "/"),
