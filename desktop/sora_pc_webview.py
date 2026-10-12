@@ -17,7 +17,10 @@ import traceback
 import uuid
 from datetime import datetime
 from pathlib import Path
-from urllib.request import urlopen
+from urllib.request import urlopen, build_opener, HTTPCookieProcessor
+from urllib.error import HTTPError
+from http.cookiejar import CookieJar
+from local_session import ProtectedLocalApp
 
 from werkzeug.serving import make_server
 
@@ -89,28 +92,26 @@ class NativeFiles:
             raise ValueError("Plik jest poza zaznaczonym folderem.")
         return path
 
-    def list_directory(self, token: str, relative: str):
+    def list_directory(self, token: str, relative: str, offset: int = 0, limit: int = 300):
         folder = self._resolve(token, relative)
         if not folder.is_dir():
             raise ValueError("Nie znaleziono podfolderu.")
-        entries = []
-        for item in sorted(folder.iterdir(), key=lambda item: (item.is_file(), item.name.casefold())):
-            if len(entries) >= 1500:
-                break
+        offset = max(0, int(offset))
+        limit = min(500, max(1, int(limit)))
+        items = []
+        for item in folder.iterdir():
             if item.is_symlink() or item.name.startswith("."):
                 continue
-            if item.is_dir():
-                kind = "directory"
-                size = 0
-            elif item.is_file() and item.suffix.lower() in DOCUMENT_EXTENSIONS:
-                kind = "file"
-                size = item.stat().st_size
-            else:
-                continue
+            if item.is_dir() or (item.is_file() and item.suffix.lower() in DOCUMENT_EXTENSIONS):
+                items.append(item)
+        items.sort(key=lambda item: (item.is_file(), item.name.casefold()))
+        entries = []
+        for item in items[offset:offset+limit]:
+            kind = "directory" if item.is_dir() else "file"
             entries.append({"kind": kind, "name": item.name,
                             "path": str(item.relative_to(self.roots[token])).replace("\\", "/"),
-                            "root": token, "size": size})
-        return entries
+                            "root": token, "size": 0 if kind == "directory" else item.stat().st_size})
+        return {"items": entries, "has_more": offset + limit < len(items)}
 
     def read_file(self, token: str, relative: str):
         file = self._resolve(token, relative)
@@ -228,14 +229,22 @@ def _smoke(window, engine: Engine, home: Path, server):
         window.destroy()
 
 
-def _smoke_headless(engine: Engine, home: Path, server):
+def _smoke_headless(engine: Engine, home: Path, server, guard: ProtectedLocalApp):
     """Automatyczna kontrola prawdziwego EXE bez zależności od sesji RDP.
 
     WebView2 ma być przetestowany osobno na interaktywnym pulpicie Windows:
     test headless NIE oznacza, że GUI zostało wizualnie potwierdzone.
     """
     try:
-        with urlopen(f"http://127.0.0.1:{server.server_port}/", timeout=15) as response:
+        origin = f"http://127.0.0.1:{server.server_port}"
+        try:
+            urlopen(origin + "/api/baza/status", timeout=10)
+            raise AssertionError("Prywatne API dostępne bez tokenu sesji.")
+        except HTTPError as exc:
+            if exc.code != 403:
+                raise
+        opener = build_opener(HTTPCookieProcessor(CookieJar()))
+        with opener.open(guard.bootstrap_url(server.server_port), timeout=15) as response:
             assert response.status == 200
             page = response.read().decode("utf-8")
         markers = ("databasePanel", "databaseComparePanel", "sameStoryComparePanel",
@@ -246,7 +255,7 @@ def _smoke_headless(engine: Engine, home: Path, server):
                 raise RuntimeError("Brak części panelu PHONE: " + marker)
         for resource in ("static/app.js", "static/full-database.js",
                          "static/shared-content.js", "static/full-database.css"):
-            with urlopen(f"http://127.0.0.1:{server.server_port}/{resource}", timeout=15) as response:
+            with opener.open(origin + "/" + resource, timeout=15) as response:
                 if response.status != 200:
                     raise RuntimeError("Brak pliku interfejsu: " + resource)
         adapter = _native_script()
@@ -254,7 +263,7 @@ def _smoke_headless(engine: Engine, home: Path, server):
                        "import_transfer", "export_transfer", "backup_database"):
             if marker not in adapter:
                 raise RuntimeError("Brak natywnej funkcji Windows: " + marker)
-        with urlopen(f"http://127.0.0.1:{server.server_port}/api/baza/status", timeout=15) as response:
+        with opener.open(origin + "/api/baza/status", timeout=15) as response:
             status = json.load(response)
         if not isinstance(status.get("stats"), dict):
             raise RuntimeError("Silnik nie udostępnia statusu bazy.")
@@ -263,6 +272,7 @@ def _smoke_headless(engine: Engine, home: Path, server):
                   "native_windows_file_bridge_present": True,
                   "backend_http_healthy": True,
                   "database_preserved": True,
+                  "local_api_requires_secret_cookie": True,
                   "full_gui_test_pending": True,
                   "gui_verified": False,
                   "frontend_controls": list(markers),
@@ -290,16 +300,26 @@ def main():
         import webview
         webview.settings["ALLOW_DOWNLOADS"] = True
         webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
-        server = make_server("127.0.0.1", LOCAL_PORT, engine.module.app, threaded=True)
+        guard = ProtectedLocalApp(engine.module.app)
+        try:
+            server = make_server("127.0.0.1", LOCAL_PORT, guard, threaded=True)
+        except OSError:
+            # Inna aplikacja może mieć zajęty port 43847. Nie blokujemy
+            # startu, tylko przechodzimy na dostępny lokalny port.
+            server = make_server("127.0.0.1", 0, guard, threaded=True)
+            (home / "uwaga_port.txt").write_text(
+                "Stały port 43847 zajęty. Użyto portu " + str(server.server_port)
+                + ". Wybór ekranu może nie przetrwać następnego uruchomienia.",
+                encoding="utf-8")
         worker = threading.Thread(target=server.serve_forever, daemon=True, name="Sora-local-web")
         worker.start()
         if opts.smoke_test:
-            _smoke_headless(engine, home, server)
+            _smoke_headless(engine, home, server, guard)
             return
         bridge = NativeFiles(engine, home)
         window = webview.create_window(
             "Drogowskazy Sora — PHONE / PC",
-            f"http://127.0.0.1:{server.server_port}/",
+            guard.bootstrap_url(server.server_port),
             js_api=bridge, width=1180, height=865, min_size=(650, 550),
             background_color="#f4f8fa", text_select=True)
         bridge.attach(window)
