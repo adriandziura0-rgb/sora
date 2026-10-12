@@ -25,6 +25,9 @@ from engine import Engine
 
 DOCUMENT_EXTENSIONS = frozenset({".txt", ".md", ".markdown", ".csv", ".json", ".log", ".htm", ".html"})
 MAX_TEXT_BYTES = 2 * 1024 * 1024
+# Stały origin pozwala WebView2 zachować sesję, ostatnio wybrany widok i lokalne
+# preferencje między restartami Sory. Tylko pętla lokalna (bez sieci).
+LOCAL_PORT = 43847
 
 
 def default_home() -> Path:
@@ -241,7 +244,7 @@ def main():
         import webview
         webview.settings["ALLOW_DOWNLOADS"] = True
         webview.settings["OPEN_EXTERNAL_LINKS_IN_BROWSER"] = True
-        server = make_server("127.0.0.1", 0, engine.module.app, threaded=True)
+        server = make_server("127.0.0.1", LOCAL_PORT, engine.module.app, threaded=True)
         worker = threading.Thread(target=server.serve_forever, daemon=True, name="Sora-local-web")
         worker.start()
         bridge = NativeFiles(engine, home)
