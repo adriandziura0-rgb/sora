@@ -15,6 +15,7 @@ _GENERATION = None
 _TOPICS = None
 _COMPARISONS = {}
 _OVERVIEWS = {}
+_SHARED_CONTENT = {}
 _MAX_COMPARISONS = 12
 _MAX_OVERVIEWS = 8
 
@@ -42,6 +43,7 @@ def _check_generation(generation):
         _TOPICS = None
         _COMPARISONS.clear()
         _OVERVIEWS.clear()
+        _SHARED_CONTENT.clear()
 
 
 def cached_topics(database, discover):
@@ -90,4 +92,25 @@ def cached_selected_overview(database, build, *, mode, groups):
             if len(_OVERVIEWS) >= _MAX_OVERVIEWS:
                 del _OVERVIEWS[next(iter(_OVERVIEWS))]
             _OVERVIEWS[key] = result
+        return deepcopy(result)
+
+
+def cached_shared_content(database, build, *, mode, groups):
+    """Pamiętaj porównanie do kolejnej zmiany ukończonych analiz.
+
+    Żadne operacje po starcie aplikacji; dopiero jawne żądanie HTTP.
+    """
+    names = list(dict.fromkeys(str(x).strip() for x in groups if str(x).strip()))
+    key = (str(mode).casefold(), tuple(names))
+    with _LOCK:
+        _check_generation(_generation(database))
+        result = _SHARED_CONTENT.get(key)
+        if result is None:
+            result = build(
+                database.iter_completed_results(include_text=True, article_only=True),
+                mode=mode, groups=names,
+            )
+            if len(_SHARED_CONTENT) >= 5:
+                del _SHARED_CONTENT[next(iter(_SHARED_CONTENT))]
+            _SHARED_CONTENT[key] = result
         return deepcopy(result)
