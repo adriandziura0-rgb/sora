@@ -1,35 +1,51 @@
-DROGOWSKAZY SORA — APLIKACJA NA WINDOWS 10/11 (64-bit)
+DROGOWSKAZY SORA — WINDOWS 10/11 (64-bit) · TEN SAM PANEL CO W APK
 
-Rozpakuj cały ZIP. Otwórz folder Sora i uruchom Sora.exe.
-Zachowaj folder _internal obok programu. Python i przeglądarka nie są potrzebne.
+JAK URUCHOMIĆ
+1. Rozpakuj cały ZIP, nie przenoś samego pliku EXE.
+2. Otwórz folder Sora, uruchom Sora.exe.
+3. Windows wyświetla oryginalny interfejs PHONE w natywnym oknie WebView2.
+   Nie jest to karta przeglądarki internetowej ani inna, uproszczona aplikacja.
+4. Wymagany jest zainstalowany Microsoft Edge WebView2 Runtime.
+   Jeśli pojawi się błąd, przeczytaj blad_startu.txt w katalogu danych.
 
-Natywne okno: Dokument, Wynik analizy, Baza dokumentów, Porównania,
-Ta sama sprawa, Kontrola jakości (benchmark i GOLD), Raport i eksport.
-Wyniki mają czytelne karty wypowiedzi, aktorów i źródeł oraz fragmenty tekstu.
-Widok Ekspert udostępnia sekcje silnika i sygnały P0.
-Raport można zapisać jako Markdown, PDF lub JSON.
-Foldery są dodawane do trwałej kolejki, duplikaty rozpoznaje wspólny silnik.
+ZGODNOŚĆ TELEFON ↔ WINDOWS
+• Te same pliki HTML/CSS/JS wbudowane w aplikację Android:
+  Użytkownik / Ekspert, baza i foldery, analizowanie dokumentów, P0–P5,
+  porównania, Ta sama sprawa, wspólne treści i różnice, benchmark/GOLD,
+  raporty, eksport, podglądy artykułów i analiza zaznaczonych.
+• Ten sam silnik Python ze wspólnego runtime ZIP — bez zmiany klasyfikatora.
+• Na PC dodatkowo natywne okna Windows do wskazania folderu, wykonania
+  spójnej kopii SQLite, przywrócenia SQLite oraz TRANSFER ZIP.
+• Program otwiera własne okno Sora.exe, a lokalny serwer słucha wyłącznie
+  na 127.0.0.1:43847. Nie udostępnia panelu w internecie.
+• Dane PC: %LOCALAPPDATA%\DrogowskazySoraPC\data\drogowskazy.sqlite3.
+  Aktualizacja EXE nie usuwa tych danych.
+• Historia zaznaczonych folderów i stan interfejsu są zapisywane
+  w lokalnej pamięci WebView2, także po ponownym uruchomieniu.
 
-Silnik jest pobierany bez zmian z zasobu aplikacji Android w tym repozytorium.
-SILNIK_PHONE_PC.json zawiera odcisk. TEST_OK.json opisuje testy gotowego EXE.
-PODGLAD.png przedstawia rzeczywiste okno z testu Windows.
+PRZENOSZENIE DANYCH
+Aplikacje PHONE i PC mają oddzielne lokalne bazy.
+Aby przenieść dane z telefonu, wykonaj na telefonie EKSPORT TRANSFER ZIP;
+na komputerze wybierz Baza → TRANSFER PHONE ↔ PC →
+„Importuj z telefonu · ZIP”. Eksport na telefon działa odwrotnie.
+Importer weryfikuje wersje, integralność i scala rekordy bez kopiowania
+na żywo plików SQLite. Nie odinstalowuj starej aplikacji tylko po to,
+aby zainstalować nowszą. Zachowaj swoją ostatnią kopię TRANSFER.
 
-Dane PC są przechowywane w %LOCALAPPDATA%\DrogowskazySoraPC.
-Aktualizacja programu nie usuwa tej bazy. Zamknięcie kończy rozpoczętą pracę.
-Kopia SQLite używa spójnego mechanizmu kopii bazy.
-Przywrócenie sprawdza schemat, silnik i integralność; zachowuje poprzednią bazę.
-Przywrócenie zastępuje bazę — nie scala rekordów dwóch urządzeń.
-TRANSFER PHONE↔PC jest wdrożony jako wersjonowany ZIP.
-Na PC, w Bazie dokumentów: IMPORT Z TELEFONU · ZIP / EKSPORT NA TELEFON · ZIP.
-Na telefonie Sora 1.2.4, w ustawieniach: IMPORT Z KOMPUTERA · ZIP /
-EKSPORT NA KOMPUTER · ZIP. Przenieś tylko ten ZIP wybranym sposobem.
-Import sprawdza format, schemat, identyczny silnik, sumę SHA-256 i integralność.
-Przed zapisem robi kopię bazy. Dokumenty i oceny są scalane w jednej transakcji.
-Ten sam dokument jest rozpoznawany po skrócie treści; lokalne numery rekordów
-są mapowane, a identyfikatory analiz i relacji pozostają zachowane.
-Starsze zmiany nie zastępują nowszych. Równoczesny konflikt zachowuje dane lokalne,
-a pakiet wejściowy zostaje w katalogu transfers obok kopii poprzedniej bazy.
-Powtórny import nie tworzy drugich dokumentów ani drugich ocen.
-Czasy modyfikacji pochodzą z urządzeń: ustaw prawidłową datę na obu.
-ZIP TRANSFER przenosi bazę dokumentów i oceny, nie program ani szkic edytora.
-Nie kopiuj aktywnej bazy ani katalogu aplikacji między urządzeniami.
+EKSPORT
+Pobieranie raportów HTML, JSON, MD i PDF korzysta z panelu PHONE.
+WebView2 ma włączoną obsługę pobieranych plików. Natywne okna dialogowe
+wybierają foldery i miejsca zapisania kopii oraz pakietu TRANSFER.
+
+BEZPIECZEŃSTWO
+Nie kopiuj aktywnej bazy ani całego katalogu aplikacji między urządzeniami.
+Przywracanie pojedynczego SQLite zastępuje bazę PC (po stworzeniu kopii);
+TRANSFER ZIP bezpiecznie scala dokumenty. Przed pierwszym testem zrób kopię.
+Analizy porównawcze tylko czytają zapisane wyniki, bez ich przeliczania.
+
+W paczce:
+  Sora.exe — prawdziwa aplikacja Windows z oknem WebView2
+  _internal/ — wymagane biblioteki; nie usuwaj
+  TEST_OK.json — wynik testów pełnego panelu i zgodności silnika
+  PODGLAD.png — rzeczywisty zrzut natywnego okna w teście Windows
+  SILNIK_PHONE_PC.json — zgodność silnika
