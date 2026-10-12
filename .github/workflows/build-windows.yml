@@ -33,6 +33,14 @@ jobs:
           python-version: '3.13'
       - name: Dependencies
         run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0 "pywebview[qt]==6.2.1"
+      - name: Diagnose native Qt without PyInstaller (audit only)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          $env:SORA_QT_DIAGNOSTICS = Join-Path $env:RUNNER_TEMP 'sora-unfrozen-qt'
+          New-Item -ItemType Directory -Force -Path $env:SORA_QT_DIAGNOSTICS | Out-Null
+          python desktop/test_qt_unfrozen.py
+          if ($LASTEXITCODE -ne 0) { Write-Warning "Unfrozen Qt crashed: exit $LASTEXITCODE; check diagnostic artifact." }
       - name: Optimize shared PHONE and PC analysis engine
         run: python tools/patch_engine_runtime.py
       - name: Enable full database analytics in shared PC and PHONE engine
@@ -139,4 +147,8 @@ jobs:
         if: failure()
         with:
           name: Sora-PC-test-diagnostics
-          path: ${{ runner.temp }}/sora-exe-smoke/
+          path: |
+            ${{ runner.temp }}/sora-exe-smoke/
+            ${{ runner.temp }}/sora-qt-exe-test/
+            ${{ runner.temp }}/sora-qt-extracted-test/
+            ${{ runner.temp }}/sora-unfrozen-qt/
