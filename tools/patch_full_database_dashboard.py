@@ -24,6 +24,7 @@ SOURCES = {
     "clean_core/shared_content.py": ASSETS / "shared_content.py",
     "static/shared-content.js": ASSETS / "shared-content.js",
     "static/shared-content.css": ASSETS / "shared-content.css",
+    "static/import-recovery.js": ASSETS / "import-recovery.js",
 }
 
 def insert_once(text: str, before: str, after: str) -> str:
@@ -85,7 +86,8 @@ def update_html(html: str) -> str:
         html, '<script src="/static/app.js?v={{ app_version }}"></script>',
         '<script src="/static/app.js?v={{ app_version }}"></script>\n'
         '<script src="/static/full-database.js?v={{ app_version }}"></script>\n'
-        '<script src="/static/shared-content.js?v={{ app_version }}"></script>',
+        '<script src="/static/shared-content.js?v={{ app_version }}"></script>\n'
+        '<script src="/static/import-recovery.js?v={{ app_version }}"></script>',
     )
     return html
 
