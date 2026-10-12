@@ -74,7 +74,7 @@ def update_backend(app: str) -> str:
         'from clean_core.database_aggregate import build_database_aggregate',
         'from clean_core.database_aggregate import build_database_aggregate\n'
         'from clean_core.database_overview import build_selected_database_overview\n'
-        'from clean_core.topic_report_cache import cached_topics, cached_comparison',
+        'from clean_core.topic_report_cache import cached_topics, cached_comparison, cached_selected_overview',
     )
     app = insert_once(
         app,
@@ -87,8 +87,8 @@ def update_backend(app: str) -> str:
         '        mode = request.args.get("mode", "folder")\n'
         '        if not groups:\n'
         '            return jsonify({"ok": False, "szczegoly": "Najpierw zaznacz folder lub redakcję."}), 400\n'
-        '        report = build_selected_database_overview(\n'
-        '            DOCUMENT_DATABASE.iter_completed_results(include_text=True, article_only=True),\n'
+        '        report = cached_selected_overview(\n'
+        '            DOCUMENT_DATABASE, build_selected_database_overview,\n'
         '            mode=mode, groups=groups,\n'
         '        )\n'
         '        return jsonify(report)\n'
