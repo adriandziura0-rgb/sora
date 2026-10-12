@@ -21,6 +21,9 @@ SOURCES = {
     "clean_core/topic_report_cache.py": ASSETS / "topic_report_cache.py",
     "static/full-database.js": ASSETS / "full-database.js",
     "static/full-database.css": ASSETS / "full-database.css",
+    "clean_core/shared_content.py": ASSETS / "shared_content.py",
+    "static/shared-content.js": ASSETS / "shared-content.js",
+    "static/shared-content.css": ASSETS / "shared-content.css",
 }
 
 def insert_once(text: str, before: str, after: str) -> str:
@@ -34,7 +37,8 @@ def update_html(html: str) -> str:
         html,
         '<link href="/static/style.css?v={{ app_version }}" rel="stylesheet"/>',
         '<link href="/static/style.css?v={{ app_version }}" rel="stylesheet"/>\n'
-        '<link href="/static/full-database.css?v={{ app_version }}" rel="stylesheet"/>',
+        '<link href="/static/full-database.css?v={{ app_version }}" rel="stylesheet"/>\n'
+        '<link href="/static/shared-content.css?v={{ app_version }}" rel="stylesheet"/>',
     )
     html = insert_once(
         html, '<div class="database-compare-controls database-compare-controls-main">',
@@ -61,9 +65,27 @@ def update_html(html: str) -> str:
         '</div></div>',
     )
     html = insert_once(
+        html, '<details class="database-compare-panel" id="sameStoryComparePanel">',
+        '<details class="database-compare-panel sora-shared-panel" id="sharedContentPanel">'
+        '<summary>Wspólne treści i różnice między artykułami</summary>'
+        '<div class="database-compare-body">'
+        '<p class="muted sora-shared-help">Niezależnie od wyszukiwarki tematów: zaznacz od 2 do 10 folderów '
+        'lub redakcji powyżej, a następnie porównaj zapisane teksty. '
+        'Program pokaże dosłownie wspólne fragmenty, artykuły o podobnych tytułach '
+        'oraz różniące się fragmenty. Nie nazywa ich automatycznie manipulacją ani pominięciem.</p>'
+        '<button type="button" id="findSharedContentBtn" class="secondary strong-action sora-shared-action">'
+        'Szukaj wspólnych treści i różnic</button>'
+        '<p id="sharedContentStatus" class="sora-shared-status" role="status" aria-live="polite">'
+        'Czekam na Twój wybór. Nie przeszukuję bazy automatycznie.</p>'
+        '<div id="sharedContentResults" class="sora-shared-results" aria-live="off"></div>'
+        '</div></details>\n'
+        '<details class="database-compare-panel" id="sameStoryComparePanel">',
+    )
+    html = insert_once(
         html, '<script src="/static/app.js?v={{ app_version }}"></script>',
         '<script src="/static/app.js?v={{ app_version }}"></script>\n'
-        '<script src="/static/full-database.js?v={{ app_version }}"></script>',
+        '<script src="/static/full-database.js?v={{ app_version }}"></script>\n'
+        '<script src="/static/shared-content.js?v={{ app_version }}"></script>',
     )
     return html
 
@@ -74,7 +96,8 @@ def update_backend(app: str) -> str:
         'from clean_core.database_aggregate import build_database_aggregate',
         'from clean_core.database_aggregate import build_database_aggregate\n'
         'from clean_core.database_overview import build_selected_database_overview\n'
-        'from clean_core.topic_report_cache import cached_topics, cached_comparison, cached_selected_overview',
+        'from clean_core.topic_report_cache import cached_topics, cached_comparison, cached_selected_overview, cached_shared_content\n'
+        'from clean_core.shared_content import compare_shared_content',
     )
     app = insert_once(
         app,
@@ -91,6 +114,24 @@ def update_backend(app: str) -> str:
         '            DOCUMENT_DATABASE, build_selected_database_overview,\n'
         '            mode=mode, groups=groups,\n'
         '        )\n'
+        '        return jsonify(report)\n'
+        '    except ValueError as exc:\n'
+        '        return jsonify({"ok": False, "szczegoly": str(exc)}), 400\n'
+        '    except Exception as exc:\n'
+        '        return jsonify({"ok": False, "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\n\n\n'
+        '@app.get("/api/baza/porownanie/grupy")',
+    )
+    app = insert_once(
+        app,
+        '@app.get("/api/baza/porownanie/grupy")',
+        '@app.get("/api/baza/wspolna_tresc")\n'
+        'def api_shared_content():\n'
+        '    """Wspólne fragmenty i różnice bez modyfikowania wyników analizy."""\n'
+        '    try:\n'
+        '        groups = request.args.getlist("group")\n'
+        '        mode = request.args.get("mode", "folder")\n'
+        '        report = cached_shared_content(DOCUMENT_DATABASE, compare_shared_content,\n'
+        '            mode=mode, groups=groups)\n'
         '        return jsonify(report)\n'
         '    except ValueError as exc:\n'
         '        return jsonify({"ok": False, "szczegoly": str(exc)}), 400\n'
