@@ -28,7 +28,7 @@ def article(title, group, common, different):
             f"TREŚĆ: {common}\n\n{different}")
 
 
-with tempfile.TemporaryDirectory(prefix="sora-shared-test-") as temporary:
+with tempfile.TemporaryDirectory(prefix="sora-shared-test-", ignore_cleanup_errors=True) as temporary:
     with ZipFile(ASSET) as archive:
         assert archive.testzip() is None
         assert "clean_core/shared_content.py" in archive.namelist()
