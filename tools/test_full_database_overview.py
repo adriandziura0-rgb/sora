@@ -80,6 +80,19 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
         assert selected["stats"]["done_articles"] == 2
         assert "processing" not in selected["stats"], "Nie podajemy zmyślonej liczby oczekujących"
         assert "error" not in selected["stats"], "Nie podajemy zmyślonej liczby błędów"
+        assert selected["source_audit"]["confirmed"] == 2
+        assert selected["source_audit"]["indirect"] == 0
+        assert selected["source_audit"]["unknown"] == 0
+        assert all(item["publisher_evidence"] == "potwierdzone"
+                   for item in selected["recent_documents"])
+        # Kolejny odczyt ma pochodzić z cache'u, bez ponownego iterowania
+        # i dekompresji wszystkich zapisanych analiz.
+        from unittest.mock import patch
+        with patch.object(sora.DOCUMENT_DATABASE, "iter_completed_results",
+                          side_effect=AssertionError("Nie wolno ponownie skanować bazy")):
+            cached = client.get("/api/baza/analiza_wybranych?mode=publisher&group=TVN24&group=PAP")
+            assert cached.status_code == 200
+            assert cached.get_json()["analyzed_articles"] == 2
         assert client.get("/api/baza/analiza_wybranych?mode=publisher&group=TVN24&group=tvn24").get_json()["selected_groups"] == ["TVN24"]
         assert all(d["publisher"] in {"TVN24","PAP"} for d in selected["recent_documents"])
         assert selected["rankings"]["speakers"][0] == {"name":"minister","count":2}
@@ -115,6 +128,27 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
         most_recent = extra.get_json()["recent_documents"]
         assert len(most_recent) == 12 and len({item["id"] for item in most_recent}) == 12
         assert all(item["publisher"] == "TVN24" for item in most_recent)
+        # Nowy zapis unieważnia cache nawet wtedy, gdy użytkownik
+        # wybrał te same grupy. Raport nie może ukrywać nowych artykułów.
+        assert extra.get_json()["analyzed_articles"] == 16
+        assert extra.get_json()["source_audit"]["indirect"] == 15
+        # Folder o nazwie sugerującej redakcję NIE potwierdza źródła
+        # publikacji i NIE może stać się automatycznie 'tvp.info'.
+        raw = "TYTUŁ: Artykuł bez źródła\nTREŚĆ: Przykładowa treść bez daty i URL"
+        row = sora.DOCUMENT_DATABASE.begin_import(
+            text=raw, filename="bez-zrodla.txt",
+            relative_path="pogaduszki tvp/bez-zrodla.txt", extension=".txt",
+            encoding="utf-8", source_bytes=len(raw.encode("utf-8")),
+            app_version="test",
+        )["document"]
+        sora.DOCUMENT_DATABASE.mark_success(
+            row["id"], {"analysis_run_id": "missing-source", "sekcje": {}},
+            expected_content_sha256=row["content_sha256"],
+        )
+        doubtful = client.get("/api/baza/analiza_wybranych?mode=folder&group=pogaduszki%20tvp")
+        assert doubtful.status_code == 200
+        assert doubtful.get_json()["source_audit"]["unknown"] == 1
+        assert doubtful.get_json()["source_audit"]["confirmed"] == 0
         html = client.get("/").get_data(as_text=True)
         assert "Pokaż analizę zaznaczonych" in html
         assert "Cała baza — wyniki i porównania" not in html
