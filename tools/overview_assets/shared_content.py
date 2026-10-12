@@ -35,8 +35,13 @@ def _title(document):
     header = re.search(r"(?im)^\s*TYTUŁ\s*:\s*(.+)$", text[:3000])
     if header:
         return header.group(1).strip()[:200]
-    name = str(document.get("filename") or "")
-    return re.sub(r"[_-]+", " ", PurePosixPath(name).stem)[:200]
+    path = str(document.get("relative_path") or document.get("filename") or "").replace("\\", "/")
+    parts = [item for item in path.split("/") if item]
+    name = PurePosixPath(parts[-1] if parts else "nieznany").stem
+    if name.casefold() in {"artykul", "artykuł", "article"} and len(parts) >= 2:
+        name = re.sub(r"^\d{1,6}_", "", parts[-2])
+        name = re.sub(r"_[0-9a-f]{8,40}$", "", name, flags=re.I)
+    return re.sub(r"[_-]+", " ", name)[:200]
 
 
 def _body(document):
@@ -68,7 +73,9 @@ def _snippets(text, alternative_words, *, max_items=2):
 
 
 def _exact_matches(a, b):
-    matcher = SequenceMatcher(None, a["tokens"], b["tokens"], autojunk=False)
+    # Ochrona pracy telefonu: nie skanujemy całych bardzo długich publikacji
+    # kwadratowym algorytmem przy wielu podobnych powtarzających się słowach.
+    matcher = SequenceMatcher(None, a["tokens"][:900], b["tokens"][:900], autojunk=True)
     matched = []
     for block in matcher.get_matching_blocks():
         if block.size < 8:
@@ -160,16 +167,24 @@ def compare_shared_content(rows, *, mode, groups):
 
     # Gdy teksty zostały sparafrazowane, podobne tytuły mogą wskazać
     # artykuły o tym samym temacie. Nie nazywamy ich wspólnym cytatem.
-    for left in range(len(docs)):
-        if len(docs[left]["title_words"]) < 3:
+    # Indeks tytułów zamiast O(n²) porównań wszystkich artykułów.
+    title_index = defaultdict(set)
+    for index, doc in enumerate(docs):
+        for word in doc["title_words"]:
+            title_index[word].add(index)
+    title_pairs = Counter()
+    for indexes in title_index.values():
+        if len(indexes) > 24:
             continue
-        for right in range(left+1, len(docs)):
-            if docs[left]["group"].casefold() == docs[right]["group"].casefold():
-                continue
-            common = docs[left]["title_words"] & docs[right]["title_words"]
-            union = docs[left]["title_words"] | docs[right]["title_words"]
-            if len(common) >= 3 and len(common) / max(1, len(union)) >= .48:
-                pairs[(left, right)] += 5
+        for left, right in combinations(sorted(indexes), 2):
+            if docs[left]["group"].casefold() != docs[right]["group"].casefold():
+                title_pairs[(left,right)] += 1
+    for (left,right), common_words in title_pairs.items():
+        if common_words < 3:
+            continue
+        union = docs[left]["title_words"] | docs[right]["title_words"]
+        if common_words / max(1,len(union)) >= .48:
+            pairs[(left,right)] += 5
 
     matched = []
     for (left, right), score in pairs.most_common(100):
