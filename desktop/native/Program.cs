@@ -255,27 +255,46 @@ internal sealed class SoraWindow : Form
 
             // Regresja użytkownika: 40 MB nie może zablokować panelu ani
             // wywołać żądania analizy większego niż 2 MB.
-            var recoveryJs = await _browser.ExecuteScriptAsync("""
+            await _browser.ExecuteScriptAsync("""
+                window.__soraRecoveryProbe = {done:false};
                 (async () => {
-                  const mock = Array.from({length:22}, (_, i) => ({
-                    name:'duzy-test-'+i+'.txt', size:1900*1024,
-                    webkitRelativePath:'Proba/duzy-test-'+i+'.txt'
-                  }));
-                  await dodajPlikiZFileList(mock, true);
-                  const box=document.getElementById('operationProgress');
-                  const close=document.getElementById('soraImportClose');
-                  const toDatabase=document.getElementById('soraImportDatabase');
-                  const shown=!!box && !box.hidden && !!close && !close.hidden &&
-                    !!toDatabase && !toDatabase.hidden;
-                  if(close) close.click();
-                  return JSON.stringify({shown, closed:!!box?.hidden});
-                })()
+                  try {
+                    const mock = Array.from({length:22}, (_, i) => ({
+                      name:'duzy-test-'+i+'.txt', size:1900*1024,
+                      webkitRelativePath:'Proba/duzy-test-'+i+'.txt'
+                    }));
+                    await dodajPlikiZFileList(mock, true);
+                    const box=document.getElementById('operationProgress');
+                    const close=document.getElementById('soraImportClose');
+                    const toDatabase=document.getElementById('soraImportDatabase');
+                    const shown=!!box && !box.hidden && !!close && !close.hidden &&
+                      !!toDatabase && !toDatabase.hidden;
+                    if(close) close.click();
+                    window.__soraRecoveryProbe = {done:true,shown,closed:!!box?.hidden};
+                  } catch(e) {
+                    window.__soraRecoveryProbe = {done:true,shown:false,error:String(e)};
+                  }
+                })();
                 """);
-            var recoveryJson = JsonSerializer.Deserialize<string>(recoveryJs) ?? "{}";
-            using (var checkedRecovery=JsonDocument.Parse(recoveryJson))
-                if (!checkedRecovery.RootElement.GetProperty("shown").GetBoolean() ||
+            var recoveryPassed = false;
+            for(int attempt=0; attempt<40; attempt++)
+            {
+                await Task.Delay(150);
+                var response = await _browser.ExecuteScriptAsync(
+                    "JSON.stringify(window.__soraRecoveryProbe || {})");
+                var recoveryJson = JsonSerializer.Deserialize<string>(response) ?? "{}";
+                using var checkedRecovery=JsonDocument.Parse(recoveryJson);
+                if (!checkedRecovery.RootElement.TryGetProperty("done", out var done) ||
+                    done.ValueKind != JsonValueKind.True) continue;
+                if (!checkedRecovery.RootElement.TryGetProperty("shown", out var shown) ||
+                    shown.ValueKind != JsonValueKind.True ||
                     !checkedRecovery.RootElement.GetProperty("closed").GetBoolean())
-                    throw new InvalidOperationException("Komunikat 40 MB nie ma działającego Zamknij.");
+                    throw new InvalidOperationException(
+                        "Komunikat 40 MB nie ma działającego Zamknij: " + recoveryJson);
+                recoveryPassed=true;
+                break;
+            }
+            if (!recoveryPassed) throw new TimeoutException("Test zamykania komunikatu 40 MB nie zakończył się.");
             string screenshot = Path.Combine(_home, "PODGLAD_PRAWDZIWEGO_OKNA.png");
             await using (var stream = File.Create(screenshot))
                 await _browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
