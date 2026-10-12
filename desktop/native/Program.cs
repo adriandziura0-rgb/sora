@@ -1,0 +1,403 @@
+using System.Diagnostics;
+using System.Drawing;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using Microsoft.Web.WebView2.Core;
+using Microsoft.Web.WebView2.WinForms;
+using System.Windows.Forms;
+
+namespace Sora.Native;
+
+internal static class Program
+{
+    [STAThread]
+    private static void Main(string[] args)
+    {
+        ApplicationConfiguration.Initialize();
+        Application.Run(new SoraWindow(args));
+    }
+}
+
+internal sealed class SoraWindow : Form
+{
+    private readonly WebView2 _browser = new() { Dock = DockStyle.Fill, Visible = false };
+    private readonly Label _notice = new() {
+        Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleCenter,
+        Text = "Uruchamianie Sory z telefonu…", Font = new Font("Segoe UI", 12f)
+    };
+    private readonly Dictionary<string, string> _folders = new(StringComparer.Ordinal);
+    private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(4) };
+    private readonly string _home;
+    private readonly bool _testUi;
+    private Process? _engineProcess;
+    private string _url = "";
+    private string _secret = "";
+    private int _port;
+    private bool _tested;
+
+    private static readonly string BridgeScript = """
+(() => {
+    const pending = new Map();
+    let next = 0;
+    window.pywebview = {
+        api: new Proxy({}, {
+            get(_target, method) {
+                return (...args) => new Promise((resolve, reject) => {
+                    const id = String(++next);
+                    pending.set(id, {resolve, reject});
+                    window.chrome.webview.postMessage({id, method: String(method), args});
+                });
+            }
+        })
+    };
+    window.chrome.webview.addEventListener('message', event => {
+        const message = event.data || {};
+        const promise = pending.get(String(message.id));
+        if (!promise) return;
+        pending.delete(String(message.id));
+        if (message.ok) promise.resolve(message.result);
+        else promise.reject(new Error(message.error || 'Błąd Windows'));
+    });
+    window.dispatchEvent(new Event('pywebviewready'));
+})();
+""";
+
+    public SoraWindow(string[] args)
+    {
+        Text = "Drogowskazy Sora — interfejs PHONE na Windows";
+        StartPosition = FormStartPosition.CenterScreen;
+        ClientSize = new Size(640, 820);
+        MinimumSize = new Size(430, 560);
+        Controls.Add(_notice);
+        Controls.Add(_browser);
+        _testUi = args.Contains("--test-ui");
+        int homeIndex = Array.IndexOf(args, "--data-dir");
+        _home = homeIndex >= 0 && homeIndex + 1 < args.Length
+            ? Path.GetFullPath(args[homeIndex + 1])
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DrogowskazySoraPC");
+        Directory.CreateDirectory(_home);
+        Shown += async (_, _) => await StartAsync();
+        FormClosing += (_, _) => StopBackend();
+    }
+
+    private async Task StartAsync()
+    {
+        try
+        {
+            await StartBackendAsync();
+            _notice.Text = "Ładowanie oryginalnego panelu PHONE…";
+            var webRoot = Path.Combine(_home, "webview-native");
+            Directory.CreateDirectory(webRoot);
+            var environment = await CoreWebView2Environment.CreateAsync(null, webRoot);
+            await _browser.EnsureCoreWebView2Async(environment);
+            _browser.CoreWebView2.Settings.AreDevToolsEnabled = false;
+            _browser.CoreWebView2.Settings.AreHostObjectsAllowed = false;
+            _browser.CoreWebView2.Settings.IsWebMessageEnabled = true;
+            _browser.CoreWebView2.WebMessageReceived += ReceivedMessage;
+            _browser.CoreWebView2.NavigationStarting += (_, e) =>
+            {
+                if (!IsLocalUrl(e.Uri)) e.Cancel = true;
+            };
+            _browser.CoreWebView2.NewWindowRequested += (_, e) =>
+            {
+                e.Handled = true;
+                if (Uri.TryCreate(e.Uri, UriKind.Absolute, out var uri) &&
+                    uri.Scheme is "https" or "http")
+                    try { Process.Start(new ProcessStartInfo(uri.ToString()) { UseShellExecute = true }); }
+                    catch { /* Zewnętrzny link nie jest wymagany do analizy. */ }
+            };
+            var appFolder = AppContext.BaseDirectory;
+            string adapter = await File.ReadAllTextAsync(Path.Combine(appFolder, "windows_adapter.js"), Encoding.UTF8);
+            await _browser.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(BridgeScript);
+            await _browser.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(adapter);
+            _browser.NavigationCompleted += NavigationFinished;
+            _browser.Visible = true;
+            _notice.Visible = false;
+            _browser.Source = new Uri(_url);
+        }
+        catch (Exception ex)
+        {
+            Fail(ex);
+        }
+    }
+
+    private async Task StartBackendAsync()
+    {
+        var exe = Path.Combine(AppContext.BaseDirectory, "_engine", "SoraSilnik", "SoraSilnik.exe");
+        if (!File.Exists(exe)) throw new FileNotFoundException("Brak spakowanego silnika Sory z telefonu.", exe);
+        var start = new ProcessStartInfo(exe) {
+            UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true,
+            RedirectStandardError = true, RedirectStandardInput = true,
+            WorkingDirectory = Path.GetDirectoryName(exe)!
+        };
+        start.ArgumentList.Add("--data-dir");
+        start.ArgumentList.Add(_home);
+        _engineProcess = Process.Start(start) ?? throw new InvalidOperationException("Nie udało się uruchomić silnika.");
+        // Stderr drenujemy na bieżąco; brak buforowania może zablokować backend.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                var errors = await _engineProcess.StandardError.ReadToEndAsync();
+                if (!string.IsNullOrWhiteSpace(errors))
+                    await File.WriteAllTextAsync(Path.Combine(_home, "diagnostyka_silnika.txt"), errors);
+            }
+            catch { }
+        });
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+        while (!timeout.IsCancellationRequested)
+        {
+            var line = await _engineProcess.StandardOutput.ReadLineAsync(timeout.Token);
+            if (line is null) break;
+            if (!line.StartsWith("SORA_READY:", StringComparison.Ordinal)) continue;
+            using var doc = JsonDocument.Parse(line["SORA_READY:".Length..]);
+            var info = doc.RootElement;
+            _url = info.GetProperty("url").GetString()!;
+            _port = info.GetProperty("port").GetInt32();
+            _secret = info.GetProperty("session").GetString()!;
+            if (!IsLocalUrl(_url) || _secret.Length < 30) throw new InvalidOperationException("Nieprawidłowa odpowiedź silnika.");
+            return;
+        }
+        throw new InvalidOperationException("Silnik Sory nie zgłosił gotowości w 90 sekund.");
+    }
+
+    private bool IsLocalUrl(string? url)
+    {
+        return Uri.TryCreate(url, UriKind.Absolute, out var uri) &&
+               uri.Scheme == Uri.UriSchemeHttp && uri.Host == "127.0.0.1" &&
+               uri.Port == _port;
+    }
+
+    private async void NavigationFinished(object? sender, CoreWebView2NavigationCompletedEventArgs e)
+    {
+        if (!e.IsSuccess) { Fail(new InvalidOperationException("WebView2 nie wczytał panelu PHONE: " + e.WebErrorStatus)); return; }
+        if (!_testUi || _tested || _browser.Source.Query.Length > 0) return;
+        _tested = true;
+        try
+        {
+            // Test realnego okna: WebView2 musi wykonać JS i odnaleźć ekrany PHONE.
+            await Task.Delay(1000);
+            var js = await _browser.ExecuteScriptAsync("""
+                JSON.stringify({
+                  baza: !!document.getElementById('databasePanel'),
+                  porownania: !!document.getElementById('databaseComparePanel'),
+                  tematy: !!document.getElementById('sameStoryComparePanel'),
+                  wspolne: !!document.getElementById('sharedContentPanel'),
+                  przycisk: !!document.getElementById('findSharedContentBtn'),
+                  bridge: !!window.pywebview?.api?.select_folder,
+                  native: document.body.dataset.soraDesktopWindow === 'true'
+                })
+                """);
+            var inner = JsonSerializer.Deserialize<string>(js) ?? throw new Exception("Brak JSON z WebView2.");
+            using var check = JsonDocument.Parse(inner);
+            foreach (var property in check.RootElement.EnumerateObject())
+                if (property.Value.ValueKind != JsonValueKind.True)
+                    throw new InvalidOperationException("Panel PHONE nie działa w WebView2: " + property.Name);
+            string screenshot = Path.Combine(_home, "PODGLAD_PRAWDZIWEGO_OKNA.png");
+            await using (var stream = File.Create(screenshot))
+                await _browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
+            if (new FileInfo(screenshot).Length < 1000) throw new Exception("Pusty zrzut okna WebView2.");
+            await File.WriteAllTextAsync(Path.Combine(_home, "OK_PRAWDZIWE_OKNO.json"),
+                JsonSerializer.Serialize(new { window = "WebView2 native", phone = true, dataPreserved = true, controls = inner },
+                    new JsonSerializerOptions { WriteIndented = true }));
+            Environment.ExitCode = 0;
+        }
+        catch (Exception ex) { Fail(ex); return; }
+        Close();
+    }
+
+    private void ReceivedMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
+    {
+        if (!IsLocalUrl(e.Source)) return;
+        _ = ProcessMessageAsync(e.WebMessageAsJson);
+    }
+
+    private async Task ProcessMessageAsync(string raw)
+    {
+        string id = "";
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            var data = doc.RootElement;
+            id = data.GetProperty("id").GetString() ?? "";
+            var method = data.GetProperty("method").GetString() ?? "";
+            var args = data.GetProperty("args");
+            object? result = method switch
+            {
+                "select_folder" => SelectFolder(),
+                "list_directory" => ListDirectory(Arg(args, 0), Arg(args, 1),
+                                    ArgInt(args, 2, 0), ArgInt(args, 3, 300)),
+                "read_file" => ReadFile(Arg(args, 0), Arg(args, 1)),
+                "backup_database" => await TransferAsync("backup"),
+                "restore_database" => await TransferAsync("restore"),
+                "export_transfer" => await TransferAsync("export"),
+                "import_transfer" => await TransferAsync("import"),
+                _ => throw new InvalidOperationException("Nieznana funkcja panelu PC.")
+            };
+            Reply(new { id, ok = true, result });
+        }
+        catch (Exception ex)
+        {
+            Reply(new { id, ok = false, error = ex.Message });
+        }
+    }
+
+    private void Reply(object message)
+    {
+        if (IsDisposed || _browser.CoreWebView2 is null) return;
+        _browser.CoreWebView2.PostWebMessageAsJson(JsonSerializer.Serialize(message));
+    }
+
+    private static string Arg(JsonElement a, int n) =>
+        a.ValueKind == JsonValueKind.Array && a.GetArrayLength() > n ? a[n].ToString() : "";
+
+    private static int ArgInt(JsonElement a, int n, int otherwise) =>
+        int.TryParse(Arg(a, n), out var value) ? value : otherwise;
+
+    private object? SelectFolder()
+    {
+        using var dialog = new FolderBrowserDialog { Description = "Wybierz folder artykułów Sory" };
+        if (dialog.ShowDialog(this) != DialogResult.OK) return null;
+        var folder = Path.GetFullPath(dialog.SelectedPath);
+        if (!Directory.Exists(folder)) throw new DirectoryNotFoundException(folder);
+        var token = Guid.NewGuid().ToString("N");
+        _folders[token] = folder;
+        return new { root = token, name = Path.GetFileName(folder.TrimEnd('\\', '/')),
+                     path = "", kind = "directory" };
+    }
+
+    private string Resolve(string token, string relative)
+    {
+        if (!_folders.TryGetValue(token, out var basePath)) throw new InvalidOperationException("Wybierz ponownie folder.");
+        if (Path.IsPathRooted(relative)) throw new UnauthorizedAccessException("Ścieżka spoza folderu.");
+        var full = Path.GetFullPath(Path.Combine(basePath, relative.Replace('/', Path.DirectorySeparatorChar)));
+        var allowed = Path.GetFullPath(basePath).TrimEnd('\\') + Path.DirectorySeparatorChar;
+        if (!full.StartsWith(allowed, StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(full, basePath, StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Plik znajduje się poza wybranym folderem.");
+        // Nie pozwalamy wejść przez dowiązania (reparse point) do innego katalogu.
+        var current = basePath;
+        var tail = Path.GetRelativePath(basePath, full);
+        foreach (var part in tail.Split(Path.DirectorySeparatorChar, StringSplitOptions.RemoveEmptyEntries))
+        {
+            if (part == ".") continue;
+            current = Path.Combine(current, part);
+            if (File.GetAttributes(current).HasFlag(FileAttributes.ReparsePoint))
+                throw new UnauthorizedAccessException("Dowiązanie katalogu jest niedozwolone.");
+        }
+        return full;
+    }
+
+    private object ListDirectory(string token, string relative, int offset, int limit)
+    {
+        var directory = Resolve(token, relative);
+        if (!Directory.Exists(directory)) throw new DirectoryNotFoundException(directory);
+        offset = Math.Max(0, offset);
+        limit = Math.Clamp(limit, 1, 500);
+        var files = Directory.EnumerateFileSystemEntries(directory).Where(path =>
+        {
+            try
+            {
+                var attributes = File.GetAttributes(path);
+                return !attributes.HasFlag(FileAttributes.ReparsePoint) &&
+                       !Path.GetFileName(path).StartsWith(".") &&
+                       (attributes.HasFlag(FileAttributes.Directory) ||
+                        new[] { ".txt", ".md", ".markdown", ".csv", ".json", ".log", ".htm", ".html" }
+                            .Contains(Path.GetExtension(path).ToLowerInvariant()));
+            }
+            catch { return false; }
+        }).OrderBy(path => Directory.Exists(path) ? 0 : 1)
+          .ThenBy(path => Path.GetFileName(path), StringComparer.OrdinalIgnoreCase).ToArray();
+        var page = files.Skip(offset).Take(limit).Select(path => new
+        {
+            root = token,
+            name = Path.GetFileName(path),
+            kind = Directory.Exists(path) ? "directory" : "file",
+            path = Path.GetRelativePath(_folders[token], path).Replace('\\', '/'),
+            size = Directory.Exists(path) ? 0L : new FileInfo(path).Length
+        }).ToArray();
+        return new { items = page, has_more = offset + page.Length < files.Length };
+    }
+
+    private object ReadFile(string token, string relative)
+    {
+        var path = Resolve(token, relative);
+        if (!File.Exists(path)) throw new FileNotFoundException("Brak dokumentu.", path);
+        if (new FileInfo(path).Length > 2 * 1024 * 1024)
+            throw new InvalidOperationException("Plik jest większy niż 2 MB.");
+        return new { base64 = Convert.ToBase64String(File.ReadAllBytes(path)) };
+    }
+
+    private async Task<object?> TransferAsync(string method)
+    {
+        string? file = null;
+        if (method is "backup" or "export")
+        {
+            using var dialog = new SaveFileDialog {
+                Filter = method == "backup" ? "Baza SQLite (*.sqlite3)|*.sqlite3" : "TRANSFER (*.zip)|*.zip",
+                FileName = method == "backup" ? "Sora_kopia.sqlite3" : "Sora_TRANSFER_PC.zip"
+            };
+            if (dialog.ShowDialog(this) == DialogResult.OK) file = dialog.FileName;
+        }
+        else
+        {
+            using var dialog = new OpenFileDialog {
+                Filter = method == "restore" ? "Baza SQLite (*.sqlite3)|*.sqlite3" : "TRANSFER (*.zip)|*.zip",
+                CheckFileExists = true
+            };
+            if (dialog.ShowDialog(this) == DialogResult.OK) file = dialog.FileName;
+            if (file is not null && MessageBox.Show(this,
+                method == "restore"
+                  ? "Baza PC zostanie zastąpiona po wykonaniu kopii. Kontynuować?"
+                  : "Pakiet TRANSFER zostanie zweryfikowany i scalony. Kontynuować?",
+                "Potwierdzenie Sora", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
+                file = null;
+        }
+        if (file is null) return new { cancelled = true };
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"http://127.0.0.1:{_port}/api/sora-pc/{method}");
+        request.Headers.Add("Cookie", "sora_native_session=" + _secret);
+        request.Headers.Add("Origin", $"http://127.0.0.1:{_port}");
+        request.Content = JsonContent.Create(new { path = file });
+        using var response = await _http.SendAsync(request);
+        var payload = await response.Content.ReadAsStringAsync();
+        using var data = JsonDocument.Parse(payload);
+        if (!response.IsSuccessStatusCode || !data.RootElement.GetProperty("ok").GetBoolean())
+            throw new InvalidOperationException(data.RootElement.TryGetProperty("szczegoly", out var err) ?
+                err.GetString() : "Błąd transferu lub kopii bazy.");
+        return new {
+            message = data.RootElement.GetProperty("message").GetString(),
+            reload = data.RootElement.GetProperty("reload").GetBoolean()
+        };
+    }
+
+    private void Fail(Exception ex)
+    {
+        var path = Path.Combine(_home, "blad_okna_webview2.txt");
+        try { File.WriteAllText(path, ex.ToString(), Encoding.UTF8); } catch { }
+        if (!_testUi)
+            MessageBox.Show(this, ex.Message + "\n\nSzczegóły: " + path +
+                "\nWymagany Microsoft Edge WebView2 Runtime.", "Sora — błąd uruchomienia",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        Environment.ExitCode = 1;
+        Close();
+    }
+
+    private void StopBackend()
+    {
+        if (_engineProcess is null) return;
+        try
+        {
+            if (!_engineProcess.HasExited)
+            {
+                _engineProcess.StandardInput.WriteLine("STOP");
+                _engineProcess.StandardInput.Flush();
+                if (!_engineProcess.WaitForExit(3500)) _engineProcess.Kill(entireProcessTree: true);
+            }
+        }
+        catch { }
+        finally { _engineProcess.Dispose(); _engineProcess = null; }
+    }
+}
