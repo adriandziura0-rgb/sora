@@ -331,10 +331,19 @@ def main():
                       private_mode=False, storage_path=str(home / "webview"))
     except Exception as exc:
         (home / "blad_startu.txt").write_text(traceback.format_exc(), encoding="utf-8")
+        # Tkinter nie jest częścią aplikacji Windows. Import choćby
+        # awaryjnego tkinter.messagebox dodawał do EXE uruchamiany przed
+        # main() hook PyInstaller pyi_rth__tkinter i powodował błąd _tk_data.
+        # Używamy natywnego okna systemowego Windows bez plików Tcl/Tk.
         try:
-            import tkinter.messagebox as messagebox
-            messagebox.showerror("Sora — Windows", str(exc) +
-                "\n\nWymagany jest Microsoft Edge WebView2 Runtime. Baza nie została skasowana.")
+            from ctypes import windll
+            windll.user32.MessageBoxW(
+                None,
+                str(exc) + "\n\nSprawdź Microsoft Edge WebView2 Runtime. "
+                "Baza danych nie została skasowana.\nSzczegóły: " + str(home / "blad_startu.txt"),
+                "Sora — błąd uruchomienia",
+                0x10,
+            )
         except Exception:
             pass
         raise
