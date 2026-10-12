@@ -55,6 +55,7 @@ jobs:
           python tools/test_full_database_overview.py
           python tools/test_shared_content.py
           node tools/test_view_persistence.mjs
+          node tools/test_import_recovery.mjs
 
       - name: Install Android SDK packages
         shell: bash
