@@ -1,4 +1,4 @@
-name: Build Sora Windows native EXE
+name: Build Sora Windows PHONE UI EXE
 on:
   workflow_dispatch:
   push:
@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Dependencies
-        run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0
+        run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0 pywebview==6.2.1
       - name: Optimize shared PHONE and PC analysis engine
         run: python tools/patch_engine_runtime.py
       - name: Enable full database analytics in shared PC and PHONE engine
@@ -45,6 +45,8 @@ jobs:
         run: node tools/test_view_persistence.mjs
       - name: Verify optimized matcher and GOLD quality
         run: python tools/test_topic_matcher_cache.py
+      - name: Verify identical PHONE UI and safe Windows file bridge
+        run: python desktop/test_phone_ui.py
       - name: Verify identical PHONE and PC engine and results
         run: python desktop/test_engine.py
       - name: Verify transfer merge and safety
@@ -63,15 +65,19 @@ jobs:
           $process = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--smoke-test', '--data-dir', $testData) -PassThru
           if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Native EXE restart timed out' }
           if ($process.ExitCode -ne 0) { throw 'Native EXE restart failed' }
+          $result = Get-Content (Join-Path $testData 'smoke-ok.json') | ConvertFrom-Json
+          if (-not $result.native_window -or -not $result.phone_ui_embedded -or -not $result.same_phone_html_css_js -or -not $result.native_windows_folder_bridge -or -not $result.shared_content_panel) {
+            throw 'EXE did not display the full phone UI in the native Edge WebView2 window'
+          }
           Copy-Item (Join-Path $testData 'smoke-ok.json') '.\dist\Sora\TEST_OK.json'
           Copy-Item (Join-Path $testData 'SORA_WYNIK.png') '.\dist\Sora\PODGLAD.png'
-      - name: Package Windows version
+      - name: Package Windows PHONE UI
         shell: pwsh
-        run: Compress-Archive -Path dist\Sora -DestinationPath Drogowskazy_Sora_PC_NATIVE_WINDOWS.zip
+        run: Compress-Archive -Path dist\Sora -DestinationPath Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: Sora-PC-NATIVE-WINDOWS
-          path: Drogowskazy_Sora_PC_NATIVE_WINDOWS.zip
+          name: Sora-PC-PHONE-UI-WINDOWS
+          path: Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
           if-no-files-found: error
           retention-days: 30
 
