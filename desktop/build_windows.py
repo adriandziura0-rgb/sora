@@ -33,12 +33,22 @@ subprocess.run([sys.executable,'-c',script,str(extracted),json.dumps(cases),str(
 # To samo HTML/CSS/JS co w Androidzie; Windows używa lokalnej kontrolki
 # Edge WebView2, a nie osobnego interfejsu Tkinter ani karty przeglądarki.
 subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--windowed',
-    '--name','Sora','--paths',str(root/'app/src/main/python'),'--paths',str(extracted),
+    '--name','Sora',
+    # Tworzymy aplikację wyłącznie z WebView2. Nawet opcjonalna zależność Tk
+    # nie może wyzwolić pyi_rth__tkinter wymagającego katalogu _tk_data.
+    '--exclude-module','tkinter','--exclude-module','_tkinter',
+    '--paths',str(root/'app/src/main/python'),'--paths',str(extracted),
     '--paths',str(root/'desktop'),'--collect-submodules','clean_core',
     '--collect-all','webview','--collect-all','flask','--collect-all','reportlab',
     '--collect-all','PIL','--add-data',str(asset)+';.',
     '--add-data',str(root/'desktop/windows_adapter.js')+';.',
     '--add-data',str(reference)+';.',str(root/'desktop/sora_pc_webview.py')],check=True,cwd=root)
+# Przed publikacją odrzuć paczkę zawierającą problematyczny
+# automatyczny hook Tcl/Tk. Kontrola działa bez uruchamiania GUI.
+for toc in (root/'build/Sora').glob('*.toc'):
+    info = toc.read_text(encoding='utf-8', errors='replace')
+    if 'pyi_rth__tkinter' in info:
+        raise RuntimeError('Błąd wydania: niepotrzebny hook pyi_rth__tkinter w EXE: '+str(toc))
 output=root/'dist/Sora'
 (output/'SILNIK_PHONE_PC.json').write_text(json.dumps(identity,indent=2),encoding='utf-8')
 (output/'INSTRUKCJA.txt').write_text((root/'desktop/README.md').read_text('utf-8'),encoding='utf-8')
