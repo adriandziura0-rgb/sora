@@ -236,6 +236,13 @@ try{
  await waitJs(()=>document.getElementById('soraFullOverview').hidden);
  await click('#compareDatabaseBtn');
  await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-compare-mobile-cards .sora-comparison-source-card').length>=2);
+ // Wspólne treści są niezależne od listy tematów i uruchamiają się TYLKO po kliknięciu.
+ await page.locator('#sharedContentPanel').evaluate(el=>el.open=true);
+ assert.equal(await page.locator('#sharedContentStatus').textContent(),
+   'Czekam na Twój wybór. Nie przeszukuję bazy automatycznie.');
+ await click('#findSharedContentBtn');
+ await waitJs(()=>document.getElementById('sharedContentStatus').textContent.includes('Przejrzano'));
+ assert.equal(await page.locator('#findSharedContentBtn').isDisabled(),false);
  const cardStats=await page.evaluate(()=>({
    cards:[...document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
    mainCards:[...document.querySelectorAll('#databaseComparisonResult .database-compare-section:first-of-type .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
