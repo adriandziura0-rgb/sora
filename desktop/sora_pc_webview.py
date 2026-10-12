@@ -293,6 +293,12 @@ def _check_renderer(home: Path):
     import os
     import faulthandler
     os.environ["QT_API"] = "pyqt6"
+    # Windows bez sprzętowego GPU/aktywnego pulpitu: QtWebEngine może
+    # wywrócić się przy ładowaniu HTML. Renderer software bez zmiany CORE.
+    os.environ.setdefault("QSG_RHI_PREFER_SOFTWARE_RENDERER", "1")
+    os.environ.setdefault("QT_OPENGL", "software")
+    os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",
+                          "--disable-gpu --disable-gpu-compositing")
     progress = home / "qt-initialization-stages.log"
     def step(value):
         with progress.open("a", encoding="utf-8") as stream:
@@ -387,6 +393,12 @@ def main():
         # QtWebEngine wyświetla DOKŁADNIE ten sam panel Chrome/Android,
         # ale nie używa niestabilnego łańcucha pythonnet / .NET Framework.
         os.environ["QT_API"] = "pyqt6"
+    # Windows bez sprzętowego GPU/aktywnego pulpitu: QtWebEngine może
+    # wywrócić się przy ładowaniu HTML. Renderer software bez zmiany CORE.
+    os.environ.setdefault("QSG_RHI_PREFER_SOFTWARE_RENDERER", "1")
+    os.environ.setdefault("QT_OPENGL", "software")
+    os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS",
+                          "--disable-gpu --disable-gpu-compositing")
         webview.start(gui="qt", debug=False,
                       private_mode=False, storage_path=str(home / "webview"))
     except Exception as exc:
