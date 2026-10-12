@@ -23,7 +23,7 @@ const actions={
  }
 };
 const window={pywebview:{api:actions},addEventListener(){}};
-const document={readyState:'complete',getElementById(){return null;}};
+const document={readyState:'complete',body:{dataset:{}},getElementById(){return null;}};
 class MockFile{
  constructor(parts,name){this.name=name;this.contents=Buffer.from(parts[0]).toString('utf8');this.size=parts[0].length;}
 }
