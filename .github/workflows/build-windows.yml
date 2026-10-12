@@ -45,6 +45,10 @@ jobs:
         run: node tools/test_view_persistence.mjs
       - name: Verify optimized matcher and GOLD quality
         run: python tools/test_topic_matcher_cache.py
+      - name: Verify no unauthenticated access to local data
+        run: python desktop/test_local_session.py
+      - name: Verify native Windows folder picker for more than 1500 files
+        run: node desktop/test_windows_adapter.mjs
       - name: Verify identical PHONE UI and safe Windows file bridge
         run: python desktop/test_phone_ui.py
       - name: Verify identical PHONE and PC engine and results
@@ -66,7 +70,7 @@ jobs:
           if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Native EXE restart timed out' }
           if ($process.ExitCode -ne 0) { throw 'Native EXE restart failed' }
           $result = Get-Content (Join-Path $testData 'smoke-ok.json') | ConvertFrom-Json
-          if (-not $result.exe_starts -or -not $result.phone_html_in_exe -or -not $result.native_windows_file_bridge_present -or -not $result.backend_http_healthy -or -not $result.full_gui_test_pending) {
+          if (-not $result.exe_starts -or -not $result.phone_html_in_exe -or -not $result.native_windows_file_bridge_present -or -not $result.backend_http_healthy -or -not $result.local_api_requires_secret_cookie -or -not $result.full_gui_test_pending) {
             throw 'The packaged executable cannot serve the exact phone UI and native file bridge'
           }
           Copy-Item (Join-Path $testData 'smoke-ok.json') '.\dist\Sora\TEST_OK.json'
