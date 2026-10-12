@@ -14,7 +14,9 @@ _LOCK = RLock()
 _GENERATION = None
 _TOPICS = None
 _COMPARISONS = {}
+_OVERVIEWS = {}
 _MAX_COMPARISONS = 12
+_MAX_OVERVIEWS = 8
 
 
 def _generation(database):
@@ -39,6 +41,7 @@ def _check_generation(generation):
         _GENERATION = generation
         _TOPICS = None
         _COMPARISONS.clear()
+        _OVERVIEWS.clear()
 
 
 def cached_topics(database, discover):
@@ -66,3 +69,25 @@ def cached_comparison(database, build, *, topic_id, mode, groups, group_a, group
                 del _COMPARISONS[next(iter(_COMPARISONS))]
             _COMPARISONS[key] = cached
         return deepcopy(cached)
+
+
+def cached_selected_overview(database, build, *, mode, groups):
+    """Return the same read-only report while the database is unchanged.
+
+    The cache is invalidated on any completed-analysis update, not on a timer.
+    It never stores editable database objects, and is limited to eight scopes.
+    """
+    names = [str(name).strip() for name in groups]
+    key = (str(mode or "").strip().casefold(), tuple(names))
+    with _LOCK:
+        _check_generation(_generation(database))
+        result = _OVERVIEWS.get(key)
+        if result is None:
+            result = build(
+                database.iter_completed_results(include_text=True, article_only=True),
+                mode=mode, groups=names,
+            )
+            if len(_OVERVIEWS) >= _MAX_OVERVIEWS:
+                del _OVERVIEWS[next(iter(_OVERVIEWS))]
+            _OVERVIEWS[key] = result
+        return deepcopy(result)
