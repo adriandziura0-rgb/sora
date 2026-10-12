@@ -30,7 +30,14 @@ def runtime_identity(root):
                      if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc')
     digest = hashlib.sha256()
     for name in sorted(names):
-        digest.update(name.encode()); digest.update(b'\0'); digest.update((root / name).read_bytes()); digest.update(b'\0')
+        payload = (root / name).read_bytes()
+        # Git pod Windows potrafi zmienić LF na CRLF. Normalizacja
+        # dotyczy wyłącznie tożsamości wersji silnika, NIE danych użytkownika.
+        # Dzięki temu aktualny PHONE 1.2.12 i identyczny kod na PC mają
+        # wspólny, weryfikowany identyfikator TRANSFER.
+        if name.endswith(('.py', '.js', '.html', '.css', '.json', '.md', '.txt')):
+            payload = payload.replace(b'\r\n', b'\n')
+        digest.update(name.encode()); digest.update(b'\0'); digest.update(payload); digest.update(b'\0')
     version = None
     for node in ast.parse((root / 'clean_core/version.py').read_text('utf-8')).body:
         if isinstance(node, ast.Assign) and any(isinstance(n, ast.Name) and n.id == 'APP_VERSION' for n in node.targets):
