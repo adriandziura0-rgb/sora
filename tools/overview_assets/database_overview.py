@@ -11,7 +11,7 @@ from heapq import heappush, heapreplace
 from typing import Any, Iterable
 
 from .document_kind import is_article_document
-from .editorial_compare import _GroupAccumulator, comparison_group, VALID_MODES, MAX_COMPARE_GROUPS
+from .editorial_compare import (_GroupAccumulator, comparison_group, _publisher_from_structured_text, VALID_MODES, MAX_COMPARE_GROUPS)
 
 OVERVIEW_SCHEMA = "sora_selected_database_overview_v1"
 
@@ -44,6 +44,8 @@ def build_selected_database_overview(
     all_articles = _GroupAccumulator("Zaznaczone artykuły")
     by_publisher: dict[str, _GroupAccumulator] = {}
     recent_heap: list[tuple[tuple[str, int], dict[str, Any]]] = []
+    source_evidence = Counter()
+    source_by_publisher: dict[str, Counter] = {}
 
     for document, result in rows:
         if not isinstance(document, dict) or not isinstance(result, dict):
@@ -60,6 +62,15 @@ def build_selected_database_overview(
         if group.casefold() not in wanted:
             continue
         publisher = comparison_group(document, result, "publisher") or "(nieustalona redakcja)"
+        # Pole document_source w starszych wynikach może wskazywać agencję,
+        # autora lub medium PRZYWOŁANE, nie wydawcę artykułu.
+        # Potwierdzenie pochodzi wyłącznie z jawnego nagłówka/URL dokumentu.
+        declared = _publisher_from_structured_text(document)
+        source_status = ("potwierdzone" if declared else
+                         "nieustalone" if publisher == "(nieustalona redakcja)"
+                         else "tylko metadane lub folder")
+        source_evidence[source_status] += 1
+        source_by_publisher.setdefault(publisher, Counter())[source_status] += 1
         if publisher not in by_publisher:
             by_publisher[publisher] = _GroupAccumulator(publisher)
         all_articles.add(document, result)
@@ -69,6 +80,7 @@ def build_selected_database_overview(
             "name": str(document.get("filename") or ""),
             "path": str(document.get("relative_path") or ""),
             "publisher": publisher,
+            "publisher_evidence": source_status,
             "analyzed_at": str(document.get("analyzed_at") or ""),
         }
         recent_key = (recent_document["analyzed_at"], document_id)
@@ -88,6 +100,13 @@ def build_selected_database_overview(
     notes = ["Raport dotyczy wyłącznie ukończonych analiz w zaznaczonych grupach. Nie obejmuje całej bazy."]
     if len(groups) < 2:
         notes.append("Do porównania redakcji zaznacz co najmniej dwie. Analiza jednej grupy również jest dostępna.")
+    if source_evidence["tylko metadane lub folder"] or source_evidence["nieustalone"]:
+        notes.append(
+            "Źródło publikacji nie jest potwierdzone dla wszystkich artykułów. "
+            "Folder, nazwa serwisu w metadanych i źródło cytowane w tekście to różne informacje. "
+            "Nie przypisujemy automatycznie artykułów do TVP, TVN24 ani innych redakcji "
+            "wyłącznie na podstawie dowolnej nazwy folderu."
+        )
     if groups and min(g["documents"] for g in groups) < 5:
         notes.append("Niektóre redakcje mają mniej niż 5 artykułów. Różnice wskaźników są bardzo niestabilne.")
     if groups and max(g["documents"] for g in groups) >= 4 * max(1, min(g["documents"] for g in groups)):
@@ -111,6 +130,21 @@ def build_selected_database_overview(
         "publisher_count": len(groups),
         "summary": all_articles.summary(),
         "sources": groups,
+        "source_audit": {
+            "scope": "tylko zaznaczone ukończone artykuły",
+            "confirmed": source_evidence["potwierdzone"],
+            "indirect": source_evidence["tylko metadane lub folder"],
+            "unknown": source_evidence["nieustalone"],
+            "per_publisher": [
+                {"publisher": name, "confirmed": counter["potwierdzone"],
+                 "indirect": counter["tylko metadane lub folder"],
+                 "unknown": counter["nieustalone"]}
+                for name, counter in sorted(source_by_publisher.items())
+            ],
+            "method": "Potwierdzone: jawny źródłowy nagłówek artykułu lub URL; "
+                      "pośrednie: tylko wcześniejsze metadane lub rozpoznana ścieżka. "
+                      "Nie zmienia dawnych analiz ani nie dopisuje źródła w SQLite.",
+        },
         "rankings": {
             "speakers": _ranking(all_articles.speakers),
             "targets": _ranking(all_articles.targets),
