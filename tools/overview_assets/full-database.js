@@ -265,6 +265,7 @@
   function render() {
     if (!report) return;
     const stats = report.stats || {}, summary = report.summary || {}, sources = report.sources || [];
+    const provenance = report.source_audit || {};
     const ready = Number(report.analyzed_articles||0);
     const opts = metricTypes.map(([key,label])=>
       '<option value="' + esc(key) + '"' + (metric===key?' selected':'') + '>' + esc(label) + '</option>'
@@ -277,6 +278,14 @@
       card('Relacje wypowiedzi',int(summary.relations),'Suma relacji z dokumentów') +
       card('Wybrane grupy',int(report.selected_groups?.length),'Od 1 do 10 wskazanych folderów lub redakcji') +
       '</div>' +
+      '<section class="sora-overview-section"><h3>Kontrola przypisania redakcji</h3>' +
+      '<p class="sora-overview-muted">Źródło publikacji nie jest tym samym co źródło cytatu. Nazwa folderu nie potwierdza wydawcy.</p>' +
+      '<div class="sora-overview-facts">' +
+      '<div><strong>' + int(provenance.confirmed) + '</strong><span>Źródło z nagłówka lub URL</span></div>' +
+      '<div><strong>' + int(provenance.indirect) + '</strong><span>Źródło tylko pośrednie</span></div>' +
+      '<div><strong>' + int(provenance.unknown) + '</strong><span>Redakcja nieustalona</span></div>' +
+      '</div>' +
+      '<p class="sora-overview-muted">Żadna z tych kategorii nie zmienia danych w bazie. Weryfikuj artykuły przed wnioskowaniem o różnicach między redakcjami.</p></section>' +
       (ready === 0 ? '<p class="sora-overview-empty">Zaznaczone grupy nie mają jeszcze ukończonych analiz artykułów. Po ich zapisaniu wyniki pojawią się tutaj automatycznie po odświeżeniu.</p>' : '') +
       '<div class="sora-overview-columns"><section class="sora-overview-section"><h3>Wybrane materiały — pokrycie P1–P5</h3>' +
       layerRows(report) +
@@ -303,7 +312,7 @@
       (report.recent_documents || []).map(d =>
         '<button type="button" class="sora-overview-document" data-sora-overview-document="' + esc(d.id) + '">' +
         '<strong>' + esc(d.path || d.name || 'Dokument #' + d.id) + '</strong><span>' +
-        esc(d.publisher) + '</span></button>'
+        esc(d.publisher) + ' · ' + esc(d.publisher_evidence || 'źródło niezweryfikowane') + '</span></button>'
       ).join('') +
       (ready===0 ? '<p class="sora-overview-muted">Brak ukończonych dokumentów.</p>' : '') +
       '</div></section>' +
