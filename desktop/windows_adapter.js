@@ -25,8 +25,16 @@
       return {
         name: item.name, kind: 'directory',
         async *entries() {
-          const entries = await api.list_directory(item.root, item.path);
-          for (const child of entries) yield [child.name, handle(child)];
+          // Bez ukrytego limitu 1500 pozycji. Paginacja obsługuje także
+          // duże foldery wybrane przez użytkownika.
+          let offset = 0;
+          while (true) {
+            const page = await api.list_directory(item.root, item.path, offset, 300);
+            for (const child of page.items) yield [child.name, handle(child)];
+            offset += page.items.length;
+            if (!page.has_more) break;
+            if (!page.items.length) throw new Error('Brak postępu odczytu folderu.');
+          }
         }
       };
     }
