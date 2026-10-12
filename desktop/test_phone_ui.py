@@ -54,10 +54,22 @@ def check():
             token = uuid.uuid4().hex
             files.roots[token] = root.resolve()
             items = files.list_directory(token,"")
-            names = {item["name"] for item in items}
-            assert names == {"plik.txt", "podfolder"}, names
+            names = {item["name"] for item in items["items"]}
+            assert names == {"plik.txt", "podfolder"} and not items["has_more"], names
             sub = files.list_directory(token, "podfolder")
-            assert len(sub)==1 and sub[0]["name"]=="fragment.md"
+            assert len(sub["items"]) == 1 and sub["items"][0]["name"] == "fragment.md"
+            # Pierwsze 1500 plików nie może ograniczać całego folderu.
+            for i in range(1510):
+                (root / f"praca{i:04}.txt").write_text("test", encoding="utf-8")
+            offset = 0
+            retrieved = []
+            while True:
+                page = files.list_directory(token, "", offset, 300)
+                retrieved.extend(item["name"] for item in page["items"])
+                offset += len(page["items"])
+                if not page["has_more"]: break
+            assert len(retrieved) == 1512, len(retrieved)
+            assert len(set(retrieved)) == 1512, "Pliki zdublowane między stronami"
             import base64
             assert base64.b64decode(files.read_file(token,"plik.txt")["base64"]).decode("utf-8")=="Materiał testowy"
             for attack in ("../plik.txt", str(home / "application.lock")):
@@ -68,6 +80,10 @@ def check():
                     pass
 
             assert isinstance(LOCAL_PORT,int) and LOCAL_PORT>1024
+            from local_session import ProtectedLocalApp
+            guarded = ProtectedLocalApp(engine.module.app)
+            assert guarded.secret and "sora_launch=" in guarded.bootstrap_url(LOCAL_PORT)
+            assert len(guarded.secret) >= 32
             print("PASS: PHONE HTML/CSS/JS on PC, shared content, comparison, database, "
                   "scoped native folder API, transfer controls, stable persistent origin")
         finally:
