@@ -14,6 +14,8 @@ with tempfile.TemporaryDirectory(prefix="sora-full-db-", ignore_cleanup_errors=T
         assert "clean_core/database_overview.py" in archive.namelist()
         assert "static/full-database.js" in archive.namelist()
         assert "static/full-database.css" in archive.namelist()
+        assert "static/import-recovery.js" in archive.namelist()
+        assert b"import-recovery.js" in archive.read("templates/index.html")
         assert b"webkitdirectory" in archive.read("templates/index.html"), "Plikowy wybór folderu musi pozostać"
         archive.extractall(tmp)
     os.environ["DROGOWSKAZY_DB_PATH"] = str(Path(tmp) / "isolated-test.sqlite3")
