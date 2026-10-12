@@ -284,13 +284,54 @@ def _smoke_headless(engine: Engine, home: Path, server, guard: ProtectedLocalApp
         raise
 
 
+def _check_renderer(home: Path):
+    """Testuje PRAWDZIWY pakowany silnik okna (QtWebEngine), nie tylko Flask.
+
+    Nie otwiera bazy ani nie modyfikuje żadnych danych użytkownika.
+    Test uruchamiany przez CI z EXE rozpakowanego do czystego folderu.
+    """
+    import os
+    os.environ["QT_API"] = "pyqt6"
+    from PyQt6.QtWidgets import QApplication
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
+    import webview.platforms.qt as qt_backend
+    from PyQt6.QtCore import QT_VERSION_STR, PYQT_VERSION_STR
+    app = QApplication.instance() or QApplication([])
+    view = QWebEngineView()
+    view.resize(420, 620)
+    view.setHtml("<!doctype html><html><body>Sora PHONE / PC</body></html>")
+    app.processEvents()
+    result = {
+        "renderer": "QtWebEngine",
+        "qt_version": QT_VERSION_STR,
+        "pyqt_version": PYQT_VERSION_STR,
+        "webview_qt_loaded": bool(qt_backend),
+        "webengine_instance_created": bool(view),
+        "no_pythonnet_required": True,
+    }
+    (home / "renderer-ok.json").write_text(
+        json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
+    view.deleteLater()
+    app.processEvents()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--smoke-test", action="store_true")
+    parser.add_argument("--renderer-test", action="store_true")
     parser.add_argument("--data-dir")
     opts = parser.parse_args()
     home = Path(opts.data_dir) if opts.data_dir else default_home()
     home.mkdir(parents=True, exist_ok=True)
+    # CI i użytkownik mogą sprawdzić silnik GUI niezależnie od kolektora.
+    if opts.renderer_test:
+        try:
+            _check_renderer(home)
+        except BaseException:
+            (home / "renderer-error.txt").write_text(
+                traceback.format_exc(), encoding="utf-8")
+            raise
+        return
     lock = None
     server = None
     engine = None
@@ -327,7 +368,10 @@ def main():
         bridge.attach(window)
         script = _native_script()
         window.events.loaded += lambda: window.evaluate_js(script)
-        webview.start(gui="edgechromium", debug=False,
+        # QtWebEngine wyświetla DOKŁADNIE ten sam panel Chrome/Android,
+        # ale nie używa niestabilnego łańcucha pythonnet / .NET Framework.
+        os.environ["QT_API"] = "pyqt6"
+        webview.start(gui="qt", debug=False,
                       private_mode=False, storage_path=str(home / "webview"))
     except Exception as exc:
         (home / "blad_startu.txt").write_text(traceback.format_exc(), encoding="utf-8")
@@ -339,7 +383,7 @@ def main():
             from ctypes import windll
             windll.user32.MessageBoxW(
                 None,
-                str(exc) + "\n\nSprawdź Microsoft Edge WebView2 Runtime. "
+                str(exc) + "\n\nBłąd silnika okna QtWebEngine. "
                 "Baza danych nie została skasowana.\nSzczegóły: " + str(home / "blad_startu.txt"),
                 "Sora — błąd uruchomienia",
                 0x10,
