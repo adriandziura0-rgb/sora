@@ -13,6 +13,9 @@ def step(value):
         file.write(value+'\n')
         file.flush()
 os.environ['QT_API']='pyqt6'
+os.environ.setdefault('QSG_RHI_PREFER_SOFTWARE_RENDERER','1')
+os.environ.setdefault('QT_OPENGL','software')
+os.environ.setdefault('QTWEBENGINE_CHROMIUM_FLAGS','--disable-gpu --disable-gpu-compositing')
 step('START Python '+sys.version)
 from PyQt6.QtWidgets import QApplication
 step('IMPORTED QApplication')
