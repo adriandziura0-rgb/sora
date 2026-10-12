@@ -53,7 +53,7 @@ jobs:
         run: python tools/test_transfer.py
       - name: Build Windows application
         run: python desktop/build_windows.py
-      - name: Verify installed native window and engine
+      - name: Verify executable, PHONE HTML/CSS/JS and native file bridge
         shell: pwsh
         run: |
           $testData = Join-Path $env:RUNNER_TEMP 'sora-exe-smoke'
@@ -66,11 +66,11 @@ jobs:
           if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Native EXE restart timed out' }
           if ($process.ExitCode -ne 0) { throw 'Native EXE restart failed' }
           $result = Get-Content (Join-Path $testData 'smoke-ok.json') | ConvertFrom-Json
-          if (-not $result.native_window -or -not $result.phone_ui_embedded -or -not $result.same_phone_html_css_js -or -not $result.native_windows_folder_bridge -or -not $result.shared_content_panel) {
-            throw 'EXE did not display the full phone UI in the native Edge WebView2 window'
+          if (-not $result.exe_starts -or -not $result.phone_html_in_exe -or -not $result.native_windows_file_bridge_present -or -not $result.backend_http_healthy -or -not $result.full_gui_test_pending) {
+            throw 'The packaged executable cannot serve the exact phone UI and native file bridge'
           }
           Copy-Item (Join-Path $testData 'smoke-ok.json') '.\dist\Sora\TEST_OK.json'
-          Copy-Item (Join-Path $testData 'SORA_WYNIK.png') '.\dist\Sora\PODGLAD.png'
+          'Test z rzeczywistym WebView2 GUI wymaga interaktywnego pulpitu Windows.' | Set-Content -Path '.\dist\Sora\TEST_GUI_WYMAGANY.txt' -Encoding utf8
       - name: Package Windows PHONE UI
         shell: pwsh
         run: Compress-Archive -Path dist\Sora -DestinationPath Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
