@@ -291,16 +291,32 @@ def _check_renderer(home: Path):
     Test uruchamiany przez CI z EXE rozpakowanego do czystego folderu.
     """
     import os
+    import faulthandler
     os.environ["QT_API"] = "pyqt6"
+    progress = home / "qt-initialization-stages.log"
+    def step(value):
+        with progress.open("a", encoding="utf-8") as stream:
+            stream.write(value + "\n")
+            stream.flush()
+    error_file = (home / "qt-python-fault.txt").open("w", encoding="utf-8")
+    faulthandler.enable(file=error_file, all_threads=True)
+    step("START EXE QT RENDERER")
     from PyQt6.QtWidgets import QApplication
+    step("IMPORTED QWidget QApplication")
     from PyQt6.QtWebEngineWidgets import QWebEngineView
+    step("IMPORTED QWebEngineView")
     import webview.platforms.qt as qt_backend
+    step("IMPORTED pywebview Qt backend")
     from PyQt6.QtCore import QT_VERSION_STR, PYQT_VERSION_STR
     app = QApplication.instance() or QApplication([])
+    step("CREATED QApplication")
     view = QWebEngineView()
+    step("CREATED QWebEngineView")
     view.resize(420, 620)
     view.setHtml("<!doctype html><html><body>Sora PHONE / PC</body></html>")
+    step("SUBMITTED WebEngine HTML")
     app.processEvents()
+    step("PROCESSED Qt EVENTS")
     result = {
         "renderer": "QtWebEngine",
         "qt_version": QT_VERSION_STR,
