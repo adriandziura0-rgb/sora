@@ -46,6 +46,11 @@ Analizy porównawcze tylko czytają zapisane wyniki, bez ich przeliczania.
 W paczce:
   Sora.exe — prawdziwa aplikacja Windows z oknem WebView2
   _internal/ — wymagane biblioteki; nie usuwaj
-  TEST_OK.json — wynik testów pełnego panelu i zgodności silnika
-  PODGLAD.png — rzeczywisty zrzut natywnego okna w teście Windows
+  TEST_OK.json — test zasobów panelu, silnika, API i natywnego adaptera
+  TEST_GUI_WYMAGANY.txt — przypomnienie o teście na interaktywnym Windows
+
+UWAGA: GitHub Actions bez interaktywnego pulpitu nie potwierdza wyglądu
+ani działania kontrolek WebView2. Po instalacji otwórz Sora.exe i sprawdź
+wybór folderu, analizę jednego artykułu, porównania i TRANSFER ZIP.
+Pobranie i skompilowanie EXE nie jest jeszcze pełnym testem interfejsu.
   SILNIK_PHONE_PC.json — zgodność silnika
