@@ -17,8 +17,8 @@ from .document_kind import is_article_document
 _WORDS = re.compile(r"(?u)[^\W_]+")
 _SENTENCES = re.compile(r"(?<=[.!?])\s+|\n{2,}")
 _STOP = set("oraz jednak przez poniewaz zatem ktore ktora ktory ktorych kiedy gdzie tego tej tego jako jest byly jestesmy maja maja sie nie to ta ten tych dla nad pod bez ale lub oraz czyli nawet jeszcze mozna bardzo bylo tylko jest".split())
-_LIMIT_DOCS = 1200
-_LIMIT_WORDS = 1500
+_LIMIT_DOCS = 900
+_LIMIT_WORDS = 1000
 _MAX_RESULTS = 20
 
 
@@ -144,7 +144,10 @@ def compare_shared_content(rows, *, mode, groups):
 
     # Indeks sześciowyrazowych odcinków. Zbyt częste odcinki (stopki,
     # formuły redakcyjne) ignorujemy, aby nie scalać różnych wiadomości.
-    postings = defaultdict(set)
+    # Hasze pełnych sześcioelementowych odcinków zmniejszają pamięć
+    # względem przechowywania kilkuset tysięcy krotek napisów.
+    # Pozycje o dużej częstotliwości oznaczamy jako szum redakcyjny.
+    postings = {}
     for index, doc in enumerate(docs):
         words = doc["tokens"]
         seen = set()
@@ -152,16 +155,24 @@ def compare_shared_content(rows, *, mode, groups):
             window = words[i:i+6]
             if len(_important(window)) < 2:
                 continue
-            key = tuple(window)
+            key = hash(tuple(window))
             if key in seen:
                 continue
             seen.add(key)
-            postings[key].add(index)
+            entries = postings.get(key)
+            if entries is None and key in postings:
+                continue
+            if entries is None:
+                postings[key] = [index]
+            elif len(entries) >= 10:
+                postings[key] = None
+            else:
+                entries.append(index)
     pairs = Counter()
     for participants in postings.values():
-        if len(participants) < 2 or len(participants) > 10:
+        if not participants or len(participants) < 2:
             continue
-        for left, right in combinations(sorted(participants), 2):
+        for left, right in combinations(participants, 2):
             if docs[left]["group"].casefold() != docs[right]["group"].casefold():
                 pairs[(left, right)] += 1
 
@@ -214,7 +225,8 @@ def compare_shared_content(rows, *, mode, groups):
         "ok": True, "read_only": True, "schema": "sora_shared_content_v1",
         "mode": mode, "selected_groups": unique,
         "selected_articles": count_selected, "examined_articles": len(docs),
-        "excluded_after_limit": overflow, "matches": matched,
+        "excluded_after_limit": overflow, "compared_words_per_article": _LIMIT_WORDS,
+        "matches": matched,
         "description": "Dosłowne powtarzające się fragmenty i tekstowe podobieństwo tytułów. "
                        "Różnice są fragmentami bez znalezionego zbliżonego odpowiednika "
                        "słownego, nie dowodem pominięcia, plagiatu ani manipulacji.",
