@@ -6,7 +6,7 @@ import {runInNewContext} from 'node:vm';
 const code=readFileSync(new URL('./overview_assets/import-recovery.js',import.meta.url),'utf8');
 const controls=new Map();
 function element(id){
-  const e={id,hidden:true,open:false,textContent:'',value:'',classList:{
+  const e={id,hidden:true,open:false,textContent:'',value:'',style:{cssText:''},classList:{
     data:new Set(),add(x){this.data.add(x);},remove(x){this.data.delete(x);},
     contains(x){return this.data.has(x);}
   },events:{},addEventListener(name,fn){this.events[name]=fn;},
