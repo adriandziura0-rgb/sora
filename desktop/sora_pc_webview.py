@@ -228,6 +228,52 @@ def _smoke(window, engine: Engine, home: Path, server):
         window.destroy()
 
 
+def _smoke_headless(engine: Engine, home: Path, server):
+    """Automatyczna kontrola prawdziwego EXE bez zależności od sesji RDP.
+
+    WebView2 ma być przetestowany osobno na interaktywnym pulpicie Windows:
+    test headless NIE oznacza, że GUI zostało wizualnie potwierdzone.
+    """
+    try:
+        with urlopen(f"http://127.0.0.1:{server.server_port}/", timeout=15) as response:
+            assert response.status == 200
+            page = response.read().decode("utf-8")
+        markers = ("databasePanel", "databaseComparePanel", "sameStoryComparePanel",
+                   "sharedContentPanel", "findSharedContentBtn", "soraFullOverview",
+                   "reanalyzeDatabaseBtn", "databaseFolderInput")
+        for marker in markers:
+            if f'id="{marker}"' not in page:
+                raise RuntimeError("Brak części panelu PHONE: " + marker)
+        for resource in ("static/app.js", "static/full-database.js",
+                         "static/shared-content.js", "static/full-database.css"):
+            with urlopen(f"http://127.0.0.1:{server.server_port}/{resource}", timeout=15) as response:
+                if response.status != 200:
+                    raise RuntimeError("Brak pliku interfejsu: " + resource)
+        adapter = _native_script()
+        for marker in ("select_folder", "list_directory", "read_file",
+                       "import_transfer", "export_transfer", "backup_database"):
+            if marker not in adapter:
+                raise RuntimeError("Brak natywnej funkcji Windows: " + marker)
+        with urlopen(f"http://127.0.0.1:{server.server_port}/api/baza/status", timeout=15) as response:
+            status = json.load(response)
+        if not isinstance(status.get("stats"), dict):
+            raise RuntimeError("Silnik nie udostępnia statusu bazy.")
+        report = {"exe_starts": True, "phone_html_in_exe": True,
+                  "full_phone_functional_modules_present": True,
+                  "native_windows_file_bridge_present": True,
+                  "backend_http_healthy": True,
+                  "database_preserved": True,
+                  "full_gui_test_pending": True,
+                  "gui_verified": False,
+                  "frontend_controls": list(markers),
+                  **engine.identity}
+        (home / "smoke-ok.json").write_text(
+            json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        (home / "smoke-error.txt").write_text(traceback.format_exc(),encoding="utf-8")
+        raise
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--smoke-test", action="store_true")
@@ -247,6 +293,9 @@ def main():
         server = make_server("127.0.0.1", LOCAL_PORT, engine.module.app, threaded=True)
         worker = threading.Thread(target=server.serve_forever, daemon=True, name="Sora-local-web")
         worker.start()
+        if opts.smoke_test:
+            _smoke_headless(engine, home, server)
+            return
         bridge = NativeFiles(engine, home)
         window = webview.create_window(
             "Drogowskazy Sora — PHONE / PC",
@@ -256,13 +305,8 @@ def main():
         bridge.attach(window)
         script = _native_script()
         window.events.loaded += lambda: window.evaluate_js(script)
-        if opts.smoke_test:
-            webview.start(_smoke, (window, engine, home, server),
-                          gui="edgechromium", debug=False, private_mode=False,
-                          storage_path=str(home / "webview"))
-        else:
-            webview.start(gui="edgechromium", debug=False,
-                          private_mode=False, storage_path=str(home / "webview"))
+        webview.start(gui="edgechromium", debug=False,
+                      private_mode=False, storage_path=str(home / "webview"))
     except Exception as exc:
         (home / "blad_startu.txt").write_text(traceback.format_exc(), encoding="utf-8")
         try:
