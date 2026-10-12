@@ -187,7 +187,8 @@ internal sealed class SoraWindow : Form
                   wspolne: !!document.getElementById('sharedContentPanel'),
                   przycisk: !!document.getElementById('findSharedContentBtn'),
                   bridge: !!window.pywebview?.api?.select_folder,
-                  native: document.body.dataset.soraDesktopWindow === 'true'
+                  native: document.body.dataset.soraDesktopWindow === 'true',
+                  recovery: !!document.getElementById('soraImportClose')
                 })
                 """);
             var inner = JsonSerializer.Deserialize<string>(js) ?? throw new Exception("Brak JSON z WebView2.");
@@ -252,6 +253,29 @@ internal sealed class SoraWindow : Form
                         "Prywatna baza PC jest dostępna bez sesji WebView2.");
             }
 
+            // Regresja użytkownika: 40 MB nie może zablokować panelu ani
+            // wywołać żądania analizy większego niż 2 MB.
+            var recoveryJs = await _browser.ExecuteScriptAsync("""
+                (async () => {
+                  const mock = Array.from({length:22}, (_, i) => ({
+                    name:'duzy-test-'+i+'.txt', size:1900*1024,
+                    webkitRelativePath:'Proba/duzy-test-'+i+'.txt'
+                  }));
+                  await dodajPlikiZFileList(mock, true);
+                  const box=document.getElementById('operationProgress');
+                  const close=document.getElementById('soraImportClose');
+                  const toDatabase=document.getElementById('soraImportDatabase');
+                  const shown=!!box && !box.hidden && !!close && !close.hidden &&
+                    !!toDatabase && !toDatabase.hidden;
+                  if(close) close.click();
+                  return JSON.stringify({shown, closed:!!box?.hidden});
+                })()
+                """);
+            var recoveryJson = JsonSerializer.Deserialize<string>(recoveryJs) ?? "{}";
+            using (var checkedRecovery=JsonDocument.Parse(recoveryJson))
+                if (!checkedRecovery.RootElement.GetProperty("shown").GetBoolean() ||
+                    !checkedRecovery.RootElement.GetProperty("closed").GetBoolean())
+                    throw new InvalidOperationException("Komunikat 40 MB nie ma działającego Zamknij.");
             string screenshot = Path.Combine(_home, "PODGLAD_PRAWDZIWEGO_OKNA.png");
             await using (var stream = File.Create(screenshot))
                 await _browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
