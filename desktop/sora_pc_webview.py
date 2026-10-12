@@ -320,7 +320,9 @@ def main():
         window = webview.create_window(
             "Drogowskazy Sora — PHONE / PC",
             guard.bootstrap_url(server.server_port),
-            js_api=bridge, width=1180, height=865, min_size=(650, 550),
+            # Startujemy z wymiarami zbliżonymi do telefonu: zachowujemy
+            # mobilny układ kart, ale okno można rozszerzyć lub zmaksymalizować.
+            js_api=bridge, width=640, height=820, min_size=(420, 550),
             background_color="#f4f8fa", text_select=True)
         bridge.attach(window)
         script = _native_script()
