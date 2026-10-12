@@ -195,6 +195,63 @@ internal sealed class SoraWindow : Form
             foreach (var property in check.RootElement.EnumerateObject())
                 if (property.Value.ValueKind != JsonValueKind.True)
                     throw new InvalidOperationException("Panel PHONE nie działa w WebView2: " + property.Name);
+            // Test funkcjonalny prawdziwej przeglądarki, nie tylko obecności
+            // elementów HTML: odczyt statusu SQLite oraz wiadomości JS -> C# -> JS.
+            await _browser.ExecuteScriptAsync("""
+                window.__soraFunctionalProbe = {done:false};
+                (async () => {
+                    try {
+                        const response = await fetch('/api/baza/status');
+                        const data = await response.json();
+                        if (!response.ok || !data.stats)
+                            throw new Error('Nie działa API bazy.');
+                        let rejected = false;
+                        try {
+                            await window.pywebview.api.list_directory(
+                                'nieznany-token-testowy', '', 0, 1);
+                        } catch (e) {
+                            rejected = true;
+                        }
+                        window.__soraFunctionalProbe = {
+                            done:true, ok:rejected, api:response.status,
+                            hasStats:!!data.stats, bridgeErrorHandled:rejected
+                        };
+                    } catch (e) {
+                        window.__soraFunctionalProbe = {
+                            done:true, ok:false, error:String(e)
+                        };
+                    }
+                })();
+                """);
+            bool functional = false;
+            for (int attempt = 0; attempt < 55; attempt++)
+            {
+                await Task.Delay(180);
+                var json = await _browser.ExecuteScriptAsync(
+                    "JSON.stringify(window.__soraFunctionalProbe || {})");
+                var dataString = JsonSerializer.Deserialize<string>(json) ?? "{}";
+                using var probe = JsonDocument.Parse(dataString);
+                if (!probe.RootElement.TryGetProperty("done", out var done) ||
+                    done.ValueKind != JsonValueKind.True) continue;
+                if (!probe.RootElement.TryGetProperty("ok", out var ok) ||
+                    ok.ValueKind != JsonValueKind.True)
+                    throw new InvalidOperationException(
+                        "Test połączenia JavaScript–WebView2–SQLite: " + dataString);
+                functional = true;
+                break;
+            }
+            if (!functional)
+                throw new TimeoutException(
+                    "Panel PHONE nie otrzymał odpowiedzi z natywnego mostu Windows.");
+            // Próba odczytu API spoza okna, bez sesji, MUSI być odrzucona.
+            using (var unauthorized = await _http.GetAsync(
+                $"http://127.0.0.1:{_port}/api/baza/status"))
+            {
+                if ((int)unauthorized.StatusCode != 403)
+                    throw new InvalidOperationException(
+                        "Prywatna baza PC jest dostępna bez sesji WebView2.");
+            }
+
             string screenshot = Path.Combine(_home, "PODGLAD_PRAWDZIWEGO_OKNA.png");
             await using (var stream = File.Create(screenshot))
                 await _browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
