@@ -306,8 +306,13 @@
       ranking('O kim / o czym mówią',report.rankings?.targets) +
       ranking('Fakt, opinia, cytat',report.rankings?.claim_types) +
       ranking('Sygnały P0 — bez oceny intencji',report.rankings?.p0) +
+      ranking('Potwierdzone struktury P1',report.rankings?.p1) +
+      ranking('Techniki P2',report.rankings?.p2) +
       ranking('Ramy narracyjne P3',report.rankings?.p3) +
+      ranking('Strategie P4',report.rankings?.p4) +
+      ranking('Diagnozy P5',report.rankings?.p5) +
       '</div>' +
+      '<p class="sora-overview-muted">Brak elementów P2, P4 lub P5 oznacza brak potwierdzonych wyników w wybranych artykułach, a nie awarię silnika. P0 jest sygnałem, nie oceną intencji.</p>' +
       '<section class="sora-overview-section"><h3>Ostatnio przeanalizowane dokumenty</h3><div class="sora-overview-docs">' +
       (report.recent_documents || []).map(d =>
         '<button type="button" class="sora-overview-document" data-sora-overview-document="' + esc(d.id) + '">' +
