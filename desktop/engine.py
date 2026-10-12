@@ -31,7 +31,13 @@ def runtime_identity(asset=None):
         for name in sorted(archive.namelist()):
             if name == 'app.py' or name.startswith(('clean_core/', 'knowledge/', 'benchmark/')):
                 digest.update(name.encode()); digest.update(b'\0')
-                digest.update(archive.read(name)); digest.update(b'\0')
+                # ZIP zbudowany pod Windows mógł mieć CRLF zamiast LF.
+                # Normalizujemy WYŁĄCZNIE identyfikator — nie silnik i nie
+                # zapisane artykuły. Tę samą treść mają pliki w APK PHONE.
+                source = archive.read(name)
+                if name.endswith(('.py', '.js', '.html', '.css', '.json', '.md', '.txt')):
+                    source = source.replace(b'\r\n', b'\n')
+                digest.update(source); digest.update(b'\0')
         return {'engine_sha256': digest.hexdigest(),
                 'asset_sha256': hashlib.sha256(asset.read_bytes()).hexdigest(),
                 'database_schema': 3}
