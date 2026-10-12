@@ -32,7 +32,7 @@ jobs:
         with:
           python-version: '3.13'
       - name: Dependencies
-        run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0 pywebview==6.2.1
+        run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0 "pywebview[qt]==6.2.1"
       - name: Optimize shared PHONE and PC analysis engine
         run: python tools/patch_engine_runtime.py
       - name: Enable full database analytics in shared PC and PHONE engine
@@ -75,6 +75,24 @@ jobs:
           }
           Copy-Item (Join-Path $testData 'smoke-ok.json') '.\dist\Sora\TEST_OK.json'
           'Test z rzeczywistym WebView2 GUI wymaga interaktywnego pulpitu Windows.' | Set-Content -Path '.\dist\Sora\TEST_GUI_WYMAGANY.txt' -Encoding utf8
+      - name: Verify real QtWebEngine renderer in bundled EXE (no Python.NET)
+        shell: pwsh
+        run: |
+          $testData = Join-Path $env:RUNNER_TEMP 'sora-qt-exe-test'
+          $process = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--renderer-test', '--data-dir', $testData) -PassThru
+          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'GUI renderer initialization timed out' }
+          if ($process.ExitCode -ne 0) {
+            if (Test-Path (Join-Path $testData 'renderer-error.txt')) { Get-Content (Join-Path $testData 'renderer-error.txt') }
+            throw "GUI renderer failed: $($process.ExitCode)"
+          }
+          $result = Get-Content (Join-Path $testData 'renderer-ok.json') | ConvertFrom-Json
+          if ($result.renderer -ne 'QtWebEngine' -or -not $result.webengine_instance_created -or -not $result.no_pythonnet_required) {
+            throw 'Real Chromium/Qt native control was not initialized'
+          }
+          if (Test-Path '.\dist\Sora\_internal\pythonnet\runtime\Python.Runtime.dll') {
+            throw 'Python.NET still present in release'
+          }
+          Write-Host 'PASS: real native Chromium renderer instantiated; no Python.NET'
       - name: Package Windows PHONE UI
         shell: pwsh
         run: Compress-Archive -Path dist\Sora -DestinationPath Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
@@ -90,6 +108,17 @@ jobs:
           $process = Start-Process -FilePath $exe -ArgumentList @('--smoke-test', '--data-dir', $data) -Wait -PassThru
           if ($process.ExitCode -ne 0) { throw "Extracted Sora.exe failed: $($process.ExitCode)" }
           if (-not (Test-Path (Join-Path $data 'smoke-ok.json'))) { throw 'No smoke result from extracted ZIP' }
+          $qtData = Join-Path $env:RUNNER_TEMP 'sora-qt-extracted-test'
+          $process = Start-Process -FilePath $exe -ArgumentList @('--renderer-test', '--data-dir', $qtData) -PassThru
+          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Extracted Qt engine timed out' }
+          if ($process.ExitCode -ne 0) {
+            if (Test-Path (Join-Path $qtData 'renderer-error.txt')) { Get-Content (Join-Path $qtData 'renderer-error.txt') }
+            throw "Extracted QtWebEngine failed: $($process.ExitCode)"
+          }
+          $renderer = Get-Content (Join-Path $qtData 'renderer-ok.json') | ConvertFrom-Json
+          if ($renderer.renderer -ne 'QtWebEngine' -or -not $renderer.webengine_instance_created) {
+            throw 'Extracted ZIP cannot initialize real QtWebEngine control'
+          }
           if (Test-Path (Join-Path $data 'smoke-error.txt')) {
             Get-Content (Join-Path $data 'smoke-error.txt')
             throw 'Extracted executable reported smoke error'
@@ -98,10 +127,10 @@ jobs:
           if (-not $result.phone_html_in_exe -or -not $result.local_api_requires_secret_cookie) {
             throw 'Extracted ZIP is missing the current PHONE UI or security'
           }
-          Write-Host 'PASS: extracted distribution launches without Tkinter and serves original PHONE panel.'
+          Write-Host 'PASS: extracted distribution initializes real QtWebEngine without Python.NET and serves original PHONE panel.'
       - uses: actions/upload-artifact@v4
         with:
-          name: Sora-PC-PHONE-UI-WINDOWS
+          name: Sora-PC-PHONE-UI-NO-PYTHONNET
           path: Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
           if-no-files-found: error
           retention-days: 30
