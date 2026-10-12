@@ -78,6 +78,27 @@ jobs:
       - name: Package Windows PHONE UI
         shell: pwsh
         run: Compress-Archive -Path dist\Sora -DestinationPath Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
+      - name: Verify the actual downloaded-style ZIP starts without Tcl/Tk
+        shell: pwsh
+        run: |
+          $folder = Join-Path $env:RUNNER_TEMP 'sora-clean-extracted'
+          New-Item -ItemType Directory -Force -Path $folder | Out-Null
+          Expand-Archive -Path Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip -DestinationPath $folder -Force
+          $exe = Join-Path $folder 'Sora\Sora.exe'
+          if (-not (Test-Path $exe)) { throw 'Missing Sora.exe in published ZIP' }
+          $data = Join-Path $env:RUNNER_TEMP 'sora-clean-extracted-data'
+          $process = Start-Process -FilePath $exe -ArgumentList @('--smoke-test', '--data-dir', $data) -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw "Extracted Sora.exe failed: $($process.ExitCode)" }
+          if (-not (Test-Path (Join-Path $data 'smoke-ok.json'))) { throw 'No smoke result from extracted ZIP' }
+          if (Test-Path (Join-Path $data 'smoke-error.txt')) {
+            Get-Content (Join-Path $data 'smoke-error.txt')
+            throw 'Extracted executable reported smoke error'
+          }
+          $result = Get-Content (Join-Path $data 'smoke-ok.json') | ConvertFrom-Json
+          if (-not $result.phone_html_in_exe -or -not $result.local_api_requires_secret_cookie) {
+            throw 'Extracted ZIP is missing the current PHONE UI or security'
+          }
+          Write-Host 'PASS: extracted distribution launches without Tkinter and serves original PHONE panel.'
       - uses: actions/upload-artifact@v4
         with:
           name: Sora-PC-PHONE-UI-WINDOWS
