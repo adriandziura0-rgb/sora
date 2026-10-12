@@ -3,10 +3,10 @@ DROGOWSKAZY SORA — WINDOWS 10/11 (64-bit) · TEN SAM PANEL CO W APK
 JAK URUCHOMIĆ
 1. Rozpakuj cały ZIP, nie przenoś samego pliku EXE.
 2. Otwórz folder Sora, uruchom Sora.exe.
-3. Windows wyświetla oryginalny interfejs PHONE w natywnym oknie WebView2.
+3. Windows wyświetla oryginalny interfejs PHONE w natywnym oknie Chromium QtWebEngine.
    Nie jest to karta przeglądarki internetowej ani inna, uproszczona aplikacja.
-4. Wymagany jest zainstalowany Microsoft Edge WebView2 Runtime.
-   Jeśli pojawi się błąd, przeczytaj blad_startu.txt w katalogu danych.
+4. QtWebEngine jest dołączony do paczki. Nie wymaga pythonnet ani .NET Framework.
+   Jeśli pojawi się błąd, sprawdź blad_startu.txt w katalogu danych.
 
 ZGODNOŚĆ TELEFON ↔ WINDOWS
 • Te same pliki HTML/CSS/JS wbudowane w aplikację Android:
@@ -16,7 +16,7 @@ ZGODNOŚĆ TELEFON ↔ WINDOWS
 • Ten sam silnik Python ze wspólnego runtime ZIP — bez zmiany klasyfikatora.
 • Na PC dodatkowo natywne okna Windows do wskazania folderu, wykonania
   spójnej kopii SQLite, przywrócenia SQLite oraz TRANSFER ZIP.
-• Program otwiera własne okno Sora.exe, a lokalny serwer słucha wyłącznie
+• Program otwiera własne okno Sora.exe (QtWebEngine), a lokalny serwer słucha wyłącznie
   na 127.0.0.1:43847. Nie udostępnia panelu w internecie.
 • Dane PC: %LOCALAPPDATA%\DrogowskazySoraPC\data\drogowskazy.sqlite3.
   Aktualizacja EXE nie usuwa tych danych.
@@ -49,8 +49,9 @@ W paczce:
   TEST_OK.json — test zasobów panelu, silnika, API i natywnego adaptera
   TEST_GUI_WYMAGANY.txt — przypomnienie o teście na interaktywnym Windows
 
-UWAGA: GitHub Actions bez interaktywnego pulpitu nie potwierdza wyglądu
-ani działania kontrolek WebView2. Po instalacji otwórz Sora.exe i sprawdź
+UWAGA: GitHub Actions testuje uruchomienie rzeczywistej kontrolki
+QtWebEngine z paczki EXE po rozpakowaniu. Test bez interaktywnego pulpitu
+nie potwierdza jednak wszystkich przycisków. Po instalacji sprawdź
 wybór folderu, analizę jednego artykułu, porównania i TRANSFER ZIP.
 Pobranie i skompilowanie EXE nie jest jeszcze pełnym testem interfejsu.
   SILNIK_PHONE_PC.json — zgodność silnika
