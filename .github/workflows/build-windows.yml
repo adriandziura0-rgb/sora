@@ -1,4 +1,4 @@
-name: Build Sora Windows PHONE UI EXE
+name: Build Sora PC Native WebView2 PHONE
 on:
   workflow_dispatch:
   push:
@@ -6,151 +6,101 @@ on:
     paths:
       - 'desktop/**'
       - 'app/src/main/python/data_transfer.py'
-      - 'tools/test_transfer.py'
-      - 'tools/test_topic_matcher_cache.py'
-      - 'tools/overview_assets/topic_report_cache.py'
-      - 'tools/patch_engine_runtime.py'
-      - 'tools/overview_assets/**'
-      - 'tools/patch_full_database_dashboard.py'
-      - 'tools/test_full_database_overview.py'
-      - 'tools/test_shared_content.py'
-      - 'tools/test_view_persistence.mjs'
-      - 'app/src/main/assets/drogowskazy-runtime.zip'
+      - 'tools/**'
       - '.github/workflows/build-windows.yml'
 permissions:
   contents: read
 concurrency:
-  group: sora-windows-${{ github.ref }}
+  group: sora-windows-native-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   build:
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - name: Verify Windows Python sources compile before packaging
-        run: python -m py_compile desktop/sora_pc_webview.py desktop/engine.py desktop/local_session.py desktop/build_windows.py
-      - name: Dependencies
-        run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0 "pywebview[qt]==6.2.1"
-      - name: Diagnose native Qt without PyInstaller (audit only)
-        continue-on-error: true
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Test syntax and PHONE folder bridge
+        run: |
+          python -m py_compile desktop/sora_backend.py desktop/engine.py desktop/local_session.py desktop/build_native_windows.py
+          node desktop/test_windows_adapter.mjs
+      - name: Install only Python engine dependencies
+        run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0
+      - name: Prepare shared PHONE runtime
+        run: |
+          python tools/patch_engine_runtime.py
+          python tools/patch_full_database_dashboard.py
+      - name: Test original PHONE engine and SQLite safety
+        run: |
+          python tools/test_full_database_overview.py
+          python tools/test_shared_content.py
+          python tools/test_topic_matcher_cache.py
+          python desktop/test_engine.py
+          python tools/test_transfer.py
+      - name: Build native C# WebView2 and headless PHONE backend
+        run: python desktop/build_native_windows.py
+      - name: Check backend executable without GUI Python libraries
         shell: pwsh
         run: |
-          $env:SORA_QT_DIAGNOSTICS = Join-Path $env:RUNNER_TEMP 'sora-unfrozen-qt'
-          New-Item -ItemType Directory -Force -Path $env:SORA_QT_DIAGNOSTICS | Out-Null
-          python desktop/test_qt_unfrozen.py
-          if ($LASTEXITCODE -ne 0) { Write-Warning "Unfrozen Qt crashed: exit $LASTEXITCODE; check diagnostic artifact." }
-      - name: Optimize shared PHONE and PC analysis engine
-        run: python tools/patch_engine_runtime.py
-      - name: Enable full database analytics in shared PC and PHONE engine
-        run: python tools/patch_full_database_dashboard.py
-      - name: Verify whole-database analytics across 12 publishers
-        run: python tools/test_full_database_overview.py
-      - name: Verify shared content and differences across selected folders
-        run: python tools/test_shared_content.py
-      - name: Verify persistent selected dashboard after restart
-        run: node tools/test_view_persistence.mjs
-      - name: Verify optimized matcher and GOLD quality
-        run: python tools/test_topic_matcher_cache.py
-      - name: Verify no unauthenticated access to local data
-        run: python desktop/test_local_session.py
-      - name: Verify native Windows folder picker for more than 1500 files
-        run: node desktop/test_windows_adapter.mjs
-      - name: Verify identical PHONE UI and safe Windows file bridge
-        run: python desktop/test_phone_ui.py
-      - name: Verify identical PHONE and PC engine and results
-        run: python desktop/test_engine.py
-      - name: Verify transfer merge and safety
-        run: python tools/test_transfer.py
-      - name: Build Windows application
-        run: python desktop/build_windows.py
-      - name: Verify executable, PHONE HTML/CSS/JS and native file bridge
+          $data = Join-Path $env:RUNNER_TEMP 'sora-backend-selftest'
+          $exe = '.\dist\Sora\_engine\SoraSilnik\SoraSilnik.exe'
+          $p = Start-Process -FilePath $exe -ArgumentList @('--self-test', '--data-dir', $data) -PassThru
+          if (-not $p.WaitForExit(120000)) { $p.Kill(); throw 'Backend timed out' }
+          if ($p.ExitCode -ne 0) { throw "Backend failed: $($p.ExitCode)" }
+          if (Test-Path '.\dist\Sora\_engine\SoraSilnik\_internal\pythonnet') { throw 'Pythonnet was included' }
+          if (Test-Path '.\dist\Sora\_engine\SoraSilnik\_internal\PyQt6') { throw 'Qt was included' }
+      - name: Test REAL WinForms WebView2 window and PHONE UI
         shell: pwsh
         run: |
-          $testData = Join-Path $env:RUNNER_TEMP 'sora-exe-smoke'
-          $process = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--smoke-test', '--data-dir', $testData) -PassThru
-          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Native EXE test timed out' }
-          if ($process.ExitCode -ne 0) { throw "Native EXE returned $($process.ExitCode)" }
-          if (-not (Test-Path (Join-Path $testData 'smoke-ok.json'))) { throw 'Native analysis did not complete' }
-          $before = Get-FileHash (Join-Path $testData 'data\drogowskazy.sqlite3')
-          $process = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--smoke-test', '--data-dir', $testData) -PassThru
-          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Native EXE restart timed out' }
-          if ($process.ExitCode -ne 0) { throw 'Native EXE restart failed' }
-          $result = Get-Content (Join-Path $testData 'smoke-ok.json') | ConvertFrom-Json
-          if (-not $result.exe_starts -or -not $result.phone_html_in_exe -or -not $result.native_windows_file_bridge_present -or -not $result.backend_http_healthy -or -not $result.local_api_requires_secret_cookie -or -not $result.full_gui_test_pending) {
-            throw 'The packaged executable cannot serve the exact phone UI and native file bridge'
+          $data = Join-Path $env:RUNNER_TEMP 'sora-webview2-test'
+          $p = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--test-ui', '--data-dir', $data) -PassThru
+          if (-not $p.WaitForExit(150000)) { $p.Kill(); throw 'WebView2 timed out' }
+          if ($p.ExitCode -ne 0) {
+            if (Test-Path (Join-Path $data 'blad_okna_webview2.txt')) { Get-Content (Join-Path $data 'blad_okna_webview2.txt') }
+            if (Test-Path (Join-Path $data 'blad_silnika_pc.txt')) { Get-Content (Join-Path $data 'blad_silnika_pc.txt') }
+            throw "WebView2 failed: $($p.ExitCode)"
           }
-          Copy-Item (Join-Path $testData 'smoke-ok.json') '.\dist\Sora\TEST_OK.json'
-          'Test z rzeczywistym WebView2 GUI wymaga interaktywnego pulpitu Windows.' | Set-Content -Path '.\dist\Sora\TEST_GUI_WYMAGANY.txt' -Encoding utf8
-      - name: Verify real QtWebEngine renderer in bundled EXE (no Python.NET)
+          $report = Join-Path $data 'OK_PRAWDZIWE_OKNO.json'
+          $preview = Join-Path $data 'PODGLAD_PRAWDZIWEGO_OKNA.png'
+          if (-not (Test-Path $report) -or -not (Test-Path $preview)) { throw 'No real native GUI test result' }
+          $result = Get-Content $report -Raw | ConvertFrom-Json
+          if ($result.window -ne 'WebView2 native' -or -not $result.phone) { throw 'Wrong GUI' }
+          Copy-Item $report '.\dist\Sora\TEST_OK_PRAWDZIWE_OKNO.json'
+          Copy-Item $preview '.\dist\Sora\PODGLAD_PRAWDZIWEGO_OKNA.png'
+      - name: Pack native Sora
+        shell: pwsh
+        run: Compress-Archive -Path dist\Sora -DestinationPath Sora_PHONE_NATYWNA_WEBVIEW2_PC.zip
+      - name: Extract published ZIP and test the REAL window once again
         shell: pwsh
         run: |
-          $testData = Join-Path $env:RUNNER_TEMP 'sora-qt-exe-test'
-          $process = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--renderer-test', '--data-dir', $testData) -PassThru
-          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'GUI renderer initialization timed out' }
-          if ($process.ExitCode -ne 0) {
-            if (Test-Path (Join-Path $testData 'renderer-error.txt')) { Get-Content (Join-Path $testData 'renderer-error.txt') }
-            throw "GUI renderer failed: $($process.ExitCode)"
+          $dest = Join-Path $env:RUNNER_TEMP 'sora-clean-extract'
+          Expand-Archive -Path Sora_PHONE_NATYWNA_WEBVIEW2_PC.zip -DestinationPath $dest -Force
+          $exe = Join-Path $dest 'Sora\Sora.exe'
+          if (-not (Test-Path $exe)) { throw 'No Sora.exe in ZIP' }
+          $data = Join-Path $env:RUNNER_TEMP 'sora-extracted-ui-test'
+          $p = Start-Process -FilePath $exe -ArgumentList @('--test-ui', '--data-dir', $data) -PassThru
+          if (-not $p.WaitForExit(150000)) { $p.Kill(); throw 'Extracted UI timeout' }
+          if ($p.ExitCode -ne 0) {
+            if (Test-Path (Join-Path $data 'blad_okna_webview2.txt')) { Get-Content (Join-Path $data 'blad_okna_webview2.txt') }
+            throw "Extracted UI failed: $($p.ExitCode)"
           }
-          $result = Get-Content (Join-Path $testData 'renderer-ok.json') | ConvertFrom-Json
-          if ($result.renderer -ne 'QtWebEngine' -or -not $result.webengine_instance_created -or -not $result.no_pythonnet_required) {
-            throw 'Real Chromium/Qt native control was not initialized'
-          }
-          if (Test-Path '.\dist\Sora\_internal\pythonnet\runtime\Python.Runtime.dll') {
-            throw 'Python.NET still present in release'
-          }
-          Write-Host 'PASS: real native Chromium renderer instantiated; no Python.NET'
-      - name: Package Windows PHONE UI
-        shell: pwsh
-        run: Compress-Archive -Path dist\Sora -DestinationPath Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
-      - name: Verify the actual downloaded-style ZIP starts without Tcl/Tk
-        shell: pwsh
-        run: |
-          $folder = Join-Path $env:RUNNER_TEMP 'sora-clean-extracted'
-          New-Item -ItemType Directory -Force -Path $folder | Out-Null
-          Expand-Archive -Path Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip -DestinationPath $folder -Force
-          $exe = Join-Path $folder 'Sora\Sora.exe'
-          if (-not (Test-Path $exe)) { throw 'Missing Sora.exe in published ZIP' }
-          $data = Join-Path $env:RUNNER_TEMP 'sora-clean-extracted-data'
-          $process = Start-Process -FilePath $exe -ArgumentList @('--smoke-test', '--data-dir', $data) -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw "Extracted Sora.exe failed: $($process.ExitCode)" }
-          if (-not (Test-Path (Join-Path $data 'smoke-ok.json'))) { throw 'No smoke result from extracted ZIP' }
-          $qtData = Join-Path $env:RUNNER_TEMP 'sora-qt-extracted-test'
-          $process = Start-Process -FilePath $exe -ArgumentList @('--renderer-test', '--data-dir', $qtData) -PassThru
-          if (-not $process.WaitForExit(120000)) { $process.Kill(); throw 'Extracted Qt engine timed out' }
-          if ($process.ExitCode -ne 0) {
-            if (Test-Path (Join-Path $qtData 'renderer-error.txt')) { Get-Content (Join-Path $qtData 'renderer-error.txt') }
-            throw "Extracted QtWebEngine failed: $($process.ExitCode)"
-          }
-          $renderer = Get-Content (Join-Path $qtData 'renderer-ok.json') | ConvertFrom-Json
-          if ($renderer.renderer -ne 'QtWebEngine' -or -not $renderer.webengine_instance_created) {
-            throw 'Extracted ZIP cannot initialize real QtWebEngine control'
-          }
-          if (Test-Path (Join-Path $data 'smoke-error.txt')) {
-            Get-Content (Join-Path $data 'smoke-error.txt')
-            throw 'Extracted executable reported smoke error'
-          }
-          $result = Get-Content (Join-Path $data 'smoke-ok.json') | ConvertFrom-Json
-          if (-not $result.phone_html_in_exe -or -not $result.local_api_requires_secret_cookie) {
-            throw 'Extracted ZIP is missing the current PHONE UI or security'
-          }
-          Write-Host 'PASS: extracted distribution initializes real QtWebEngine without Python.NET and serves original PHONE panel.'
+          if (-not (Test-Path (Join-Path $data 'OK_PRAWDZIWE_OKNO.json'))) { throw 'No extracted UI pass' }
       - uses: actions/upload-artifact@v4
         with:
-          name: Sora-PC-PHONE-UI-NO-PYTHONNET
-          path: Drogowskazy_Sora_PC_PHONE_UI_WINDOWS.zip
+          name: Sora-WINDOWS-NATIVE-WEBVIEW2
+          path: Sora_PHONE_NATYWNA_WEBVIEW2_PC.zip
           if-no-files-found: error
           retention-days: 30
-
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: Sora-PC-test-diagnostics
+          name: Sora-WINDOWS-UI-ERRORS
           path: |
-            ${{ runner.temp }}/sora-exe-smoke/
-            ${{ runner.temp }}/sora-qt-exe-test/
-            ${{ runner.temp }}/sora-qt-extracted-test/
-            ${{ runner.temp }}/sora-unfrozen-qt/
+            ${{ runner.temp }}/sora-webview2-test/
+            ${{ runner.temp }}/sora-extracted-ui-test/
+            ${{ runner.temp }}/sora-backend-selftest/
