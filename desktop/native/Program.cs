@@ -53,7 +53,8 @@ internal sealed class SoraWindow : Form
     private readonly bool _testBackground;
     private readonly EventWaitHandle _activate;
     private readonly NotifyIcon _tray;
-    private readonly System.Windows.Forms.Timer _watchdog = new() { Interval = 8000 };
+    private readonly System.Windows.Forms.Timer _watchdog = new() { Interval = 1000 };
+    private DateTime _nextHealthCheck = DateTime.MinValue;
     private readonly HttpClient _healthHttp = new() { Timeout = TimeSpan.FromSeconds(4) };
     private readonly Label _connection = new() {
         Dock = DockStyle.Top, Height = 40, Visible = false, AutoEllipsis = true,
@@ -139,7 +140,10 @@ internal sealed class SoraWindow : Form
             StopBackend();
         };
         _watchdog.Tick += async (_, _) => {
+            // Przywrócenie po dwukliku Sora.exe następuje najpóźniej za sekundę.
             if (_activate.WaitOne(0)) RestoreWindow();
+            if (DateTime.UtcNow < _nextHealthCheck) return;
+            _nextHealthCheck = DateTime.UtcNow.AddSeconds(8);
             await CheckBackendAsync();
         };
         _watchdog.Start();
