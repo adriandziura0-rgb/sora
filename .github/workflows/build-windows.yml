@@ -59,7 +59,7 @@ jobs:
         shell: pwsh
         run: |
           $data = Join-Path $env:RUNNER_TEMP 'sora-webview2-test'
-          $p = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--test-ui', '--data-dir', $data) -PassThru
+          $p = Start-Process -FilePath '.\dist\Sora\Sora.exe' -ArgumentList @('--test-ui', '--test-background', '--data-dir', $data) -PassThru
           if (-not $p.WaitForExit(150000)) { $p.Kill(); throw 'WebView2 timed out' }
           if ($p.ExitCode -ne 0) {
             if (Test-Path (Join-Path $data 'blad_okna_webview2.txt')) { Get-Content (Join-Path $data 'blad_okna_webview2.txt') }
@@ -70,7 +70,10 @@ jobs:
           $preview = Join-Path $data 'PODGLAD_PRAWDZIWEGO_OKNA.png'
           if (-not (Test-Path $report) -or -not (Test-Path $preview)) { throw 'No real native GUI test result' }
           $result = Get-Content $report -Raw | ConvertFrom-Json
-          if ($result.window -ne 'WebView2 native' -or -not $result.phone) { throw 'Wrong GUI' }
+          if ($result.window -ne 'WebView2 native' -or -not $result.phone -or
+              -not $result.backgroundVerified -or -not $result.watchdogRestartVerified) {
+            throw 'GUI background or watchdog regression'
+          }
           Copy-Item $report '.\dist\Sora\TEST_OK_PRAWDZIWE_OKNO.json'
           Copy-Item $preview '.\dist\Sora\PODGLAD_PRAWDZIWEGO_OKNA.png'
       - name: Pack native Sora
@@ -84,13 +87,17 @@ jobs:
           $exe = Join-Path $dest 'Sora\Sora.exe'
           if (-not (Test-Path $exe)) { throw 'No Sora.exe in ZIP' }
           $data = Join-Path $env:RUNNER_TEMP 'sora-extracted-ui-test'
-          $p = Start-Process -FilePath $exe -ArgumentList @('--test-ui', '--data-dir', $data) -PassThru
+          $p = Start-Process -FilePath $exe -ArgumentList @('--test-ui', '--test-background', '--data-dir', $data) -PassThru
           if (-not $p.WaitForExit(150000)) { $p.Kill(); throw 'Extracted UI timeout' }
           if ($p.ExitCode -ne 0) {
             if (Test-Path (Join-Path $data 'blad_okna_webview2.txt')) { Get-Content (Join-Path $data 'blad_okna_webview2.txt') }
             throw "Extracted UI failed: $($p.ExitCode)"
           }
           if (-not (Test-Path (Join-Path $data 'OK_PRAWDZIWE_OKNO.json'))) { throw 'No extracted UI pass' }
+          $state = Get-Content (Join-Path $data 'OK_PRAWDZIWE_OKNO.json') -Raw | ConvertFrom-Json
+          if (-not $state.backgroundVerified -or -not $state.watchdogRestartVerified) {
+            throw 'Extracted Sora failed background/restart test'
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: Sora-WINDOWS-NATIVE-WEBVIEW2
