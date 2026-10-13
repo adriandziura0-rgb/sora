@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using System.Security.Cryptography;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using System.Windows.Forms;
@@ -16,7 +17,25 @@ internal static class Program
     private static void Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
-        Application.Run(new SoraWindow(args));
+        // Tylko jeden host dla danej bazy SQLite. Drugie uruchomienie
+        // odsłania istniejące okno z zasobnika, bez drugiego SoraSilnik.exe.
+        var homeIndex = Array.IndexOf(args, "--data-dir");
+        var home = homeIndex >= 0 && homeIndex + 1 < args.Length
+            ? Path.GetFullPath(args[homeIndex + 1])
+            : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "DrogowskazySoraPC");
+        var fingerprint = Convert.ToHexString(SHA256.HashData(
+            Encoding.UTF8.GetBytes(home.TrimEnd('\\', '/').ToUpperInvariant())))[..28];
+        using var single = new Mutex(true, "Local\\Sora_PC_" + fingerprint, out var created);
+        using var activate = new EventWaitHandle(false, EventResetMode.AutoReset,
+            "Local\\Sora_PC_Show_" + fingerprint);
+        if (!created)
+        {
+            activate.Set();
+            return;
+        }
+        try { Application.Run(new SoraWindow(args, activate)); }
+        finally { single.ReleaseMutex(); }
     }
 }
 
@@ -31,6 +50,22 @@ internal sealed class SoraWindow : Form
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(4) };
     private readonly string _home;
     private readonly bool _testUi;
+    private readonly EventWaitHandle _activate;
+    private readonly NotifyIcon _tray;
+    private readonly System.Windows.Forms.Timer _watchdog = new() { Interval = 8000 };
+    private readonly HttpClient _healthHttp = new() { Timeout = TimeSpan.FromSeconds(4) };
+    private readonly Label _connection = new() {
+        Dock = DockStyle.Top, Height = 40, Visible = false, AutoEllipsis = true,
+        BackColor = Color.FromArgb(255, 234, 204), ForeColor = Color.FromArgb(95, 53, 0),
+        TextAlign = ContentAlignment.MiddleCenter,
+        Text = "Brak połączenia z silnikiem. Sora próbuje je odzyskać…"
+    };
+    private bool _allowExit;
+    private bool _checkingBackend;
+    private bool _restartingBackend;
+    private bool _wasDisconnected;
+    private bool _showedTrayTip;
+    private int _badHealth;
     private Process? _engineProcess;
     private string _url = "";
     private string _secret = "";
@@ -64,22 +99,48 @@ internal sealed class SoraWindow : Form
 })();
 """;
 
-    public SoraWindow(string[] args)
+    public SoraWindow(string[] args, EventWaitHandle activate)
     {
+        _activate = activate;
         Text = "Drogowskazy Sora — interfejs PHONE na Windows";
         StartPosition = FormStartPosition.CenterScreen;
         ClientSize = new Size(640, 820);
         MinimumSize = new Size(430, 560);
         Controls.Add(_notice);
         Controls.Add(_browser);
+        Controls.Add(_connection);
         _testUi = args.Contains("--test-ui");
+        var menu = new ContextMenuStrip();
+        menu.Items.Add("Otwórz Sorę", null, (_, _) => RestoreWindow());
+        menu.Items.Add("Stan silnika: sprawdź połączenie", null,
+            async (_, _) => await CheckBackendAsync());
+        menu.Items.Add(new ToolStripSeparator());
+        menu.Items.Add("Zakończ Sorę i zatrzymaj analizę", null, (_, _) => ExitFully());
+        _tray = new NotifyIcon {
+            Icon = SystemIcons.Application, Visible = !_testUi,
+            Text = "Sora PC — analiza w tle", ContextMenuStrip = menu
+        };
+        _tray.DoubleClick += (_, _) => RestoreWindow();
         int homeIndex = Array.IndexOf(args, "--data-dir");
         _home = homeIndex >= 0 && homeIndex + 1 < args.Length
             ? Path.GetFullPath(args[homeIndex + 1])
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "DrogowskazySoraPC");
         Directory.CreateDirectory(_home);
         Shown += async (_, _) => await StartAsync();
-        FormClosing += (_, _) => StopBackend();
+        FormClosing += OnClosing;
+        FormClosed += (_, _) => {
+            _watchdog.Stop();
+            _watchdog.Dispose();
+            _tray.Visible = false;
+            _tray.Dispose();
+            _healthHttp.Dispose();
+            StopBackend();
+        };
+        _watchdog.Tick += async (_, _) => {
+            if (_activate.WaitOne(0)) RestoreWindow();
+            await CheckBackendAsync();
+        };
+        _watchdog.Start();
     }
 
     private async Task StartAsync()
@@ -123,6 +184,107 @@ internal sealed class SoraWindow : Form
         }
     }
 
+    private void RestoreWindow()
+    {
+        if (IsDisposed || Disposing) return;
+        Show();
+        WindowState = FormWindowState.Normal;
+        Activate();
+        BringToFront();
+    }
+
+    private void ExitFully()
+    {
+        _allowExit = true;
+        Close();
+    }
+
+    private void OnClosing(object? sender, FormClosingEventArgs e)
+    {
+        // X/Alt+F4 zachowują proces analizy w zasobniku.
+        // Testy, restart systemu i wyraźne zakończenie pozwalają zamknąć proces.
+        if (!_testUi && !_allowExit && e.CloseReason == CloseReason.UserClosing)
+        {
+            e.Cancel = true;
+            Hide();
+            if (!_showedTrayTip)
+            {
+                _showedTrayTip = true;
+                _tray.ShowBalloonTip(4500, "Sora analizuje w tle",
+                    "Zamknięto okno, ale silnik nadal działa. Dwuklik ikony Sora przy zegarze ponownie otworzy program.",
+                    ToolTipIcon.Info);
+            }
+        }
+    }
+
+    private async Task<bool> HealthAsync()
+    {
+        if (_engineProcess is null || _engineProcess.HasExited || _port <= 0) return false;
+        using var request = new HttpRequestMessage(HttpMethod.Get,
+            $"http://127.0.0.1:{_port}/api/sora-pc/health");
+        request.Headers.TryAddWithoutValidation("Cookie", "sora_native_session=" + _secret);
+        using var response = await _healthHttp.SendAsync(request,
+            HttpCompletionOption.ResponseHeadersRead);
+        return response.IsSuccessStatusCode;
+    }
+
+    private async Task CheckBackendAsync()
+    {
+        if (_checkingBackend || _restartingBackend || IsDisposed || Disposing || _allowExit)
+            return;
+        _checkingBackend = true;
+        try
+        {
+            bool alive;
+            try { alive = await HealthAsync(); }
+            catch (Exception) { alive = false; }
+            if (alive)
+            {
+                if (_wasDisconnected && _browser.CoreWebView2 is not null)
+                    _browser.Reload();
+                _wasDisconnected = false;
+                _badHealth = 0;
+                _connection.Visible = false;
+                _tray.Text = "Sora PC — analiza w tle";
+                return;
+            }
+            _badHealth++;
+            if (_badHealth < 2) return; // krótkie przerwy nie przerywają pracy
+            _wasDisconnected = true;
+            _connection.Visible = Visible;
+            _tray.Text = "Sora PC — sprawdzanie silnika";
+            // Backend zajęty długą analizą NIE jest zabijany. Uruchamiamy
+            // nowy proces wyłącznie, gdy poprzedni naprawdę się zakończył.
+            if (_engineProcess is not null && !_engineProcess.HasExited) return;
+            _restartingBackend = true;
+            try
+            {
+                _engineProcess?.Dispose();
+                _engineProcess = null;
+                await StartBackendAsync();
+                _badHealth = 0;
+                _connection.Visible = false;
+                _tray.Text = "Sora PC — analiza w tle";
+                _wasDisconnected = false;
+                if (_browser.CoreWebView2 is not null)
+                    _browser.CoreWebView2.Navigate(_url);
+                if (!_testUi && !Visible)
+                    _tray.ShowBalloonTip(2500, "Sora — połączenie przywrócone",
+                        "Silnik został ponownie uruchomiony. Wcześniej zapisane analizy pozostały w SQLite.",
+                        ToolTipIcon.Info);
+            }
+            catch (Exception ex)
+            {
+                try { File.AppendAllText(Path.Combine(_home, "diagnostyka_polaczenia.txt"),
+                    DateTimeOffset.Now + " " + ex + Environment.NewLine); }
+                catch { }
+                _connection.Text = "Silnik nie odpowiada. Ponowna próba połączenia za chwilę.";
+            }
+            finally { _restartingBackend = false; }
+        }
+        finally { _checkingBackend = false; }
+    }
+
     private async Task StartBackendAsync()
     {
         var exe = Path.Combine(AppContext.BaseDirectory, "_engine", "SoraSilnik", "SoraSilnik.exe");
@@ -136,11 +298,12 @@ internal sealed class SoraWindow : Form
         start.ArgumentList.Add(_home);
         _engineProcess = Process.Start(start) ?? throw new InvalidOperationException("Nie udało się uruchomić silnika.");
         // Stderr drenujemy na bieżąco; brak buforowania może zablokować backend.
+        var running = _engineProcess;
         _ = Task.Run(async () =>
         {
             try
             {
-                var errors = await _engineProcess.StandardError.ReadToEndAsync();
+                var errors = await running.StandardError.ReadToEndAsync();
                 if (!string.IsNullOrWhiteSpace(errors))
                     await File.WriteAllTextAsync(Path.Combine(_home, "diagnostyka_silnika.txt"), errors);
             }
