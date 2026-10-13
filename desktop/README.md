@@ -6,7 +6,14 @@ URUCHOMIENIE
 2. Otwórz Sora/Sora.exe. Nie przenoś samego EXE; folder _engine jest wymagany.
 3. Aplikacja otwiera natywne okno Windows C# z kontrolką Microsoft WebView2.
    To NIE jest karta przeglądarki i NIE jest osobny panel Tkinter.
-4. Wymagany jest Microsoft Edge WebView2 Runtime. Windows 11 zwykle już go ma.
+4. Kliknięcie X albo Alt+F4 CHOWA Sorę do zasobnika obok zegara Windows.
+   Backend nadal działa i może zapisywać analizy do SQLite.
+   Dwuklik ikony Sory obok zegara lub ponowne uruchomienie Sora.exe
+   otwiera istniejące okno zamiast uruchamiać drugi backend.
+   Menu ikony: „Zakończ Sorę i zatrzymaj analizę” — to całkowite wyjście.
+   Po awarii backendu watchdog uruchamia go ponownie, bez kasowania danych.
+   Chwilowy brak odpowiedzi nie zabija pracującego silnika.
+5. Wymagany jest Microsoft Edge WebView2 Runtime. Windows 11 zwykle już go ma.
 5. Jeśli program nie ruszy, logi są w:
    %LOCALAPPDATA%\\DrogowskazySoraPC\\blad_okna_webview2.txt
    %LOCALAPPDATA%\\DrogowskazySoraPC\\blad_silnika_pc.txt
@@ -16,6 +23,11 @@ ARCHITEKTURA
 • _engine/SoraSilnik/SoraSilnik.exe: niezmieniony silnik i panel PHONE Flask.
 • Oryginalny interfejs HTML/CSS/JS z APK PHONE 1.2.12, nie uproszczona kopia.
 • Obie części komunikują się tylko po 127.0.0.1, z prywatną sesją.
+• Watchdog kontroluje /api/sora-pc/health (bez skanowania SQLite).
+• Praca w zasobniku trwa przy zamkniętym oknie; nie działa podczas uśpienia
+  komputera i nie przetrwa całkowitego zamknięcia Windows.
+• Po awarii silnika można odczytać wcześniej zapisane wyniki SQLite,
+  ale niezapisana w momencie awarii operacja nie jest automatycznie ponawiana.
 • Brak tkinter, QtWebEngine i pythonnet / Python.Runtime.dll w uruchamianiu okna.
 • Kopie i TRANSFER ZIP wybierają natywne dialogi Windows.
 
