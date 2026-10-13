@@ -389,7 +389,17 @@ try{
 
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const backup=await exportButton('#downloadDatabaseBtn','audit-backup.sqlite3');assert.equal(backup.subarray(0,16).toString(),'SQLite format 3\0');
- await click('#reanalyzeDatabaseBtn');await waitJs(()=>!document.getElementById('reanalyzeDatabaseBtn').disabled);assert.equal((await queueDone()).stats.done,7);
+ // Never confirm a destructive full-database recalculation during a UI audit.
+ // Android displays a native confirmation dialog; close it explicitly before
+ // testing the remaining comparison buttons, or the dialog blocks all taps.
+ await click('#reanalyzeDatabaseBtn');
+ await until(()=>nativeNodes().some(n=>(n.text||'').includes('Przeliczyć WSZYSTKIE zapisane artykuły?')),
+   'full database reanalysis confirmation',30000);
+ await nativeTap('ANULUJ');
+ await until(()=>!nativeNodes().some(n=>(n.text||'').includes('Przeliczyć WSZYSTKIE zapisane artykuły?')),
+   'full database reanalysis cancellation',30000);
+ await waitJs(()=>!document.getElementById('reanalyzeDatabaseBtn').disabled);
+ assert.equal((await queueDone()).stats.done,7);
  await click('#aggregateDatabaseBtn');await waitJs(()=>ostatnieDane?.aggregate_from_database===true);
  JSON.parse((await exportButton('#downloadResultsBtn','audit-aggregate.json')).toString());
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
