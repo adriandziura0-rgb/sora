@@ -50,6 +50,7 @@ internal sealed class SoraWindow : Form
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromMinutes(4) };
     private readonly string _home;
     private readonly bool _testUi;
+    private readonly bool _testBackground;
     private readonly EventWaitHandle _activate;
     private readonly NotifyIcon _tray;
     private readonly System.Windows.Forms.Timer _watchdog = new() { Interval = 8000 };
@@ -110,6 +111,7 @@ internal sealed class SoraWindow : Form
         Controls.Add(_browser);
         Controls.Add(_connection);
         _testUi = args.Contains("--test-ui");
+        _testBackground = args.Contains("--test-background");
         var menu = new ContextMenuStrip();
         menu.Items.Add("Otwórz Sorę", null, (_, _) => RestoreWindow());
         menu.Items.Add("Stan silnika: sprawdź połączenie", null,
@@ -203,11 +205,12 @@ internal sealed class SoraWindow : Form
     {
         // X/Alt+F4 zachowują proces analizy w zasobniku.
         // Testy, restart systemu i wyraźne zakończenie pozwalają zamknąć proces.
-        if (!_testUi && !_allowExit && e.CloseReason == CloseReason.UserClosing)
+        if ((!_testUi || _testBackground) && !_allowExit &&
+            e.CloseReason == CloseReason.UserClosing)
         {
             e.Cancel = true;
             Hide();
-            if (!_showedTrayTip)
+            if (!_testUi && !_showedTrayTip)
             {
                 _showedTrayTip = true;
                 _tray.ShowBalloonTip(4500, "Sora analizuje w tle",
@@ -458,16 +461,55 @@ internal sealed class SoraWindow : Form
                 break;
             }
             if (!recoveryPassed) throw new TimeoutException("Test zamykania komunikatu 40 MB nie zakończył się.");
+            bool passedBackground = false;
+            bool passedRestart = false;
+            if (_testBackground)
+            {
+                // To jest test PRAWDZIWEGO obsłużenia kliknięcia X.
+                var requestClose = new FormClosingEventArgs(CloseReason.UserClosing, false);
+                var originalPid = _engineProcess?.Id;
+                OnClosing(this, requestClose);
+                if (!requestClose.Cancel || Visible || !await HealthAsync() ||
+                    _engineProcess?.Id != originalPid)
+                    throw new InvalidOperationException(
+                        "Zamknięcie X zatrzymało analizę albo nie ukryło okna.");
+                passedBackground = true;
+                RestoreWindow();
+                if (!Visible || !await HealthAsync())
+                    throw new InvalidOperationException(
+                        "Nie udało się przywrócić Sory z zasobnika.");
+
+                // Test awarii backendu wyłącznie na pustej bazie CI.
+                var crashed = _engineProcess!;
+                crashed.Kill(entireProcessTree: true);
+                await crashed.WaitForExitAsync();
+                await CheckBackendAsync();
+                await CheckBackendAsync();
+                for (var i = 0; i < 20 && !await HealthAsync(); i++)
+                {
+                    await Task.Delay(250);
+                    await CheckBackendAsync();
+                }
+                passedRestart = await HealthAsync() &&
+                    _engineProcess is not null && _engineProcess.Id != originalPid;
+                if (!passedRestart)
+                    throw new InvalidOperationException(
+                        "Watchdog nie przywrócił silnika po jego awarii.");
+                await Task.Delay(500);
+            }
             string screenshot = Path.Combine(_home, "PODGLAD_PRAWDZIWEGO_OKNA.png");
             await using (var stream = File.Create(screenshot))
                 await _browser.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream);
             if (new FileInfo(screenshot).Length < 1000) throw new Exception("Pusty zrzut okna WebView2.");
             await File.WriteAllTextAsync(Path.Combine(_home, "OK_PRAWDZIWE_OKNO.json"),
-                JsonSerializer.Serialize(new { window = "WebView2 native", phone = true, dataPreserved = true, controls = inner },
+                JsonSerializer.Serialize(new { window = "WebView2 native", phone = true,
+                    dataPreserved = true, backgroundVerified = passedBackground,
+                    watchdogRestartVerified = passedRestart, controls = inner },
                     new JsonSerializerOptions { WriteIndented = true }));
             Environment.ExitCode = 0;
         }
         catch (Exception ex) { Fail(ex); return; }
+        _allowExit = true;
         Close();
     }
 
