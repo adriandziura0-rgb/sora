@@ -16,10 +16,10 @@ function createElement(id) {
     replaceChildren(){},removeAttribute(){},setAttribute(){},
     get textContent(){return this._text??'';},set textContent(v){this._text=v;},
     get innerHTML(){return this._html??'';},set innerHTML(v){this._html=v;},
-    click(){this.dispatchEvent({type:'click',isTrusted:false});}
+    click(){if(!this.disabled)this.dispatchEvent({type:'click',isTrusted:false});}
   };
 }
-async function test(saved, {late=false, storageFails=false}={}) {
+async function test(saved, {late=false, storageFails=false, compareInitiallyDisabled=false}={}) {
   const names=['soraFullOverview','openFullOverviewBtn','soraFullOverviewBack',
     'soraFullOverviewRefresh','soraFullOverviewContent','soraFullOverviewStatus',
     'databaseComparisonResult','databaseCompareGroups','databaseCompareMode',
@@ -30,6 +30,12 @@ async function test(saved, {late=false, storageFails=false}={}) {
   }));
   const initial=late?[]:inputs;
   const observers=[];
+  elements.compareDatabaseBtn.disabled=compareInitiallyDisabled;
+  // Simulate the pre-existing comparison handler, independently of Sora's
+  // added report handler. A real disabled HTML button fires neither.
+  elements.compareDatabaseBtn.addEventListener('click',()=>{
+    elements.databaseComparisonResult.innerHTML='<table>Przywrócone porównanie</table>';
+  });
   const storage=new Map([['sora-zaznaczone-raport-v1',JSON.stringify(saved)]]);
   const localStorage={
     getItem(key){if(storageFails)throw Error('storage blocked');return storage.get(key)??null;},
@@ -54,7 +60,7 @@ async function test(saved, {late=false, storageFails=false}={}) {
   };
   class FakeMutationObserver{
     constructor(callback){this.callback=callback;observers.push(this);}
-    observe(){}
+    observe(target,options){this.target=target;this.options=options;}
   }
   class FakeEvent{
     constructor(type){this.type=type;this.isTrusted=false;}
@@ -77,7 +83,7 @@ async function test(saved, {late=false, storageFails=false}={}) {
     for(const observer of observers)observer.callback();
   }
   for(let i=0;i<8;i++)await Promise.resolve();
-  return {elements,inputs,storage,requests};
+  return {elements,inputs,storage,requests,observers};
 }
 const prior={mode:'folder',groups:['RedakcjaA','RedakcjaB'],view:'report'};
 const restored=await test(prior,{late:true});
@@ -90,6 +96,24 @@ assert.match(restored.requests[0],/group=RedakcjaB/);
 assert.equal(JSON.parse(restored.storage.get('sora-zaznaczone-raport-v1')).view,'report');
 restored.elements.soraFullOverviewBack.click();
 assert.equal(JSON.parse(restored.storage.get('sora-zaznaczone-raport-v1')).view,'hidden');
+// Reproduces the Android CI failure: groups exist while the original
+// compare button is still disabled during asynchronous database loading.
+const pending=await test({...prior,view:'comparison'},{compareInitiallyDisabled:true});
+assert.equal(pending.elements.soraFullOverview.hidden,true,
+  'Do not finalize restoration through a disabled button');
+assert.equal(pending.requests.length,0);
+pending.elements.compareDatabaseBtn.disabled=false;
+for(const observer of pending.observers.filter(o=>o.target===pending.elements.compareDatabaseBtn))
+  observer.callback();
+for(let i=0;i<8;i++)await Promise.resolve();
+assert.equal(pending.elements.soraFullOverview.hidden,false,
+  'Selected comparison must reopen after the button becomes available');
+assert.match(pending.elements.databaseComparisonResult.innerHTML,/Przywrócone porównanie/);
+assert.equal(pending.requests.length,1,'Reopen the selected report only once');
+for(const observer of pending.observers.filter(o=>o.target===pending.elements.compareDatabaseBtn))
+  observer.callback();
+assert.equal(pending.requests.length,1,'No duplicate request after successful restoration');
+assert.equal(JSON.parse(pending.storage.get('sora-zaznaczone-raport-v1')).view,'comparison');
 const hidden=await test({...prior,view:'hidden'});
 assert.equal(hidden.elements.soraFullOverview.hidden,true);
 assert.equal(hidden.requests.length,0,'Explicitly hidden report must stay hidden');
@@ -100,4 +124,4 @@ const noStorage=await test(prior,{storageFails:true});
 assert.equal(noStorage.elements.soraFullOverview.hidden,true);
 noStorage.elements.openFullOverviewBtn.click(); // no previous scope -> harmless
 assert.equal(noStorage.requests.length,0);
-console.log('PASS: selected dashboard restored after reload, hidden intent respected, no stale groups, storage failure safe');
+console.log('PASS: delayed Android compare button, one-time restoration, hidden intent, stale groups, storage failure safe');
