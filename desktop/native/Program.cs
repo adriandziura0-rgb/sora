@@ -288,6 +288,29 @@ internal sealed class SoraWindow : Form
         finally { _checkingBackend = false; }
     }
 
+    private async Task DrainLogAsync(StreamReader reader, string name)
+    {
+        var path = Path.Combine(_home, name);
+        try
+        {
+            while (await reader.ReadLineAsync() is { } line)
+            {
+                if (line.Length > 4000) line = line[..4000] + "…";
+                try
+                {
+                    if (File.Exists(path) && new FileInfo(path).Length > 2_000_000)
+                    {
+                        File.Move(path, path + ".poprzedni", overwrite: true);
+                    }
+                    await File.AppendAllTextAsync(path,
+                        DateTimeOffset.Now.ToString("s") + " " + line + Environment.NewLine);
+                }
+                catch { /* Błąd zapisu diagnostyki nie blokuje stdout backendu. */ }
+            }
+        }
+        catch { /* Strumień kończy się przy zatrzymaniu silnika. */ }
+    }
+
     private async Task StartBackendAsync()
     {
         var exe = Path.Combine(AppContext.BaseDirectory, "_engine", "SoraSilnik", "SoraSilnik.exe");
@@ -300,18 +323,11 @@ internal sealed class SoraWindow : Form
         start.ArgumentList.Add("--data-dir");
         start.ArgumentList.Add(_home);
         _engineProcess = Process.Start(start) ?? throw new InvalidOperationException("Nie udało się uruchomić silnika.");
-        // Stderr drenujemy na bieżąco; brak buforowania może zablokować backend.
+        // MUSIMY stale odczytywać oba strumienie (stdout i stderr).
+        // Jeśli pipe wypełni się logami, silnik zablokuje się na print(),
+        // a panel wyświetli fałszywy komunikat "backend nie odpowiada".
         var running = _engineProcess;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                var errors = await running.StandardError.ReadToEndAsync();
-                if (!string.IsNullOrWhiteSpace(errors))
-                    await File.WriteAllTextAsync(Path.Combine(_home, "diagnostyka_silnika.txt"), errors);
-            }
-            catch { }
-        });
+        _ = Task.Run(() => DrainLogAsync(running.StandardError, "diagnostyka_silnika.txt"));
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(90));
         while (!timeout.IsCancellationRequested)
         {
@@ -324,6 +340,9 @@ internal sealed class SoraWindow : Form
             _port = info.GetProperty("port").GetInt32();
             _secret = info.GetProperty("session").GetString()!;
             if (!IsLocalUrl(_url) || _secret.Length < 30) throw new InvalidOperationException("Nieprawidłowa odpowiedź silnika.");
+            // SoraSilnik może drukować postęp wielu artykułów. Po READY
+            // kontynuujemy odczyt stdout, aby nie zapełnić rury procesu.
+            _ = Task.Run(() => DrainLogAsync(running.StandardOutput, "diagnostyka_stdout.txt"));
             return;
         }
         throw new InvalidOperationException("Silnik Sory nie zgłosił gotowości w 90 sekund.");
