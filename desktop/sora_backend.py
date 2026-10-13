@@ -38,6 +38,11 @@ def main():
         # Nie przyjmujemy danych ani ścieżek pochodzących z Internetu.
         app = engine.module.app
 
+        @app.get("/api/sora-pc/health")
+        def windows_native_health():
+            """Tanie sprawdzenie połączenia, nie dotyka SQLite ani obliczeń."""
+            return jsonify(ok=True, backend="SoraSilnik", version=engine.version)
+
         @app.post("/api/sora-pc/<operation>")
         def windows_native_operation(operation):
             payload = request.get_json(silent=True) or {}
@@ -78,8 +83,9 @@ def main():
 
         def shutdown_watcher():
             try:
-                # Zamknięcie okna kończy backend łagodnie. Brak sygnału stdin
-                # po awarii hosta też zatrzyma proces.
+                # Wyraźne "Zakończ Sorę" zatrzymuje backend.
+                # Zamknięcie okna do zasobnika NIE zamyka stdin, więc analiza trwa.
+                # Po awarii procesu hosta EOF bezpiecznie kończy ten proces.
                 sys.stdin.readline()
             except Exception:
                 pass
