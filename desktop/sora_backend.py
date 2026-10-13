@@ -18,6 +18,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", required=True)
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--test-output-drain", action="store_true")
     args = parser.parse_args()
     home = Path(args.data_dir)
     home.mkdir(parents=True, exist_ok=True)
@@ -80,6 +81,12 @@ def main():
             "session": guard.secret,
             "engine_sha256": engine.identity["engine_sha256"]
         }, ensure_ascii=False, separators=(",", ":")), flush=True)
+
+        if args.test_output_drain:
+            # Test regresji: >128 KB stdout przed wejściem serwera HTTP.
+            # Bez ciągłego odczytu strumienia host zatrzymałby backend.
+            for i in range(900):
+                print("CI_STDOUT_" + str(i) + "_" + ("A" * 220), flush=True)
 
         def shutdown_watcher():
             try:
