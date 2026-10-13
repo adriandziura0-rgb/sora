@@ -146,11 +146,16 @@
       const scope = selectedScope();
       if (scope.mode !== savedView.mode || scope.groups.length !== savedView.groups.length ||
           !scope.groups.every(name => wanted.has(name))) return;
+      // In Android the list of folders may be ready before the original
+      // compare button is enabled. Calling .click() on a disabled button
+      // does nothing; do not mark restoration complete until it can run.
+      if (savedView.view === 'comparison' && scope.groups.length >= 2 &&
+          (!compareButton || compareButton.disabled)) return;
       restoredSavedView = true;
       paintScope();
       if (savedView.view === 'comparison' && scope.groups.length >= 2) {
         comparedScope = scope.key;
-        compareButton?.click();
+        compareButton.click();
       } else if (savedView.view === 'report') {
         open();
       }
@@ -436,6 +441,10 @@
     if (choices) new MutationObserver(syncChoices).observe(choices, {childList:true,subtree:true});
     const groupList = document.getElementById('databaseCompareGroupList');
     if (groupList) new MutationObserver(syncChoices).observe(groupList, {childList:true,subtree:true});
+    // The original application enables the compare button asynchronously.
+    // Retry a pending restoration when its disabled state changes.
+    if (compareButton) new MutationObserver(syncChoices).observe(compareButton,
+      {attributes:true,attributeFilter:['disabled']});
   }
   paintScope();
   restoreSavedView();
