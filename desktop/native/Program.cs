@@ -322,6 +322,7 @@ internal sealed class SoraWindow : Form
         };
         start.ArgumentList.Add("--data-dir");
         start.ArgumentList.Add(_home);
+        if (_testBackground) start.ArgumentList.Add("--test-output-drain");
         _engineProcess = Process.Start(start) ?? throw new InvalidOperationException("Nie udało się uruchomić silnika.");
         // MUSIMY stale odczytywać oba strumienie (stdout i stderr).
         // Jeśli pipe wypełni się logami, silnik zablokuje się na print(),
