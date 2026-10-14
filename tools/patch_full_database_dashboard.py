@@ -26,6 +26,8 @@ SOURCES = {
     "static/shared-content.css": ASSETS / "shared-content.css",
     "static/import-recovery.js": ASSETS / "import-recovery.js",
     "clean_core/quote_database.py": ASSETS / "quote_database.py",
+    "static/same-story-mobile.js": ASSETS / "same-story-mobile.js",
+    "static/same-story-mobile.css": ASSETS / "same-story-mobile.css",
 }
 
 def insert_once(text: str, before: str, after: str) -> str:
@@ -40,7 +42,8 @@ def update_html(html: str) -> str:
         '<link href="/static/style.css?v={{ app_version }}" rel="stylesheet"/>',
         '<link href="/static/style.css?v={{ app_version }}" rel="stylesheet"/>\n'
         '<link href="/static/full-database.css?v={{ app_version }}" rel="stylesheet"/>\n'
-        '<link href="/static/shared-content.css?v={{ app_version }}" rel="stylesheet"/>',
+        '<link href="/static/shared-content.css?v={{ app_version }}" rel="stylesheet"/>\n'
+        '<link href="/static/same-story-mobile.css?v={{ app_version }}" rel="stylesheet"/>',
     )
     html = insert_once(
         html, '<div class="database-compare-controls database-compare-controls-main">',
@@ -88,7 +91,8 @@ def update_html(html: str) -> str:
         '<script src="/static/app.js?v={{ app_version }}"></script>\n'
         '<script src="/static/full-database.js?v={{ app_version }}"></script>\n'
         '<script src="/static/shared-content.js?v={{ app_version }}"></script>\n'
-        '<script src="/static/import-recovery.js?v={{ app_version }}"></script>',
+        '<script src="/static/import-recovery.js?v={{ app_version }}"></script>\n'
+        '<script src="/static/same-story-mobile.js?v={{ app_version }}"></script>',
     )
     return html
 
