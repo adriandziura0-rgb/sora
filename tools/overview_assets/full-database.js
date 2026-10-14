@@ -441,6 +441,14 @@
     if (choices) new MutationObserver(syncChoices).observe(choices, {childList:true,subtree:true});
     const groupList = document.getElementById('databaseCompareGroupList');
     if (groupList) new MutationObserver(syncChoices).observe(groupList, {childList:true,subtree:true});
+    // The base Sora UI restores checkbox and <select> states programmatically,
+    // then updates this counter. Neither .checked nor option.selected emits
+    // 'change', and a MutationObserver on the options cannot see properties.
+    // Observe the original picker counter to keep the separate report in sync
+    // after reopening an existing database session, without changing SQLite.
+    const pickerCounter = document.getElementById('databaseCompareSelectedCount');
+    if (pickerCounter) new MutationObserver(syncChoices).observe(pickerCounter,
+      {childList:true,subtree:true,characterData:true});
     // The original application enables the compare button asynchronously.
     // Retry a pending restoration when its disabled state changes.
     if (compareButton) new MutationObserver(syncChoices).observe(compareButton,
