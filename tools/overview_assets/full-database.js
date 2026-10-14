@@ -95,6 +95,17 @@
   exportData.textContent='Pobierz dane raportu JSON';
   exportData.disabled=true;
   if(reportActions){ reportActions.appendChild(exportReport); reportActions.appendChild(exportData); }
+  const quotesShortcut=document.createElement('button');
+  quotesShortcut.type='button';
+  quotesShortcut.id='soraOpenQuoteDatabase';
+  quotesShortcut.textContent='Porównaj cytaty i wspólne treści';
+  if(reportActions)reportActions.appendChild(quotesShortcut);
+  quotesShortcut.addEventListener('click',()=>{
+    const quotes=document.getElementById('sharedContentPanel');
+    if(!quotes)return;
+    quotes.open=true;
+    quotes.scrollIntoView({behavior:'smooth',block:'start'});
+  });
   function exportFile(name,contents,mime){
     if(typeof window.pobierzPlik==='function'){
       window.pobierzPlik(name,contents,mime);
