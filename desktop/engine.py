@@ -12,7 +12,7 @@ import zipfile
 # One transfer implementation is packaged into both Android and Windows.
 if not getattr(sys, 'frozen', False):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'app/src/main/python'))
-from data_transfer import export_zip, merge_zip
+from data_transfer import export_zip, merge_zip, canonical_engine_payload, QUOTE_EXTENSION
 import sqlite3
 import tempfile
 from datetime import datetime, timezone
@@ -29,7 +29,7 @@ def runtime_identity(asset=None):
     with zipfile.ZipFile(asset) as archive:
         digest = hashlib.sha256()
         for name in sorted(archive.namelist()):
-            if name == 'app.py' or name.startswith(('clean_core/', 'knowledge/', 'benchmark/')):
+            if (name == 'app.py' or name.startswith(('clean_core/', 'knowledge/', 'benchmark/'))) and name != QUOTE_EXTENSION:
                 digest.update(name.encode()); digest.update(b'\0')
                 # ZIP zbudowany pod Windows mógł mieć CRLF zamiast LF.
                 # Normalizujemy WYŁĄCZNIE identyfikator — nie silnik i nie
@@ -37,6 +37,7 @@ def runtime_identity(asset=None):
                 source = archive.read(name)
                 if name.endswith(('.py', '.js', '.html', '.css', '.json', '.md', '.txt')):
                     source = source.replace(b'\r\n', b'\n')
+                source = canonical_engine_payload(name, source)
                 digest.update(source); digest.update(b'\0')
         return {'engine_sha256': digest.hexdigest(),
                 'asset_sha256': hashlib.sha256(asset.read_bytes()).hexdigest(),
