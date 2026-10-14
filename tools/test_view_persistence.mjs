@@ -23,7 +23,7 @@ async function test(saved, {late=false, storageFails=false, compareInitiallyDisa
   const names=['soraFullOverview','openFullOverviewBtn','soraFullOverviewBack',
     'soraFullOverviewRefresh','soraFullOverviewContent','soraFullOverviewStatus',
     'databaseComparisonResult','databaseCompareGroups','databaseCompareMode',
-    'databaseComparePanel','compareDatabaseBtn'];
+    'databaseComparePanel','compareDatabaseBtn','databaseCompareSelectedCount'];
   const elements=Object.fromEntries(names.map(k=>[k,createElement(k)]));
   const inputs=['RedakcjaA','RedakcjaB'].map(value=>({
     value, dataset:{compareGroup:value},checked:false,disabled:false
@@ -117,6 +117,24 @@ assert.equal(JSON.parse(pending.storage.get('sora-zaznaczone-raport-v1')).view,'
 const hidden=await test({...prior,view:'hidden'});
 assert.equal(hidden.elements.soraFullOverview.hidden,true);
 assert.equal(hidden.requests.length,0,'Explicitly hidden report must stay hidden');
+// Original Sora session restore selects hidden <option>s and checks inputs
+// without dispatching 'change'. Only its visible counter changes. The
+// independent analytics dashboard must respond to that counter mutation.
+const silentRestore=await test({...prior,view:'hidden'});
+assert.equal(silentRestore.elements.openFullOverviewBtn.disabled,true);
+for(const input of silentRestore.inputs)input.checked=true;
+for(const option of silentRestore.elements.databaseCompareGroups.options)option.selected=true;
+silentRestore.elements.databaseCompareSelectedCount.textContent='Wybrane: 2 · dostępne: 2 · limit: 10';
+for(const observer of silentRestore.observers.filter(o=>
+  o.target===silentRestore.elements.databaseCompareSelectedCount))observer.callback();
+assert.equal(silentRestore.elements.openFullOverviewBtn.disabled,false,
+  'Original app session restore must activate analysis of selected folders');
+silentRestore.elements.openFullOverviewBtn.click();
+for(let i=0;i<8;i++)await Promise.resolve();
+assert.equal(silentRestore.elements.soraFullOverview.hidden,false);
+assert.equal(silentRestore.requests.length,1);
+assert.match(silentRestore.requests[0],/group=RedakcjaA/);
+assert.match(silentRestore.requests[0],/group=RedakcjaB/);
 const unavailable=await test({...prior,groups:['usunięty folder']});
 assert.equal(unavailable.elements.soraFullOverview.hidden,true);
 assert.equal(unavailable.requests.length,0,'Removed folder cannot show a different report');
@@ -124,4 +142,4 @@ const noStorage=await test(prior,{storageFails:true});
 assert.equal(noStorage.elements.soraFullOverview.hidden,true);
 noStorage.elements.openFullOverviewBtn.click(); // no previous scope -> harmless
 assert.equal(noStorage.requests.length,0);
-console.log('PASS: delayed Android compare button, one-time restoration, hidden intent, stale groups, storage failure safe');
+console.log('PASS: original-app silent session restore, selected folder scope, delayed compare, hidden intent, stale groups, storage failure safe');
