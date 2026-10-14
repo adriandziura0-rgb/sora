@@ -413,7 +413,11 @@ try{
  await waitJs(()=>Array.from(document.getElementById('sameStoryTopic').options).some(o=>o.value));
  await page.evaluate(()=>{const s=document.getElementById('sameStoryTopic');s.value=Array.from(s.options).find(o=>o.value).value;s.dispatchEvent(new Event('change'));});
  await waitJs(()=>document.getElementById('sameStoryGroups').options.length>=2);
- await page.evaluate(()=>{const s=document.getElementById('sameStoryGroups');Array.from(s.options).forEach((o,i)=>o.selected=i<2);s.dispatchEvent(new Event('change'));});
+ // Use the visible Android group cards: programmatic changes to the hidden
+ // <select> do not fire the real checkbox handlers or enable the compare button.
+ await page.locator('#sameStoryGroupList input[data-same-story-group]').first().check();
+ await page.locator('#sameStoryGroupList input[data-same-story-group]').nth(1).check();
+ await waitJs(()=>!document.getElementById('compareSameStoryBtn').disabled);
  await click('#compareSameStoryBtn');await waitJs(()=>ostatniePorownanieTejSamejSprawy!==null);
  JSON.parse((await exportButton('#downloadSameStoryComparisonBtn','audit-same-story.json')).toString());
  done('SQLite export, reanalysis, aggregate export, folder comparison and same-story comparison with JSON');
