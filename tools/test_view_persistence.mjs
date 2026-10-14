@@ -25,7 +25,7 @@ async function test(saved, {late=false, storageFails=false, compareInitiallyDisa
     'databaseComparisonResult','databaseCompareGroups','databaseCompareMode',
     'databaseComparePanel','compareDatabaseBtn','databaseCompareSelectedCount'];
   const elements=Object.fromEntries(names.map(k=>[k,createElement(k)]));
-  const inputs=['RedakcjaA','RedakcjaB'].map(value=>({
+  const inputs=['RedakcjaA','RedakcjaB','RedakcjaC'].map(value=>({
     value, dataset:{compareGroup:value},checked:false,disabled:false
   }));
   const initial=late?[]:inputs;
@@ -56,7 +56,7 @@ async function test(saved, {late=false, storageFails=false, compareInitiallyDisa
     ?elements.databaseComparePanel._groups:[];
   const document={
     getElementById:id=>elements[id]??null,
-    createElement:()=>createElement('scope')
+    createElement:()=>{const element=createElement('scope');elements.scopeLabel=element;return element;}
   };
   class FakeMutationObserver{
     constructor(callback){this.callback=callback;observers.push(this);}
@@ -124,17 +124,20 @@ const silentRestore=await test(null);
 assert.equal(silentRestore.elements.openFullOverviewBtn.disabled,true);
 for(const input of silentRestore.inputs)input.checked=true;
 for(const option of silentRestore.elements.databaseCompareGroups.options)option.selected=true;
-silentRestore.elements.databaseCompareSelectedCount.textContent='Wybrane: 2 · dostępne: 2 · limit: 10';
+silentRestore.elements.databaseCompareSelectedCount.textContent='Wybrane: 3 · dostępne: 3 · limit: 10';
 for(const observer of silentRestore.observers.filter(o=>
   o.target===silentRestore.elements.databaseCompareSelectedCount))observer.callback();
 assert.equal(silentRestore.elements.openFullOverviewBtn.disabled,false,
   'Original app session restore must activate analysis of selected folders');
+assert.match(silentRestore.elements.scopeLabel.innerHTML,/Wybrano: 3 foldery/,
+  'Scope indicator must agree with three checked folder cards');
 silentRestore.elements.openFullOverviewBtn.click();
 for(let i=0;i<8;i++)await Promise.resolve();
 assert.equal(silentRestore.elements.soraFullOverview.hidden,false);
 assert.equal(silentRestore.requests.length,1);
 assert.match(silentRestore.requests[0],/group=RedakcjaA/);
 assert.match(silentRestore.requests[0],/group=RedakcjaB/);
+assert.match(silentRestore.requests[0],/group=RedakcjaC/);
 const unavailable=await test({...prior,groups:['usunięty folder']});
 assert.equal(unavailable.elements.soraFullOverview.hidden,true);
 assert.equal(unavailable.requests.length,0,'Removed folder cannot show a different report');
