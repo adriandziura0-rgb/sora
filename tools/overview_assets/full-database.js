@@ -82,6 +82,57 @@
   scopeLabel.setAttribute('role', 'status');
   scopeLabel.setAttribute('aria-live', 'polite');
   if (selectionHost) selectionHost.prepend(scopeLabel);
+  // Raport można zapisać osobno od kopii bazy SQLite.
+  const reportActions = panel.querySelector('.sora-overview-actions');
+  const exportReport = document.createElement('button');
+  exportReport.type='button';
+  exportReport.id='soraDownloadSelectedReport';
+  exportReport.textContent='Pobierz raport HTML';
+  exportReport.disabled=true;
+  const exportData = document.createElement('button');
+  exportData.type='button';
+  exportData.id='soraDownloadSelectedData';
+  exportData.textContent='Pobierz dane raportu JSON';
+  exportData.disabled=true;
+  if(reportActions){ reportActions.appendChild(exportReport); reportActions.appendChild(exportData); }
+  function exportFile(name,contents,mime){
+    if(typeof window.pobierzPlik==='function'){
+      window.pobierzPlik(name,contents,mime);
+    }else{
+      const a=document.createElement('a');
+      const url=URL.createObjectURL(new Blob([contents],{type:mime}));
+      a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(url),30000);
+    }
+  }
+  const canExport=()=>!!report && reportScope===selectedScope().key && !inFlight;
+  function updateExportButtons(){ exportReport.disabled=!canExport(); exportData.disabled=!canExport(); }
+  const reportName=ext=>'Sora_raport_zaznaczonych_'+new Date().toISOString().slice(0,10)+'.'+ext;
+  exportData.addEventListener('click',()=>{
+    if(!canExport()) return;
+    exportFile(reportName('json'),JSON.stringify({
+      format:'sora_selected_report_v1',scope:{mode:selectedScope().mode,groups:selectedScope().groups},
+      report
+    },null,2),'application/json;charset=utf-8');
+  });
+  exportReport.addEventListener('click',()=>{
+    if(!canExport()) return;
+    const title='SORA — raport zaznaczonych artykułów';
+    const content='<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>'+title+'</title>'
+      +'<meta name="viewport" content="width=device-width,initial-scale=1">'
+      +'<style>body{font:15px/1.5 Arial,sans-serif;max-width:960px;margin:24px auto;padding:15px;color:#102133}'
+      +'h1,h2,h3{color:#155e75}.sora-overview-kpis,.sora-overview-columns,.sora-overview-facts{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
+      +'.sora-overview-kpi,.sora-overview-section,.sora-overview-facts>div{border:1px solid #cbd5e1;border-radius:10px;padding:12px;break-inside:avoid}'
+      +'.sora-overview-kpi strong{display:block;font-size:24px}.sora-overview-bar{margin:8px 0}'
+      +'.sora-overview-bar-label{display:flex;justify-content:space-between}.sora-overview-track{height:9px;background:#e2e8f0}'
+      +'.sora-overview-track>div{height:9px;background:#0891b2}.sora-overview-document{display:block;padding:8px}'
+      +'@media(max-width:650px){.sora-overview-kpis,.sora-overview-columns,.sora-overview-facts{grid-template-columns:1fr}}'
+      +'@media print{body{margin:0;max-width:none}}</style></head><body><h1>'+title+'</h1>'
+      +'<p>Wybrane grupy: '+esc(selectedScope().labels.join(', '))+'</p>'
+      +'<p>Data: '+esc(new Date().toLocaleString('pl-PL'))+'. Tylko zapisane wyniki zaznaczonych grup.</p>'
+      +output.innerHTML+'</body></html>';
+    exportFile(reportName('html'),content,'text/html;charset=utf-8');
+  });
 
   // Zachowujemy wyłącznie zakres i rodzaj widoku, nigdy treść artykułów
   // ani wynik analizy. Raport jest ponownie odczytywany z istniejącej SQLite.
@@ -197,6 +248,7 @@
       (labels ? '<div class="sora-scope-labels">' + labels + '</div>' : '') +
       '<p>Wyniki poniżej dotyczą tylko zaznaczonych grup. Komunikat „Brak aktywnego wyniku” u góry dotyczy wyłącznie pojedynczego artykułu.</p>';
     if (opener) opener.disabled = count === 0 || count > 10;
+    updateExportButtons();
     if (refresh && !inFlight) refresh.disabled = count === 0 || count > 10;
     const existing = panel && !panel.hidden && reportScope && reportScope !== current.key;
     const staleTable = comparedScope && comparedScope !== current.key;
@@ -212,6 +264,7 @@
     reportScope = null;
     comparedScope = null;
     report = null;
+    updateExportButtons();
     if (panel) panel.hidden = true;
     active = false;
     opener?.classList.remove('active');
@@ -383,6 +436,7 @@
       if (inFlight === controller) {
         inFlight = null;
         if (refresh) refresh.disabled = selectedScope().groups.length === 0;
+        updateExportButtons();
       }
     }
   }
