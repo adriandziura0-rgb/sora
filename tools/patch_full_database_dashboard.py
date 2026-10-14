@@ -128,21 +128,21 @@ def update_backend(app: str) -> str:
     app = insert_once(
         app,
         '@app.get("/api/baza/porownanie/grupy")',
-        '@app.get("/api/baza/cytaty_wybranych")\\n'
-        'def api_selected_quote_database():\\n'
-        '    """Zapisane cytaty tylko wskazanych grup; bez zapisów do SQLite."""\\n'
-        '    try:\\n'
-        '        mode = request.args.get("mode", "folder")\\n'
-        '        groups = request.args.getlist("group")\\n'
-        '        payload = selected_quote_database(\\n'
-        '            DOCUMENT_DATABASE.iter_completed_results(article_only=True),\\n'
-        '            mode=mode, groups=groups,\\n'
-        '        )\\n'
-        '        return jsonify(payload)\\n'
-        '    except ValueError as exc:\\n'
-        '        return jsonify({"ok": False, "szczegoly": str(exc)}), 400\\n'
-        '    except Exception as exc:\\n'
-        '        return jsonify({"ok": False, "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\\n\\n\\n'
+        '@app.get("/api/baza/cytaty_wybranych")\n'
+        'def api_selected_quote_database():\n'
+        '    """Zapisane cytaty tylko wskazanych grup; bez zapisów do SQLite."""\n'
+        '    try:\n'
+        '        mode = request.args.get("mode", "folder")\n'
+        '        groups = request.args.getlist("group")\n'
+        '        payload = selected_quote_database(\n'
+        '            DOCUMENT_DATABASE.iter_completed_results(article_only=True),\n'
+        '            mode=mode, groups=groups,\n'
+        '        )\n'
+        '        return jsonify(payload)\n'
+        '    except ValueError as exc:\n'
+        '        return jsonify({"ok": False, "szczegoly": str(exc)}), 400\n'
+        '    except Exception as exc:\n'
+        '        return jsonify({"ok": False, "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\n\n\n'
         '@app.get("/api/baza/porownanie/grupy")',
     )
     app = insert_once(
