@@ -40,6 +40,7 @@ jobs:
         run: |
           python tools/test_full_database_overview.py
           python tools/test_shared_content.py
+          python tools/test_quote_database.py
           python tools/test_topic_matcher_cache.py
           python desktop/test_engine.py
           python tools/test_transfer.py
