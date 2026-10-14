@@ -21,6 +21,84 @@
     const mode = modeChoice?.value || 'folder';
     return {groups,mode,key:JSON.stringify([mode,groups])};
   };
+  // Widoczne w trybie Użytkownik, nie tylko w narzędziach eksperckich.
+  const sharedPanel=document.getElementById('sharedContentPanel');
+  const summary=sharedPanel?.querySelector('summary');
+  if(summary)summary.textContent='Baza cytatów, wspólne treści i różnice między redakcjami';
+  const quoteBar=document.createElement('div');
+  quoteBar.className='sora-quote-controls';
+  quoteBar.innerHTML='<h3>Cytaty i wypowiedzi z zaznaczonych materiałów</h3>'
+    +'<p>Odczytuję zapisane karty „opinia cytowana” i „cytat przypisany”. '
+    +'Porównanie identycznego brzmienia wymaga tego samego przypisanego mówcy. '
+    +'Nie jest to weryfikacja autentyczności wypowiedzi.</p>'
+    +'<button type="button" id="soraFindQuotesBtn" class="secondary strong-action">'
+    +'Pokaż bazę cytatów zaznaczonych</button> '
+    +'<button type="button" id="soraDownloadQuotesBtn" class="secondary" disabled>'
+    +'Pobierz bazę cytatów JSON</button>'
+    +'<p id="soraQuotesStatus" role="status" aria-live="polite">Wybierz od 1 do 10 grup i naciśnij przycisk.</p>'
+    +'<div id="soraQuotesResults" class="sora-shared-results"></div>'
+    +'<hr><h3>Porównanie dosłownych fragmentów artykułów</h3>';
+  button.parentNode.insertBefore(quoteBar,button);
+  let quotePayload=null, quoteScope=null, quoteBusy=false;
+  const quoteBtn=quoteBar.querySelector('#soraFindQuotesBtn');
+  const quoteDownload=quoteBar.querySelector('#soraDownloadQuotesBtn');
+  const quoteStatus=quoteBar.querySelector('#soraQuotesStatus');
+  const quoteResults=quoteBar.querySelector('#soraQuotesResults');
+  function clearQuotes(){
+    quotePayload=null;quoteScope=null;
+    quoteDownload.disabled=true;
+    quoteResults.replaceChildren();
+  }
+  quoteBtn.addEventListener('click',async()=>{
+    if(quoteBusy)return;
+    const chosen=scope();
+    if(chosen.groups.length<1||chosen.groups.length>10){
+      quoteStatus.textContent='Zaznacz od 1 do 10 folderów lub redakcji powyżej.';
+      return;
+    }
+    quoteBusy=true;quoteBtn.disabled=true;clearQuotes();
+    quoteStatus.textContent='Odczytuję zapisane cytaty. Nie zmieniam bazy danych…';
+    try{
+      const params=new URLSearchParams({mode:chosen.mode});
+      chosen.groups.forEach(g=>params.append('group',g));
+      const resp=await fetch('/api/baza/cytaty_wybranych?'+params.toString());
+      const data=await resp.json();
+      if(scope().key!==chosen.key){quoteStatus.textContent='Zmieniono wybór. Uruchom porównanie ponownie.';return;}
+      if(!resp.ok||!data.ok)throw Error(data.szczegoly||'Nie udało się pobrać cytatów.');
+      quotePayload=data;quoteScope=chosen.key;
+      quoteDownload.disabled=false;
+      const summary=(data.per_group||[]).map(v=>'<div class="sora-shared-diff"><strong>'
+        +html(v.group)+'</strong><p>'+html(v.quotes)+' cytatów/przypisanych opinii w '
+        +html(v.documents)+' artykułach</p></div>').join('');
+      const matches=(data.same_statement_across_groups||[]).slice(0,40).map(row=>
+        '<article class="sora-shared-card"><h4>'+html(row.speaker)+'</h4>'
+        +'<blockquote class="sora-shared-quote">'+html(row.statement)+'</blockquote>'
+        +'<p>Redakcje/foldery: '+html(row.groups.join(', '))+'</p>'
+        +'<small>To samo brzmienie w '+html(row.appearances)+' zapisanych kartach. '
+        +'Porównaj oryginały przed wyciąganiem wniosków.</small></article>').join('');
+      const preview=(data.records||[]).slice(0,25).map(row=>
+        '<div class="sora-shared-card"><strong>'+html(row.group)+' · '+html(row.speaker)+'</strong>'
+        +'<p>'+html(row.statement)+'</p><small>'+html(row.classification)
+        +' · dokument #'+html(row.document_id)+'</small></div>').join('');
+      quoteResults.innerHTML='<div class="sora-shared-differences">'+summary+'</div>'
+        +'<h4>Identyczne wypowiedzi między grupami</h4>'
+        +(matches||'<p>Nie wykryto identycznych cytatów tego samego mówcy pomiędzy wybranymi grupami. '
+        +'Nie wyklucza to parafraz.</p>')
+        +'<h4>Przykładowe zapisane cytaty (maks. 25)</h4>'+preview;
+      quoteStatus.textContent='Przejrzano '+data.scanned_documents+' artykułów. '
+        +'Zapisanych cytatów/opinii: '+data.quote_count+'. Wspólnych brzmień między grupami: '
+        +(data.same_statement_across_groups||[]).length+'.'
+        +(data.truncated?' Uwaga: ograniczono liczbę rekordów do bezpiecznego limitu.':'');
+    }catch(e){quoteStatus.textContent='Błąd bazy cytatów: '+(e.message||'nieznany błąd');}
+    finally{quoteBusy=false;quoteBtn.disabled=false;}
+  });
+  quoteDownload.addEventListener('click',()=>{
+    if(!quotePayload||quoteScope!==scope().key)return;
+    const name='Sora_baza_cytatow_'+new Date().toISOString().slice(0,10)+'.json';
+    if(typeof window.pobierzPlik==='function'){
+      window.pobierzPlik(name,JSON.stringify(quotePayload,null,2),'application/json;charset=utf-8');
+    }
+  });
   let controller = null;
   let activeKey = null;
   const render = response => {
@@ -84,6 +162,9 @@
   });
   picker?.addEventListener('change',event=>{
     if(event.target===modeChoice || event.target===groupsSelect || event.target?.matches?.('[data-compare-group]')){
+      if(quoteScope && quoteScope!==scope().key){
+        clearQuotes();quoteStatus.textContent='Zmieniono zakres. Odczytaj bazę cytatów ponownie.';
+      }
       if(activeKey && activeKey!==scope().key){
         controller?.abort(); controller=null; activeKey=null;
         button.disabled=false; output.replaceChildren();
