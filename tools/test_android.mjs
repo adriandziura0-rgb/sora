@@ -433,11 +433,18 @@ try{
  await waitJs(()=>Array.from(document.getElementById('sameStoryTopic').options).some(o=>o.value));
  await page.evaluate(()=>{const s=document.getElementById('sameStoryTopic');s.value=Array.from(s.options).find(o=>o.value).value;s.dispatchEvent(new Event('change'));});
  await waitJs(()=>document.getElementById('sameStoryGroups').options.length>=2);
- // Use the visible Android group cards: programmatic changes to the hidden
- // <select> do not fire the real checkbox handlers or enable the compare button.
- await page.locator('#sameStoryGroupList input[data-same-story-group]').first().check();
- await page.locator('#sameStoryGroupList input[data-same-story-group]').nth(1).check();
- await waitJs(()=>!document.getElementById('compareSameStoryBtn').disabled);
+ // Select the rendered publisher cards, not the hidden <select>. The
+ // comparison panel can be closed again by session-view restoration after
+ // topic refresh, so reopen it *after* the asynchronous group list is ready.
+ await page.locator('#sameStoryComparePanel').evaluate(panel=>{panel.hidden=false;panel.open=true;});
+ const publisherCards=page.locator('#sameStoryGroupList label.database-group-option');
+ assert.ok(await publisherCards.count()>=2,'Two publisher cards must be rendered');
+ // Click the actual visible labels. This dispatches the native checkbox
+ // "change" event used by the real application to enable the compare button.
+ await publisherCards.nth(0).click();
+ await publisherCards.nth(1).click();
+ await waitJs(()=>document.getElementById('sameStorySelectedCount').textContent.includes('Wybrane: 2')
+   && !document.getElementById('compareSameStoryBtn').disabled);
  await click('#compareSameStoryBtn');await waitJs(()=>ostatniePorownanieTejSamejSprawy!==null);
  JSON.parse((await exportButton('#downloadSameStoryComparisonBtn','audit-same-story.json')).toString());
  done('SQLite export, reanalysis, aggregate export, folder comparison and same-story comparison with JSON');
