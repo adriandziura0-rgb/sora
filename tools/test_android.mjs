@@ -446,6 +446,25 @@ try{
  await waitJs(()=>document.getElementById('sameStorySelectedCount').textContent.includes('Wybrane: 2')
    && !document.getElementById('compareSameStoryBtn').disabled);
  await click('#compareSameStoryBtn');await waitJs(()=>ostatniePorownanieTejSamejSprawy!==null);
+ await waitJs(()=>document.getElementById('soraStoryReadable')
+   && !document.getElementById('soraStoryReadable').hidden
+   && document.querySelectorAll('#soraStoryReadable .sora-story-editor').length>=2);
+ assert.ok(await page.locator('#soraStoryReadable .sora-story-source').count()>=2,
+   'Linked source articles must be visible in the case comparison');
+ const caseHtml=await exportButton('#soraStoryDownloadHtml','audit-case.html');
+ assert.match(caseHtml.toString(),/SORA — raport jednej sprawy/);
+ const caseJson=JSON.parse((await exportButton('#soraStoryDownloadJson','audit-case.json')).toString());
+ assert.equal(caseJson.format,'sora_same_story_report_v1');
+ assert.equal(caseJson.comparison.same_story.topic_id,await page.locator('#sameStoryTopic').inputValue());
+ assert.ok(caseJson.source_documents.length>=2,'The selected topic must preserve original article links');
+ await click('#soraStoryTableToggle');
+ assert.equal(await page.locator('#sameStoryComparisonResult').evaluate(e=>e.classList.contains('sora-story-show-table')),true);
+ await click('#soraStoryTableToggle');
+ const quoteAction=page.locator('#soraStoryReadable [data-sora-story-quotes]').first();
+ await quoteAction.evaluate(e=>e.click());
+ await waitJs(()=>document.querySelector('#soraStoryReadable .sora-story-excerpts')
+   && !document.querySelector('#soraStoryReadable .sora-story-excerpts').hidden
+   && !document.querySelector('#soraStoryReadable .sora-story-excerpts').textContent.includes('Odczytuję'));
  JSON.parse((await exportButton('#downloadSameStoryComparisonBtn','audit-same-story.json')).toString());
  done('SQLite export, reanalysis, aggregate export, folder comparison and same-story comparison with JSON');
 
