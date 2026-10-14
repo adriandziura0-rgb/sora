@@ -128,7 +128,13 @@ public final class ProjectStoreTest {
   }
   public static void main(String[] args)throws Exception{
     File dir=new File(args[0]);
-    Context context=new Context(new File(dir,"app"),new File(args[1]));
+    // Zawsze modyfikujemy kopię testowego APK, a nigdy oryginalny ZIP z repo.
+    File assets=new File(dir,"bundled-assets");
+    check(assets.mkdirs(),"Test asset directory");
+    File asset=new File(assets,"drogowskazy-runtime.zip");
+    File originalAsset=new File(args[1],"drogowskazy-runtime.zip");
+    Files.copy(originalAsset.toPath(),asset.toPath(),StandardCopyOption.REPLACE_EXISTING);
+    Context context=new Context(new File(dir,"app"),assets);
     check(ProjectStore.needsBundledInstall(context),"Fresh install must prepare runtime");
     ProjectStore.installBundled(context);
     File current=ProjectStore.projectDir(context);
@@ -139,6 +145,8 @@ public final class ProjectStoreTest {
     byte[] wal="synthetic-uncheckpointed-wal".getBytes();
     write(new File(current,"data/drogowskazy.sqlite3"),database);
     write(new File(current,"data/drogowskazy.sqlite3-wal"),wal);
+    byte[] shm="synthetic-shared-memory".getBytes();
+    write(new File(current,"data/drogowskazy.sqlite3-shm"),shm);
     write(new File(current,"data/notes/user.txt"),"private-note".getBytes());
     File manual=zip(dir,"manual.zip","manual-version",true);
     ProjectStore.importZip(context,Uri.parse(manual.toString()));
@@ -161,7 +169,7 @@ public final class ProjectStoreTest {
     check(!new File(current.getParentFile(),"escape.txt").exists(),"Traversal blocked");
     // Symulacja faktycznej aktualizacji APK, bez kasowania SharedPreferences
     // ani prywatnych danych użytkownika. Stara stała wersji nie przechodzi tego testu.
-    context.setPackageVersion("1.2.12");
+    context.setPackageVersion("1.2.13");
     check(ProjectStore.needsBundledInstall(context),"New APK version must reinstall bundled runtime");
     ProjectStore.installBundled(context);
     check(!Files.readString(new File(current,"app.py").toPath()).equals("manual-version"),"Upgrade activates bundled runtime");
@@ -176,6 +184,29 @@ public final class ProjectStoreTest {
     ProjectStore.installBundled(context);
     check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Legacy migration keeps private database");
     check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Legacy migration keeps WAL");
+    // Wersja Androida pozostaje 1.2.13, ale ZIP ma inne HTML/JS.
+    zip(assets,"drogowskazy-runtime.zip","same-version-new-code",true);
+    check(ProjectStore.needsBundledInstall(context),"Same APK version + different ZIP must reinstall");
+    ProjectStore.installBundled(context);
+    check(Files.readString(new File(current,"app.py").toPath()).equals("same-version-new-code"),"New code activated without APK version bump");
+    check(!ProjectStore.needsBundledInstall(context),"Repeated check must not reinstall");
+    check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Content update preserves SQLite");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Content update preserves WAL");
+    check(Arrays.equals(shm,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-shm").toPath())),"Content update preserves SHM");
+    check(new File(current,"data/notes/user.txt").isFile(),"Content update preserves user files");
+    // Uszkodzony nowy APK nie może skasować starego kodu ani bazy.
+    Files.write(asset.toPath(),"broken-runtime-zip".getBytes());
+    check(ProjectStore.needsBundledInstall(context),"Invalid resource changed identity");
+    try{ProjectStore.installBundled(context);throw new AssertionError("Invalid bundled runtime accepted");}
+    catch(IOException expected){}
+    check(Files.readString(new File(current,"app.py").toPath()).equals("same-version-new-code"),"Invalid runtime keeps working app");
+    check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Invalid runtime preserves SQLite");
+    check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Invalid runtime preserves WAL");
+    check(Arrays.equals(shm,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-shm").toPath())),"Invalid runtime preserves SHM");
+    Files.copy(originalAsset.toPath(),asset.toPath(),StandardCopyOption.REPLACE_EXISTING);
+    check(ProjectStore.needsBundledInstall(context),"Recovered original asset changed identity");
+    ProjectStore.installBundled(context);
+    check(!ProjectStore.needsBundledInstall(context),"Restored good runtime stable");
     File previous=new File(current.getParentFile(),"previous");
     check(current.renameTo(previous),"Simulate interruption after old installation was moved");
     ProjectStore.installBundled(context);
@@ -190,8 +221,6 @@ public final class ProjectStoreTest {
     check(Arrays.equals(database,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3").toPath())),"Invalid restore preserved DB");
     check(Arrays.equals(wal,Files.readAllBytes(new File(current,"data/drogowskazy.sqlite3-wal").toPath())),"Invalid restore preserved WAL");
 
-    byte[] shm="synthetic-shared-memory".getBytes();
-    write(new File(current,"data/drogowskazy.sqlite3-shm"),shm);
     byte[] good=new byte[256];
     byte[] header="SQLite format 3\0".getBytes(java.nio.charset.StandardCharsets.US_ASCII);
     System.arraycopy(header,0,good,0,header.length);

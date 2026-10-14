@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.9
+# Drogowskazy Sora 1.2.13
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -128,3 +128,10 @@ weryfikują odtworzenie widoku bez zmiany artykułów.
 **Uwaga wydaniowa:** te poprawki będą dostępne na telefonie dopiero po
 zbudowaniu i zainstalowaniu nowego APK z bieżącej gałęzi PR. Przed aktualizacją
 należy wykonać eksport TRANSFER oraz potwierdzić zielony build.
+
+## SORA 1.2.13 — CLEAN, etap 1
+APK `versionCode=16`. Identyfikator runtime to SHA-256 zawartości
+`drogowskazy-runtime.zip` i `versionName`, nie sam numer wersji.
+Aktualizacja nawet z identycznym numerem aktywuje zmieniony kod WebView
+i pozostawia SQLite/WAL/SHM oraz katalog `data` nienaruszone.
+Przed aktualizacją wykonaj eksport TRANSFER lub kopię SQLite.

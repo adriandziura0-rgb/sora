@@ -16,6 +16,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -40,14 +42,30 @@ final class ProjectStore {
                 && new File(root, "static/app.js").isFile();
     }
 
-    // Identyfikator wbudowanego programu musi zmieniać się wraz z aktualizacją APK.
-    // Stała 4.5.12-inapp-2 powodowała, że APK 1.2.8 uruchamiało stary panel.
+    // Zmiana plików HTML/JS przy tym samym versionName musi aktywować nowy
+    // program, przy zachowaniu wszystkich prywatnych danych SQLite/WAL/SHM.
+    // Skrót jest liczony z rzeczywiście wbudowanego ZIP-a, nie z nazwy pliku.
     private static String bundledVersion(Context context) {
         try {
             PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            return "apk-runtime-" + packageInfo.versionName;
-        } catch (PackageManager.NameNotFoundException error) {
-            throw new IllegalStateException("Nie można sprawdzić wersji zainstalowanej aplikacji.", error);
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream bundled = context.getAssets().open("drogowskazy-runtime.zip")) {
+                byte[] buffer = new byte[64 * 1024];
+                int n;
+                while ((n = bundled.read(buffer)) != -1) {
+                    if (n > 0) digest.update(buffer, 0, n);
+                }
+            }
+            StringBuilder hash = new StringBuilder(64);
+            for (byte value : digest.digest()) {
+                int b = value & 0xff;
+                hash.append(Character.forDigit(b >>> 4, 16));
+                hash.append(Character.forDigit(b & 15, 16));
+            }
+            return "apk-runtime-" + packageInfo.versionName + "-sha256-" + hash;
+        } catch (PackageManager.NameNotFoundException | NoSuchAlgorithmException | IOException error) {
+            // Fail closed: brak pewności co do nowej paczki = brak aktualizacji.
+            throw new IllegalStateException("Nie można zweryfikować wbudowanego programu.", error);
         }
     }
 

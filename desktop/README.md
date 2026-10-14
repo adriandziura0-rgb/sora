@@ -21,7 +21,7 @@ URUCHOMIENIE
 ARCHITEKTURA
 • Sora.exe: samodzielny natywny host C# WinForms + WebView2.
 • _engine/SoraSilnik/SoraSilnik.exe: niezmieniony silnik i panel PHONE Flask.
-• Oryginalny interfejs HTML/CSS/JS z APK PHONE 1.2.12, nie uproszczona kopia.
+• Oryginalny interfejs HTML/CSS/JS z APK PHONE 1.2.13, nie uproszczona kopia.
 • Obie części komunikują się tylko po 127.0.0.1, z prywatną sesją.
 • Watchdog kontroluje /api/sora-pc/health (bez skanowania SQLite).
 • Praca w zasobniku trwa przy zamkniętym oknie; nie działa podczas uśpienia
