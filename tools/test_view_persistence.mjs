@@ -120,7 +120,7 @@ assert.equal(hidden.requests.length,0,'Explicitly hidden report must stay hidden
 // Original Sora session restore selects hidden <option>s and checks inputs
 // without dispatching 'change'. Only its visible counter changes. The
 // independent analytics dashboard must respond to that counter mutation.
-const silentRestore=await test({...prior,view:'hidden'});
+const silentRestore=await test(null);
 assert.equal(silentRestore.elements.openFullOverviewBtn.disabled,true);
 for(const input of silentRestore.inputs)input.checked=true;
 for(const option of silentRestore.elements.databaseCompareGroups.options)option.selected=true;
