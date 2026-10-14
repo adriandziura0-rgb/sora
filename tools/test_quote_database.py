@@ -43,7 +43,7 @@ with tempfile.TemporaryDirectory(prefix="sora-quotes-") as tmp:
     assert len(v["same_statement_across_groups"]) == 1, v
     assert {r["group"] for r in v["records"]} == {"TVN24", "PAP"}
     assert len(selected_quote_database(iter(rows), mode="folder",groups=["PAP"])["same_statement_across_groups"]) == 0
-    for bad in ([], ["X"] * 11):
+    for bad in ([], [f"Grupa-{n}" for n in range(11)]):
         try:
             selected_quote_database(iter(rows), mode="folder", groups=bad)
         except ValueError:
