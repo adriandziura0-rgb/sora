@@ -109,15 +109,23 @@ async function cancelPicker(){
 async function saveFile(name){
  const nodes=await until(()=>{const ns=nativeNodes();return ns.some(n=>/documentsui/.test(n.package||''))?ns:false;},'save picker ready');
  // Both the raw filesystem root and Android's Downloads provider can save
- // exports. The print spooler does not set our initial folder URI.
- if(!nodes.some(n=>/:id\/header_title$/.test(n['resource-id']||'') && /^Files in Downloads?$/i.test(n.text||''))){
-  await nativeTap('Show roots');await nativeTap('Downloads');
+ // exports. The emulator may reopen at the storage root despite selecting
+ // Downloads; make sure the actual target is /sdcard/Download before writing.
+ const inDownloads=()=>nativeNodes().some(n=>/:id\/header_title$/.test(n['resource-id']||'')
+   && /^Files in Downloads?$/i.test(n.text||''));
+ if(!inDownloads()){
+   if(nodes.some(n=>n.text==='Download'))await nativeTap('Download');
+   else {await nativeTap('Show roots');await nativeTap('Downloads');}
+   if(!inDownloads()&&nativeNodes().some(n=>n.text==='Download'))await nativeTap('Download');
  }
+ await until(()=>inDownloads(),'actual Downloads folder in save picker',30000);
  const edit=await until(()=>nativeNodes().find(n=>n.class==='android.widget.EditText'), 'Save filename');
  adb('shell','input','tap',...point(edit).map(String));
  adb('shell','input','keyevent','123');
  adb('shell','input','keyevent',...Array(Math.max(1,edit.text.length)).fill('67'));
- adb('shell','input','text',name);await nativeTap('Save');
+ adb('shell','input','text',name);
+ await until(()=>nativeNodes().some(n=>n.text===name),'exact requested export filename',15000);
+ await nativeTap('Save');
  let previousSize=-1,stable=0;
  await until(()=>{
   try{
