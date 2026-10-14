@@ -56,7 +56,7 @@ async function test(saved, {late=false, storageFails=false, compareInitiallyDisa
     ?elements.databaseComparePanel._groups:[];
   const document={
     getElementById:id=>elements[id]??null,
-    createElement:()=>{const element=createElement('scope');elements.scopeLabel=element;return element;}
+    createElement:tag=>{const element=createElement(tag);if(tag==='div'&&!elements.scopeLabel)elements.scopeLabel=element;return element;}
   };
   class FakeMutationObserver{
     constructor(callback){this.callback=callback;observers.push(this);}
