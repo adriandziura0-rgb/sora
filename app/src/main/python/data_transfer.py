@@ -22,12 +22,39 @@ MAX_BYTES = 512 * 1024 * 1024
 TABLES = ('documents', 'import_events', 'manual_benchmark_labels', 'gold_document_annotations')
 
 
+# Additive read-only report endpoints must not break TRANSFER with the
+# previous APK. Only this exact, audited UI-only quote plugin is excluded
+# from the FROZEN analysis-engine identity; any other code change still
+# changes the digest and blocks potentially unsafe database transfer.
+QUOTE_EXTENSION = 'clean_core/quote_database.py'
+
+def canonical_engine_payload(name, payload):
+    if name != 'app.py':
+        return payload
+    payload = payload.replace(b'\r\n', b'\n')
+    extra_import = b'from clean_core.quote_database import selected_quote_database\n'
+    if extra_import in payload:
+        if payload.count(extra_import) != 1:
+            raise ValueError('Niejednoznaczny import rozszerzenia cytatów.')
+        payload = payload.replace(extra_import, b'', 1)
+    start_marker = b'@app.get("/api/baza/cytaty_wybranych")\n'
+    end_marker = b'@app.get("/api/baza/wspolna_tresc")\n'
+    if start_marker in payload:
+        if payload.count(start_marker) != 1 or payload.count(end_marker) != 1:
+            raise ValueError('Niejednoznaczny odczyt cytatów.')
+        start = payload.index(start_marker)
+        end = payload.index(end_marker, start)
+        payload = payload[:start] + payload[end:]
+    return payload
+
+
 def runtime_identity(root):
     root = Path(root)
     names = ['app.py']
     for folder in ('clean_core', 'knowledge', 'benchmark'):
         names.extend(p.relative_to(root).as_posix() for p in (root / folder).rglob('*')
-                     if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc')
+                     if p.is_file() and '__pycache__' not in p.parts and p.suffix != '.pyc'
+                     and p.relative_to(root).as_posix() != QUOTE_EXTENSION)
     digest = hashlib.sha256()
     for name in sorted(names):
         payload = (root / name).read_bytes()
@@ -37,6 +64,7 @@ def runtime_identity(root):
         # wspólny, weryfikowany identyfikator TRANSFER.
         if name.endswith(('.py', '.js', '.html', '.css', '.json', '.md', '.txt')):
             payload = payload.replace(b'\r\n', b'\n')
+        payload = canonical_engine_payload(name, payload)
         digest.update(name.encode()); digest.update(b'\0'); digest.update(payload); digest.update(b'\0')
     version = None
     for node in ast.parse((root / 'clean_core/version.py').read_text('utf-8')).body:
