@@ -25,6 +25,7 @@ SOURCES = {
     "static/shared-content.js": ASSETS / "shared-content.js",
     "static/shared-content.css": ASSETS / "shared-content.css",
     "static/import-recovery.js": ASSETS / "import-recovery.js",
+    "clean_core/quote_database.py": ASSETS / "quote_database.py",
 }
 
 def insert_once(text: str, before: str, after: str) -> str:
@@ -99,7 +100,8 @@ def update_backend(app: str) -> str:
         'from clean_core.database_aggregate import build_database_aggregate\n'
         'from clean_core.database_overview import build_selected_database_overview\n'
         'from clean_core.topic_report_cache import cached_topics, cached_comparison, cached_selected_overview, cached_shared_content\n'
-        'from clean_core.shared_content import compare_shared_content',
+        'from clean_core.shared_content import compare_shared_content\n'
+        'from clean_core.quote_database import selected_quote_database',
     )
     app = insert_once(
         app,
@@ -121,6 +123,26 @@ def update_backend(app: str) -> str:
         '        return jsonify({"ok": False, "szczegoly": str(exc)}), 400\n'
         '    except Exception as exc:\n'
         '        return jsonify({"ok": False, "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\n\n\n'
+        '@app.get("/api/baza/porownanie/grupy")',
+    )
+    app = insert_once(
+        app,
+        '@app.get("/api/baza/porownanie/grupy")',
+        '@app.get("/api/baza/cytaty_wybranych")\\n'
+        'def api_selected_quote_database():\\n'
+        '    """Zapisane cytaty tylko wskazanych grup; bez zapisów do SQLite."""\\n'
+        '    try:\\n'
+        '        mode = request.args.get("mode", "folder")\\n'
+        '        groups = request.args.getlist("group")\\n'
+        '        payload = selected_quote_database(\\n'
+        '            DOCUMENT_DATABASE.iter_completed_results(article_only=True),\\n'
+        '            mode=mode, groups=groups,\\n'
+        '        )\\n'
+        '        return jsonify(payload)\\n'
+        '    except ValueError as exc:\\n'
+        '        return jsonify({"ok": False, "szczegoly": str(exc)}), 400\\n'
+        '    except Exception as exc:\\n'
+        '        return jsonify({"ok": False, "szczegoly": f"{type(exc).__name__}: {exc}"}), 500\\n\\n\\n'
         '@app.get("/api/baza/porownanie/grupy")',
     )
     app = insert_once(
