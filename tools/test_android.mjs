@@ -232,6 +232,12 @@ try{
  assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/wybrane grupy/);
  await click('#soraFullOverviewRefresh');
  await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ await waitJs(()=>!document.getElementById('soraDownloadSelectedReport').disabled);
+ const reportHtml=await exportButton('#soraDownloadSelectedReport','sora-selection-report.html');
+ assert.match(reportHtml.toString(),/554|SORA|raport zaznaczonych/);
+ const reportJson=JSON.parse((await exportButton('#soraDownloadSelectedData','sora-selection-report.json')).toString());
+ assert.equal(reportJson.scope.groups.length,2);
+ assert.equal(reportJson.report.ok,true);
  await click('#soraFullOverviewBack');
  await waitJs(()=>document.getElementById('soraFullOverview').hidden);
  await click('#compareDatabaseBtn');
@@ -243,6 +249,11 @@ try{
  await click('#findSharedContentBtn');
  await waitJs(()=>document.getElementById('sharedContentStatus').textContent.includes('Przejrzano'));
  assert.equal(await page.locator('#findSharedContentBtn').isDisabled(),false);
+ await click('#soraFindQuotesBtn');
+ await waitJs(()=>document.getElementById('soraQuotesStatus').textContent.includes('Przejrzano'));
+ const quotesPayload=JSON.parse((await exportButton('#soraDownloadQuotesBtn','sora-quotes.json')).toString());
+ assert.equal(quotesPayload.ok,true);
+ assert.equal(quotesPayload.selected_groups.length,2);
  const cardStats=await page.evaluate(()=>({
    cards:[...document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
    mainCards:[...document.querySelectorAll('#databaseComparisonResult .database-compare-section:first-of-type .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
@@ -409,7 +420,7 @@ try{
  await click('#compareDatabaseBtn');await waitJs(()=>ostatniePorownanieBazy!==null);
  JSON.parse((await exportButton('#downloadDatabaseComparisonBtn','audit-comparison.json')).toString());
  await page.locator('#sameStoryComparePanel').evaluate(e=>e.open=true);
- await page.evaluate(()=>odswiezTematyTejSamejSprawy());
+ await click('#searchSameStoryTopicsBtn');
  await waitJs(()=>Array.from(document.getElementById('sameStoryTopic').options).some(o=>o.value));
  await page.evaluate(()=>{const s=document.getElementById('sameStoryTopic');s.value=Array.from(s.options).find(o=>o.value).value;s.dispatchEvent(new Event('change'));});
  await waitJs(()=>document.getElementById('sameStoryGroups').options.length>=2);
@@ -472,7 +483,12 @@ try{
  assert.equal(await page.locator('#printReport').textContent(),'');
  done('app settings, battery screen, actual service restart/stop/resume, valid restore, invalid restore preserves SQLite, ZIP cancellation/update preserves SQLite, clear');
  assert.deepEqual(testFailures,[],`Integration failures: ${testFailures.join('; ')}`);
- const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
+ // Contextual recovery-dialog actions are conditionally hidden at first load.
+ // They are exercised in tools/test_import_recovery.mjs, not the generic
+ // always-visible-button sweep on an Android emulator.
+ const contextual=new Set(['#soraImportCancel','#soraImportDatabase','#soraImportClose']);
+ const missing=inventory.filter(s=>!clicked.has(s)&&!contextual.has(s));
+ assert.deepEqual(missing,[],`Untested regular buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
  writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.9',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
