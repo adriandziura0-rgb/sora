@@ -243,7 +243,8 @@ try{
  await click('#compareDatabaseBtn');
  await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-compare-mobile-cards .sora-comparison-source-card').length>=2);
  // Wspólne treści są niezależne od listy tematów i uruchamiają się TYLKO po kliknięciu.
- await page.locator('#sharedContentPanel').evaluate(el=>el.open=true);
+ await click('#soraOpenQuoteDatabase');
+ assert.equal(await page.locator('#sharedContentPanel').evaluate(el=>el.open),true);
  assert.equal(await page.locator('#sharedContentStatus').textContent(),
    'Czekam na Twój wybór. Nie przeszukuję bazy automatycznie.');
  await click('#findSharedContentBtn');
