@@ -2,6 +2,8 @@
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>\"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;'}[c] || c));
 let ostatnieDane = null;
+// A2: tożsamość wyniku otwartego z SQLite, odrębna od nowej analizy tekstu.
+let aktywnyZapisanyDokument = null;
 let ostatnieSpanyPodgladu = [];
 let aktywnyWidokPodgladu = 'wszystko';
 let aktywnyTrybPracy = 'analiza';
@@ -111,6 +113,7 @@ function snapshotBiezacejSesji(){
     interface_mode: (typeof trybInterfejsu !== 'undefined' ? trybInterfejsu : 'uzytkownik'),
     production_view: (typeof aktywnyWidokProdukcyjny !== 'undefined' ? aktywnyWidokProdukcyjny : 'wynik'),
     result_label: (typeof aktywnyOpisWyniku !== 'undefined' ? aktywnyOpisWyniku : ''),
+    saved_document: aktywnyZapisanyDokument ? { ...aktywnyZapisanyDokument, oryginalnyTekst: undefined } : null,
     user_view: (typeof ostatniWidokUzytkownika !== 'undefined' ? ostatniWidokUzytkownika : 'start'),
     expert_view: (typeof ostatniWidokEksperta !== 'undefined' ? ostatniWidokEksperta : 'p0'),
     database_ui: {
@@ -187,6 +190,11 @@ async function przywrocSesjeLokalna(){
     // Nowa analiza unieważnia poprzedni eksport.
     // Przy odtwarzaniu snapshotu wynik i eksport są jednak z tej samej zapisanej sesji.
     ostatniEksport = snap.eksport || null;
+    const restoredDoc = snap.saved_document;
+    if(restoredDoc && snap.wynik && String(restoredDoc.analysis_run_id||'') === String(snap.wynik.analysis_run_id||'')){
+      aktywnyZapisanyDokument = { ...restoredDoc, oryginalnyTekst:String(snap.tekst||'') };
+      pokazMetrykeZapisanegoDokumentu();
+    }
     if(typeof zastosujTrybInterfejsu === 'function') zastosujTrybInterfejsu(snap.interface_mode || 'uzytkownik',{restoreView:false});
     if(snap.wynik && snap.interface_mode === 'ekspert' && typeof pokazWidok === 'function') pokazWidok(snap.expert_view || 'p0');
     if(snap.wynik && snap.interface_mode !== 'ekspert' && typeof pokazWidokProdukcyjny6 === 'function') pokazWidokProdukcyjny6(snap.production_view || 'wynik');
@@ -2024,6 +2032,8 @@ function renderujRaportDruku(data){
 }
 
 function renderuj(data){
+  aktywnyZapisanyDokument = null;
+  document.getElementById('soraStoredDocumentAudit')?.remove();
   ostatnieDane = data;
   const activeStatus=$('activeResultStatus');
   if(activeStatus && !activeStatus.classList.contains('has-result')) ustawStatusAktywnegoWyniku('wynik analizy', true);
@@ -2140,7 +2150,81 @@ async function wyslij(url){
 
 let ostatniEksport = null;
 
+function pokazMetrykeZapisanegoDokumentu(){
+  document.getElementById('soraStoredDocumentAudit')?.remove();
+  const saved=aktywnyZapisanyDokument;
+  const anchor=$('activeResultStatus');
+  if(!saved || !anchor || !ostatnieDane)return;
+  const sections=ostatnieDane.sekcje || {};
+  const evidence=[...(sections.relacje_wypowiedzi||[]),...(sections.fact_opinia_cytat||[])].filter(c=>c && typeof c==='object');
+  const previews=evidence.slice(0,8).map(c=>{
+    const excerpt=String(c.fraza || c.fragment || c.phrase || c.co_mowi || '').trim();
+    const linked=excerpt.length>=10 && saved.oryginalnyTekst.includes(excerpt);
+    const relation=String(c.relation_id || c.kod_techniczny || '(brak ID relacji)');
+    return '<li><strong>'+esc(relation)+'</strong> · '
+      +(c.wymaga_przegladu || c.requires_review ? 'wymaga weryfikacji' : 'oznaczenie automatyczne')
+      +'<div>'+esc(excerpt.slice(0,340) || 'Brak fragmentu dowodowego w tej karcie')+'</div><small>'
+      +(linked ? 'Fragment znaleziony w tekście zapisanego artykułu' : 'Nie potwierdzono dosłownej obecności fragmentu w zapisanym tekście')
+      +'</small></li>';
+  }).join('');
+  const panel=document.createElement('details');
+  panel.id='soraStoredDocumentAudit';
+  panel.className='database-compare-note';
+  panel.innerHTML='<summary><strong>Dokument z SQLite — tożsamość analizy i dowody</strong></summary>'
+    +'<p><strong>Plik:</strong> '+esc(saved.path)+' · <strong>ID:</strong> '+esc(saved.id)+'</p>'
+    +'<p><strong>Przebieg:</strong> '+esc(saved.analysis_run_id || 'brak identyfikatora')
+    +' · <strong>Analizowano:</strong> '+esc(saved.analyzed_at || 'data nieustalona')
+    +' · <strong>Wersja:</strong> '+esc(saved.app_version || 'nieustalona')+'</p>'
+    +'<p><strong>SHA-256 treści:</strong> <code>'+esc(saved.content_sha256 || 'brak')+'</code></p>'
+    +'<p>Pokazano '+Math.min(8,evidence.length)+' z '+evidence.length
+    +' zapisanych kart relacji oraz fakt/opinia/cytat. Pozostałe są w sekcjach analizy. '
+    +'Oznaczenia wymagają kontroli źródła; nazwa folderu nie potwierdza redakcji.</p>'
+    +(previews ? '<ol>'+previews+'</ol>' : '<p>Brak zapisanych kart z tych dwóch sekcji.</p>');
+  anchor.insertAdjacentElement('afterend',panel);
+}
+
+async function eksportZapisanegoArtykulu(){
+  const saved=aktywnyZapisanyDokument;
+  const displayed=ostatnieDane;
+  if(!saved || !displayed)throw new Error('Brak otwartego zapisanego artykułu.');
+  if(saved.zmieniony)throw new Error('Tekst artykułu został zmieniony. Otwórz zapisany artykuł ponownie przed eksportem.');
+  // Wyłącznie GET istniejącego rekordu. Nigdy POST /api/raport ani nowy run.
+  const record=await pobierzJson('/api/baza/dokument/'+encodeURIComponent(saved.id)+'/wynik',{},'Kontrola zapisanego artykułu');
+  if(saved!==aktywnyZapisanyDokument || displayed!==ostatnieDane)
+    throw new Error('W trakcie eksportu zmieniono aktywny artykuł. Spróbuj ponownie.');
+  const doc=record.document||{}, result=record.wynik||{};
+  const text=String(record.tekst||'');
+  if(text!==String($('textInput')?.value||'') || text!==saved.oryginalnyTekst)
+    throw new Error('Tekst na ekranie różni się od zapisanego artykułu. Otwórz dokument ponownie.');
+  if(Number(doc.id)!==Number(saved.id)
+     || String(doc.content_sha256||'')!==saved.content_sha256
+     || String(doc.updated_at||'')!==saved.updated_at
+     || String(result.analysis_run_id||'')!==saved.analysis_run_id
+     || JSON.stringify(result)!==JSON.stringify(displayed))
+    throw new Error('Zapisana analiza zmieniła się od otwarcia. Otwórz ten artykuł ponownie — niczego nie przeliczono.');
+  const markdown=String(result.raport_szczegolowy_markdown||result.raport_roboczy||'');
+  const info={id:saved.id,path:saved.path,content_sha256:saved.content_sha256,
+    analysis_run_id:saved.analysis_run_id,analyzed_at:saved.analyzed_at,app_version:saved.app_version};
+  return {ok:true,source:'sqlite_stored_document',read_only:true,
+    analysis_run_id:saved.analysis_run_id,analysis_input_sha256:saved.content_sha256,
+    saved_document:info,raport_json:displayed,raport_markdown:markdown,
+    raport_szczegolowy_markdown:markdown};
+}
+
 async function pobierzEksportRaportu(){
+  if(aktywnyZapisanyDokument){
+    try{
+      ostatniEksport=await eksportZapisanegoArtykulu();
+      if($('reportBox')) $('reportBox').textContent=ostatniEksport.raport_markdown
+        || 'Zapisany wynik jest dostępny w JSON i PDF; brak zapisanej wersji Markdown.';
+      return ostatniEksport;
+    }catch(err){
+      ostatniEksport=null;
+      ustawStatusSesji('Eksport zapisanego artykułu wstrzymany: '+String(err.message||err),'error');
+      if($('reportBox')) $('reportBox').textContent=String(err.message||err);
+      return null;
+    }
+  }
   if(ostatnieDane && ostatnieDane.aggregate_from_database){
     const compact = ostatniZbiorczyPayload || ostatnieDane;
     ostatniEksport = {
@@ -2190,7 +2274,7 @@ async function pobierzEksportRaportu(){
 }
 
 async function tekstRaportuMarkdown(){
-  if(!ostatniEksport || !ostatniEksport.raport_markdown){
+  if(aktywnyZapisanyDokument || !ostatniEksport || !ostatniEksport.raport_markdown){
     await pobierzEksportRaportu();
   }
   return (ostatniEksport && ostatniEksport.raport_markdown) || '';
@@ -2233,7 +2317,7 @@ async function pobierzMarkdown(){
 }
 
 async function pobierzJsonRaportu(){
-  if(!ostatniEksport){ await pobierzEksportRaportu(); }
+  if(aktywnyZapisanyDokument || !ostatniEksport){ await pobierzEksportRaportu(); }
   if(!ostatniEksport) return;
   const payload = ostatniEksport.raport_json || ostatniEksport;
   pobierzPlik('drogowskazy_raport.json', JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
@@ -2270,7 +2354,7 @@ async function pobierzPelneWyniki(){
   }
   let eksport = ostatniEksport;
   const currentRunId = ostatnieDane && ostatnieDane.analysis_run_id;
-  if(!eksport || !currentRunId || eksport.analysis_run_id !== currentRunId) eksport = await pobierzEksportRaportu();
+  if(aktywnyZapisanyDokument || !eksport || !currentRunId || eksport.analysis_run_id !== currentRunId) eksport = await pobierzEksportRaportu();
   if(!eksport) return;
   const sourceOfTruth = eksport.raport_json || ostatnieDane;
   const payload = {
@@ -2280,7 +2364,8 @@ async function pobierzPelneWyniki(){
     stage: sourceOfTruth && (sourceOfTruth.stage || sourceOfTruth.etap) ? (sourceOfTruth.stage || sourceOfTruth.etap) : null,
     tekst_wejsciowy: String(($('textInput') && $('textInput').value) || ''),
     wynik_analizy: sourceOfTruth,
-    raport: eksport || null
+    raport: eksport || null,
+    saved_document: eksport.saved_document || null
   };
   pobierzPlik(`drogowskazy_wyniki_${bezpiecznyZnacznikCzasu()}.json`, JSON.stringify(payload, null, 2), 'application/json;charset=utf-8');
   ustawStatusSesji('Pobrano pełne wyniki JSON. Do PDF użyj „Drukuj / PDF”.', 'saved');
@@ -2293,7 +2378,7 @@ async function drukujLubZapiszPdf(){
     return;
   }
   const currentRunId = ostatnieDane.analysis_run_id || '';
-  if(!ostatnieDane.aggregate_from_database && (!ostatniEksport || ostatniEksport.analysis_run_id !== currentRunId)){
+  if(aktywnyZapisanyDokument || (!ostatnieDane.aggregate_from_database && (!ostatniEksport || ostatniEksport.analysis_run_id !== currentRunId))){
     const got = await pobierzEksportRaportu();
     if(!got) return;
   }
@@ -2924,8 +3009,14 @@ async function otworzWynikZBazy(documentId){
     ustawPodsumowanieZrodel([doc.relative_path||doc.filename||`Dokument #${documentId}`], String(data.tekst||'').length, true);
     ustawTrybPracy('analiza');
     renderuj(data.wynik||{});
-    zaplanujZapisSesji(80);
     const docLabel=doc.relative_path||doc.filename||`#${documentId}`;
+    aktywnyZapisanyDokument={id:Number(doc.id||documentId),path:String(docLabel),
+      content_sha256:String(doc.content_sha256||''),updated_at:String(doc.updated_at||''),
+      analysis_run_id:String(data.wynik?.analysis_run_id||''),
+      analyzed_at:String(doc.analyzed_at||''),app_version:String(doc.app_version||''),
+      oryginalnyTekst:String(data.tekst||''),zmieniony:false};
+    pokazMetrykeZapisanegoDokumentu();
+    zaplanujZapisSesji(80);
     ustawStatusAktywnegoWyniku(`dokument z bazy · ${docLabel}`, true);
     ustawStatusBazy(`Otwarto zapisany wynik: ${docLabel}.`);
     ustawWidokBazy(false);
@@ -3763,6 +3854,12 @@ const loadBenchmarkSampleBtn = $('loadBenchmarkSampleBtn'); if(loadBenchmarkSamp
 const refreshBenchmarkStatsBtn = $('refreshBenchmarkStatsBtn'); if(refreshBenchmarkStatsBtn) refreshBenchmarkStatsBtn.addEventListener('click', () => { void odswiezWynikBenchmarku(); });
 const loadGoldSampleBtn = $('loadGoldSampleBtn'); if(loadGoldSampleBtn) loadGoldSampleBtn.addEventListener('click', () => { void wczytajProbeGold(); });
 const refreshGoldStatsBtn = $('refreshGoldStatsBtn'); if(refreshGoldStatsBtn) refreshGoldStatsBtn.addEventListener('click', () => { void odswiezGoldStats(); });
+$('textInput')?.addEventListener('input',()=>{
+  if(aktywnyZapisanyDokument){
+    aktywnyZapisanyDokument.zmieniony=true;
+    zaplanujZapisSesji(120);
+  }
+});
 $('clearBtn').addEventListener('click', () => {
   clearTimeout(timerZapisuSesji); timerZapisuSesji = null;
   if($('textInput')) $('textInput').value = '';
