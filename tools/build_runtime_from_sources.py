@@ -1,6 +1,6 @@
 """Build the exact audited runtime ZIP from tracked CLEAN canonical sources.
 
-No string patches, classifier changes or SQL writes. The old 1.2.13 runtime
+No string patches, classifier changes or SQL writes. The audited 1.2.15 runtime
 is reproducible byte-for-byte; ANY code drift fails closed before packaging.
 """
 from __future__ import annotations
@@ -16,7 +16,7 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/"runtime_source"
 MANIFEST=SOURCE/"zip_manifest.json"
 TARGET=ROOT/"app/src/main/assets/drogowskazy-runtime.zip"
-RUNTIME_SHA="f590c1f6f78fa9dba4ef922f75eb24760661db52d36038683a04833cdcf9213b"
+RUNTIME_SHA="126e057e18204aeef0592eaad894ad08026b939d3dcccd14ec440dbb37f86125"
 ENGINE_SHA="acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e"
 
 def sha(data:bytes)->str:return hashlib.sha256(data).hexdigest()

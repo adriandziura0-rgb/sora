@@ -1,6 +1,6 @@
 {
   "schema": "sora-runtime-source-v1",
-  "runtime_sha256": "f590c1f6f78fa9dba4ef922f75eb24760661db52d36038683a04833cdcf9213b",
+  "runtime_sha256": "126e057e18204aeef0592eaad894ad08026b939d3dcccd14ec440dbb37f86125",
   "engine_sha256": "acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e",
   "files": [
     {
@@ -1149,7 +1149,7 @@
     },
     {
       "path": "static/app.js",
-      "sha256": "2891c93ff09859804a68196f176bfb251a2bd654b31baac069305dc622d8c8a6",
+      "sha256": "3300c595ccb2fdb6b075005acf1535abdd497277f77a8b891d029f6ba984f7b6",
       "date_time": [
         2026,
         10,
@@ -1413,7 +1413,7 @@
     },
     {
       "path": "static/same-story-mobile.js",
-      "sha256": "e8e59b90c3fd4849c1099c7a27a9c83c393c95995ff977594e85008e1ceadc5c",
+      "sha256": "a2c3e08877cda8508be94c1a3e840fe2757ce99740a36dde2a2252bfbca7c1ae",
       "date_time": [
         2026,
         10,

@@ -59,3 +59,6 @@ SORA 1.2.14 CLEAN
 Instalacyjny ZIP nie zawiera plików PDB, dokumentacji bibliotek WebView2
 ani testowych zrzutów okna. Są dostępne oddzielnie w artefakcie
 Sora-WINDOWS-DIAGNOSTYKA danego przebiegu GitHub Actions.
+
+SORA 1.2.15 — poprawka A1. Porównania i eksporty nie pokazują starych danych
+po zmianie wyboru lub błędzie HTTP; backend PHONE/PC bez zmian.

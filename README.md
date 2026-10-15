@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.14
+# Drogowskazy Sora 1.2.15
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -179,3 +179,6 @@ nie w instalacyjnej paczce CLEAN. Nie usuwaj aplikacji na telefonie:
 najpierw wyeksportuj TRANSFER, a nowy APK zainstaluj jako aktualizację.
 Zalecana weryfikacja: `python tools/test_release_clean.py`, 257/257 GOLD,
 testy transferu PHONE↔PC, pełny test Android SAF oraz natywny Windows EXE.
+
+## SORA 1.2.15 — Analizy etap A1 (15.10.2026)
+Porównanie 2–10 folderów/redakcji oraz jednej sprawy nie pokazuje nieaktualnego wyniku po HTTP 4xx/5xx, zmianie wyboru czy spóźnionej odpowiedzi. Eksport jest dostępny wyłącznie dla bieżącego zakresu. Jednostkowa regresja: `node tools/test_scope_integrity.mjs`. Android i Windows wymagają zielonych buildów z tego samego SHA. CORE, SQLite i transfer pozostają bez zmian.

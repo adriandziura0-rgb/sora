@@ -34,12 +34,12 @@ with ZipFile(TARGET) as z:
     assert "soraDownloadSelectedReport" in overview and "soraDownloadSelectedData" in overview
 
 version=(ROOT/"app/build.gradle").read_text(encoding="utf-8")
-assert "versionCode 17" in version and "versionName '1.2.14'" in version
-assert (ROOT/"VERSION.txt").read_text(encoding="utf-8").startswith("1.2.14")
+assert "versionCode 18" in version and "versionName '1.2.15'" in version
+assert (ROOT/"VERSION.txt").read_text(encoding="utf-8").startswith("1.2.15")
 desktop=(ROOT/"desktop/build_native_windows.py").read_text(encoding="utf-8")
 windows=(ROOT/".github/workflows/build-windows.yml").read_text(encoding="utf-8")
 assert "SoraDiagnostics" in desktop and "SoraDiagnostics" in windows
 assert "Sora-WINDOWS-DIAGNOSTYKA" in windows
 assert 'shutil.move(str(candidate), str(target))' in desktop
 assert ENGINE_SHA == "acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e"
-print("PASS: CLEAN 1.2.14; shared export HTML/JSON, frozen engine, 66 assets, Windows diagnostics split")
+print("PASS: CLEAN 1.2.15; shared export HTML/JSON, frozen engine, 66 assets, Windows diagnostics split")

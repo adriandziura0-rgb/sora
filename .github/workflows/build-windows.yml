@@ -35,6 +35,9 @@ jobs:
           python -m py_compile desktop/sora_backend.py desktop/engine.py desktop/local_session.py desktop/build_native_windows.py
           node desktop/test_windows_adapter.mjs
           node --check runtime_source/static/full-database.js
+          node --check runtime_source/static/app.js
+          node --check runtime_source/static/same-story-mobile.js
+          node tools/test_scope_integrity.mjs
           python tools/test_native_clean.py
           node tools/test_import_recovery.mjs
       - name: Install only Python engine dependencies

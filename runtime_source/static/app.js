@@ -10,6 +10,9 @@ let ostatniZbiorczyPayload = null;
 let zbiorczeDokumentyMap = {};
 let ostatniePorownanieBazy = null;
 let ostatniePorownanieTejSamejSprawy = null;
+// A1: osobne, anulowalne żądania oraz zakres wyniku dla obu porównań.
+let aktywnePorownanieBazy = null, aktywnePorownanieSprawy = null;
+let zakresWynikuPorownaniaBazy = '', zakresWynikuPorownaniaSprawy = '';
 let wykryteTematyBazy = [];
 let benchmarkProba = [];
 let benchmarkIndex = 0;
@@ -340,6 +343,8 @@ async function pobierzJson(url, options={}, kontekst='Żądanie HTTP'){
   try{
     res = await fetch(url, options);
   }catch(err){
+    // Anulowane żądanie porównania nie jest utratą połączenia z backendem.
+    if(options?.signal?.aborted || err?.name === 'AbortError') throw err;
     ustawStanBackend(false, opisPolaczeniaBackend(err));
     throw new Error(`${kontekst}: brak połączenia z backendem. ${opisPolaczeniaBackend(err)}`);
   }
@@ -3065,6 +3070,7 @@ function renderujPickerGrupPorownania(groups){
       return;
     }
     opt.selected=input.checked;
+    wyczyscPorownanieBazy();
     aktualizujPickerGrupPorownania();
     zaplanujZapisSesji(120);
   }));
@@ -3109,18 +3115,49 @@ function renderujPorownanieMulti(payload){
   renderujPorownanieMultiDo($('databaseComparisonResult'),payload);
 }
 
+// A1 — jedynym prawidłowym wynikiem jest wynik dla BIEŻĄCEGO zaznaczenia.
+function kluczPorownaniaBazy(){
+  return JSON.stringify([$('databaseCompareMode')?.value || 'publisher', wybraneGrupyPorownania()]);
+}
+function wyczyscPorownanieBazy(){
+  if(aktywnePorownanieBazy) aktywnePorownanieBazy.abort();
+  aktywnePorownanieBazy=null; ostatniePorownanieBazy=null; zakresWynikuPorownaniaBazy='';
+  const box=$('databaseComparisonResult'), dl=$('downloadDatabaseComparisonBtn');
+  if(box) box.innerHTML='';
+  if(dl) dl.disabled=true;
+}
+function kluczPorownaniaSprawy(){
+  return JSON.stringify([$('sameStoryTopic')?.value || '', wybraneGrupyTejSamejSprawy()]);
+}
+function wyczyscPorownanieSprawy(){
+  if(aktywnePorownanieSprawy) aktywnePorownanieSprawy.abort();
+  aktywnePorownanieSprawy=null; ostatniePorownanieTejSamejSprawy=null; zakresWynikuPorownaniaSprawy='';
+  const box=$('sameStoryComparisonResult'), dl=$('downloadSameStoryComparisonBtn');
+  if(box) box.innerHTML='';
+  if(dl) dl.disabled=true;
+}
+
 async function porownajGrupyBazy(){
+  wyczyscPorownanieBazy(); // Także po błędzie nie pokazuj poprzedniej tabeli.
   const mode=$('databaseCompareMode')?.value || 'publisher';
   const groups=wybraneGrupyPorownania();
   const status=$('databaseCompareStatus'), button=$('compareDatabaseBtn'), dl=$('downloadDatabaseComparisonBtn');
   if(groups.length<2 || groups.length>10){ if(status) status.textContent='Zaznacz od 2 do 10 różnych grup.'; return null; }
+  const scope=kluczPorownaniaBazy(), controller=new AbortController();
+  aktywnePorownanieBazy=controller;
   if(button) button.disabled=true;
   if(status) status.textContent='Porównuję zapisane analizy bez ponownego uruchamiania klasyfikatora…';
   const token=pokazPostepOperacji('Porównuję grupy',{wartosc:null,szczegol:`${groups.length} grup · odczyt zapisanych analiz`});
   try{
     const params=new URLSearchParams({mode}); groups.forEach(group=>params.append('group',group));
-    const payload=await pobierzJson(`/api/baza/porownanie?${params.toString()}`,{},'Porównanie bazy');
-    ostatniePorownanieBazy=payload;
+    const payload=await pobierzJson(`/api/baza/porownanie?${params.toString()}`,{signal:controller.signal},'Porównanie bazy');
+    if(aktywnePorownanieBazy!==controller) return null; // Spóźniona odpowiedź.
+    if(kluczPorownaniaBazy()!==scope){
+      wyczyscPorownanieBazy();
+      if(status) status.textContent='Zmieniono wybór grup. Uruchom porównanie ponownie.';
+      return null;
+    }
+    ostatniePorownanieBazy=payload; zakresWynikuPorownaniaBazy=scope;
     if(Array.isArray(payload.groups)) renderujPorownanieMulti(payload); else renderujPorownanieBazy(payload);
     if(dl) dl.disabled=false;
     if(status) status.textContent=`Porównanie gotowe: ${groups.length} grup.`;
@@ -3128,16 +3165,20 @@ async function porownajGrupyBazy(){
     zaplanujZapisSesji(100);
     return payload;
   }catch(err){
+    if(aktywnePorownanieBazy!==controller) return null;
+    wyczyscPorownanieBazy();
     if(status) status.textContent=err?.message || 'Nie udało się wykonać porównania.';
-    ostatniePorownanieBazy=null;
-    if(dl) dl.disabled=true;
     bladPostepuOperacji(token,'Porównanie nieudane',err?.message||'Błąd porównania grup.');
     return null;
-  }finally{ if(button) button.disabled=false; }
+  }finally{
+    if(aktywnePorownanieBazy===controller) aktywnePorownanieBazy=null;
+    if(button) button.disabled=!!aktywnePorownanieBazy || wybraneGrupyPorownania().length<2 || wybraneGrupyPorownania().length>10;
+  }
 }
 
 function pobierzPorownanieBazy(){
   if(!ostatniePorownanieBazy) return;
+  if(zakresWynikuPorownaniaBazy!==kluczPorownaniaBazy()){ wyczyscPorownanieBazy(); return; }
   const mode=ostatniePorownanieBazy.mode||'compare';
   const stamp=new Date().toISOString().replace(/[:.]/g,'-');
   pobierzPlik(`drogowskazy_porownanie_${mode}_${stamp}.json`,JSON.stringify(ostatniePorownanieBazy,null,2),'application/json;charset=utf-8');
@@ -3159,6 +3200,7 @@ function aktualizujPickerTejSamejSprawy(){
 }
 
 function ustawRedakcjeDlaTematu(){
+  wyczyscPorownanieSprawy(); // Nowy temat wyłącza raport poprzedniej sprawy.
   const topicId=$('sameStoryTopic')?.value||'';
   const topic=wykryteTematyBazy.find(x=>x.topic_id===topicId);
   const sel=$('sameStoryGroups'), list=$('sameStoryGroupList'), status=$('sameStoryStatus');
@@ -3181,6 +3223,7 @@ function ustawRedakcjeDlaTematu(){
       return;
     }
     opt.selected=input.checked;
+    wyczyscPorownanieSprawy();
     aktualizujPickerTejSamejSprawy();
     zaplanujZapisSesji(120);
   }));
@@ -3191,6 +3234,7 @@ function ustawRedakcjeDlaTematu(){
 async function odswiezTematyTejSamejSprawy(){
   const sel=$('sameStoryTopic'), status=$('sameStoryStatus'), button=$('compareSameStoryBtn');
   if(!sel) return null;
+  wyczyscPorownanieSprawy();
   const token=pokazPostepOperacji('Wykrywanie wspólnych spraw',{wartosc:null,szczegol:'Porównuję tytuły, leady, rzadkie słowa i daty w zapisanej bazie.',zajety:false});
   try{
     const previous=sel.value||'';
@@ -3214,15 +3258,24 @@ async function odswiezTematyTejSamejSprawy(){
 }
 
 async function porownajTaSamaSprawe(){
+  wyczyscPorownanieSprawy();
   const topicId=$('sameStoryTopic')?.value||'', groups=wybraneGrupyTejSamejSprawy();
   const status=$('sameStoryStatus'), box=$('sameStoryComparisonResult'), dl=$('downloadSameStoryComparisonBtn'), button=$('compareSameStoryBtn');
   if(!topicId||groups.length<2||groups.length>10){ if(status) status.textContent='Wybierz temat i zaznacz od 2 do 10 redakcji.'; return null; }
+  const scope=kluczPorownaniaSprawy(), controller=new AbortController();
+  aktywnePorownanieSprawy=controller;
   if(button) button.disabled=true;
   const token=pokazPostepOperacji('Porównuję tę samą sprawę',{wartosc:null,szczegol:`${groups.length} redakcji · analiza zapisanych wyników`});
   try{
     const params=new URLSearchParams({topic_id:topicId,mode:'publisher'}); groups.forEach(group=>params.append('group',group));
-    const payload=await pobierzJson(`/api/baza/temat/porownanie?${params.toString()}`,{},'Porównanie tej samej sprawy');
-    ostatniePorownanieTejSamejSprawy=payload;
+    const payload=await pobierzJson(`/api/baza/temat/porownanie?${params.toString()}`,{signal:controller.signal},'Porównanie tej samej sprawy');
+    if(aktywnePorownanieSprawy!==controller) return null;
+    if(kluczPorownaniaSprawy()!==scope || payload?.same_story?.topic_id!==topicId){
+      wyczyscPorownanieSprawy();
+      if(status) status.textContent='Zmieniono temat albo redakcje. Uruchom porównanie ponownie.';
+      return null;
+    }
+    ostatniePorownanieTejSamejSprawy=payload; zakresWynikuPorownaniaSprawy=scope;
     if(box){ if(Array.isArray(payload.groups)) renderujPorownanieMultiDo(box,payload); else renderujPorownanieBazyDo(box,payload); }
     if(dl) dl.disabled=false;
     if(status) status.textContent=`Porównanie gotowe: ${groups.length} redakcji · ${payload.same_story?.title||''}`;
@@ -3230,11 +3283,15 @@ async function porownajTaSamaSprawe(){
     zaplanujZapisSesji(100);
     return payload;
   }catch(err){
+    if(aktywnePorownanieSprawy!==controller) return null;
+    wyczyscPorownanieSprawy();
     if(status) status.textContent=err?.message||'Nie udało się porównać tej samej sprawy.';
-    if(box) box.innerHTML=''; if(dl) dl.disabled=true;
     bladPostepuOperacji(token,'Porównanie nieudane',err?.message||'Błąd porównania tej samej sprawy.');
     return null;
-  } finally { if(button) button.disabled=false; }
+  } finally {
+    if(aktywnePorownanieSprawy===controller) aktywnePorownanieSprawy=null;
+    if(button) button.disabled=!!aktywnePorownanieSprawy || wybraneGrupyTejSamejSprawy().length<2 || wybraneGrupyTejSamejSprawy().length>10;
+  }
 }
 
 function renderujPorownanieMultiDo(box,payload){
@@ -3261,6 +3318,7 @@ function renderujPorownanieBazyDo(box,payload){
 
 function pobierzPorownanieTejSamejSprawy(){
   if(!ostatniePorownanieTejSamejSprawy) return;
+  if(zakresWynikuPorownaniaSprawy!==kluczPorownaniaSprawy()){ wyczyscPorownanieSprawy(); return; }
   const stamp=new Date().toISOString().replace(/[:.]/g,'-');
   pobierzPlik(`drogowskazy_ta_sama_sprawa_${stamp}.json`,JSON.stringify(ostatniePorownanieTejSamejSprawy,null,2),'application/json;charset=utf-8');
 }
@@ -3668,7 +3726,7 @@ const databasePanelEl=$('databasePanel'); if(databasePanelEl) databasePanelEl.ad
   }
 });
 
-const databaseCompareMode = $('databaseCompareMode'); if(databaseCompareMode) databaseCompareMode.addEventListener('change', () => { ostatniePorownanieBazy=null; const dl=$('downloadDatabaseComparisonBtn'); if(dl) dl.disabled=true; const box=$('databaseComparisonResult'); if(box) box.innerHTML=''; void odswiezGrupyPorownania(); });
+const databaseCompareMode = $('databaseCompareMode'); if(databaseCompareMode) databaseCompareMode.addEventListener('change', () => { wyczyscPorownanieBazy(); void odswiezGrupyPorownania(); });
 const compareDatabaseBtn = $('compareDatabaseBtn'); if(compareDatabaseBtn) compareDatabaseBtn.addEventListener('click', () => { void porownajGrupyBazy(); });
 const downloadDatabaseComparisonBtn = $('downloadDatabaseComparisonBtn'); if(downloadDatabaseComparisonBtn) downloadDatabaseComparisonBtn.addEventListener('click', pobierzPorownanieBazy);
 const sameStoryTopic = $('sameStoryTopic'); if(sameStoryTopic) sameStoryTopic.addEventListener('change',()=>{ ustawRedakcjeDlaTematu(); zaplanujZapisSesji(120); });
@@ -3726,8 +3784,8 @@ $('clearBtn').addEventListener('click', () => {
   ustawStatusAktywnegoWyniku('', false);
   ostatniZbiorczyPayload=null;
   zbiorczeDokumentyMap={};
-  ostatniePorownanieBazy=null;
-  ostatniePorownanieTejSamejSprawy=null;
+  wyczyscPorownanieBazy();
+  wyczyscPorownanieSprawy();
   benchmarkProba=[]; benchmarkIndex=0; goldProba=[]; goldIndex=0;
   ostatniEksport=null;
   ostatnieSpanyPodgladu=[];

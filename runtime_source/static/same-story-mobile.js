@@ -208,7 +208,10 @@
     // Oryginalny renderer pozostaje źródłem prawdy; karty są tylko widokiem.
     if(typeof ostatniePorownanieTejSamejSprawy === 'undefined')return;
     const data=ostatniePorownanieTejSamejSprawy;
-    if(data && data.ok && data.same_story?.topic_id === topicSelect.value)render(data);
+    const chosen=Array.from(groupSelect.selectedOptions||[]).map(o=>String(o.value).toLocaleLowerCase('pl-PL')).sort();
+    const returned=data?.ok ? groupNames(data).map(n=>String(n).toLocaleLowerCase('pl-PL')).sort() : [];
+    if(data && data.ok && data.same_story?.topic_id === topicSelect.value
+      && chosen.length>=2 && JSON.stringify(chosen)===JSON.stringify(returned)) render(data);
     else clear();
   }).observe(result,{childList:true});
   topicSelect.addEventListener('change',clear);
