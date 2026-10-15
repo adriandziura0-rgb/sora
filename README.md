@@ -1,5 +1,12 @@
 # Drogowskazy Sora 1.2.5
 
+> **Uwaga o wersjach i gałęziach (15.10.2026):** `main` zachowuje historyczny kod 1.2.5.
+> Sprawdzony CLEAN 1.2.14 jest w `sora-full-clean-stage4-20261015`.
+> Kandydat A2 1.2.16 z naprawionym testem Android jest w `sora-full-a2-audyt-regresji-20261015` (PR #4).
+> Nie instaluj przypadkowo artefaktów z różnych commitów ani nie zastępuj bazy SQLite na żywo.
+> **[Audyt drzewa GitHub, regresji i polityka wydań](docs/AUDYT_DRZEWA_SORA_2026-10-15.md).**
+
+
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
 Nie trzeba instalować Termuxa ani wybierać osobnego ZIP-a z programem.
