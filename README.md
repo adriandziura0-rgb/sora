@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.15
+# Drogowskazy Sora 1.2.16
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -182,3 +182,14 @@ testy transferu PHONE↔PC, pełny test Android SAF oraz natywny Windows EXE.
 
 ## SORA 1.2.15 — Analizy etap A1 (15.10.2026)
 Porównanie 2–10 folderów/redakcji oraz jednej sprawy nie pokazuje nieaktualnego wyniku po HTTP 4xx/5xx, zmianie wyboru czy spóźnionej odpowiedzi. Eksport jest dostępny wyłącznie dla bieżącego zakresu. Jednostkowa regresja: `node tools/test_scope_integrity.mjs`. Android i Windows wymagają zielonych buildów z tego samego SHA. CORE, SQLite i transfer pozostają bez zmian.
+
+## SORA A2 — analiza jednego zapisanego artykułu (1.2.16)
+
+Po otwarciu dokumentu z bazy rozwijana karta pokazuje jego ID, ścieżkę,
+SHA-256 treści, identyfikator i datę zapisanego przebiegu oraz do ośmiu
+fragmentów/dowodów wraz z jawną informacją o pełnej liczbie kart.
+Eksport raportu, pełnego JSON i PDF odczytuje ten sam dokument przez GET
+`/api/baza/dokument/<id>/wynik`, sprawdzając tożsamość przebiegu.
+Po zmianie tekstu lub podmianie analizy w SQLite eksport jest blokowany,
+a użytkownik może ponownie otworzyć zapisany artykuł. Nie następuje ciche
+`POST /api/raport` ani przeliczenie classifiera. Dane i schemat SQLite bez zmian.

@@ -409,6 +409,31 @@ try{
 
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const backup=await exportButton('#downloadDatabaseBtn','audit-backup.sqlite3');assert.equal(backup.subarray(0,16).toString(),'SQLite format 3\0');
+
+ // A2: open the persisted SQLite document and export EXACTLY its stored analysis.
+ const persisted=await page.evaluate(async()=>{
+   const data=await (await fetch('/api/baza/dokumenty?limit=50')).json();
+   return data.documents.find(item=>item.status==='done' && item.is_article);
+ });
+ assert.ok(persisted?.id,'At least one completed article is required for A2');
+ const original=await page.evaluate(async id=>await(await fetch('/api/baza/dokument/'+id+'/wynik')).json(),persisted.id);
+ await page.evaluate(id=>otworzWynikZBazy(id),persisted.id);
+ await waitJs(()=>typeof aktywnyZapisanyDokument==='object' && aktywnyZapisanyDokument?.id===persisted.id
+   && document.getElementById('soraStoredDocumentAudit')!==null);
+ const storedExport=JSON.parse((await exportButton('#downloadResultsBtn','audit-stored-article.json')).toString());
+ assert.deepEqual(storedExport.wynik_analizy,original.wynik,'A2 export must exactly match saved SQLite analysis');
+ assert.equal(storedExport.saved_document.id,persisted.id);
+ assert.equal(storedExport.raport.source,'sqlite_stored_document');
+ const blocked=await page.evaluate(async()=>{
+   const field=document.getElementById('textInput');
+   field.value+=' zmiana po otwarciu';
+   field.dispatchEvent(new Event('input',{bubbles:true}));
+   return await pobierzEksportRaportu();
+ });
+ assert.equal(blocked,null,'Changed stored text must be rejected, not silently recalculated');
+ await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
+ done('A2 persisted article provenance, byte-equivalent saved JSON and changed-input rejection');
+
  // Never confirm a destructive full-database recalculation during a UI audit.
  // Android displays a native confirmation dialog; close it explicitly before
  // testing the remaining comparison buttons, or the dialog blocks all taps.

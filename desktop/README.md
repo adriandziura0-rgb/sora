@@ -62,3 +62,6 @@ Sora-WINDOWS-DIAGNOSTYKA danego przebiegu GitHub Actions.
 
 SORA 1.2.15 — poprawka A1. Porównania i eksporty nie pokazują starych danych
 po zmianie wyboru lub błędzie HTTP; backend PHONE/PC bez zmian.
+
+SORA 1.2.16 A2: eksport pojedynczego zapisanego artykułu tylko z potwierdzonego
+wyniku SQLite; brak automatycznego ponownego przeliczenia podczas eksportu.

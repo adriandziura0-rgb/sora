@@ -38,6 +38,7 @@ jobs:
           node --check runtime_source/static/app.js
           node --check runtime_source/static/same-story-mobile.js
           node tools/test_scope_integrity.mjs
+          node tools/test_article_identity.mjs
           python tools/test_native_clean.py
           node tools/test_import_recovery.mjs
       - name: Install only Python engine dependencies
