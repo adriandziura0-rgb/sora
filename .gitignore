@@ -35,3 +35,6 @@ __pycache__/
 *.log
 *.tmp
 *.bak
+
+# Jedyny wytwarzany ZIP: źródłem prawdy jest katalog runtime_source/
+/app/src/main/assets/drogowskazy-runtime.zip

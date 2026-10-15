@@ -30,7 +30,7 @@ def run():
         # Identyfikator z rzeczywistego APK Sora PHONE 1.2.12.
         # Nie wolno omijać porównania silników przy imporcie TRANSFER.
         phone_112 = 'acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e'
-        assert identity['engine_sha256']==phone_112, 'PC nie jest zgodny z aktualnym APK PHONE 1.2.12'
+        assert identity['engine_sha256']==phone_112, 'PC nie jest zgodny z aktualnym APK PHONE 1.2.13'
         # Symulacja Windows CRLF na plikach źródłowych: nadal ten sam silnik.
         import shutil
         windows_clone = root / 'windows-crlf'

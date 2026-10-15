@@ -10,6 +10,7 @@ on:
       - 'VERSION.txt'
       - 'app/src/main/python/data_transfer.py'
       - 'tools/**'
+      - 'runtime_source/**'
       - '.github/workflows/build-windows.yml'
 permissions:
   contents: read
@@ -36,12 +37,11 @@ jobs:
           node tools/test_import_recovery.mjs
       - name: Install only Python engine dependencies
         run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0
-      - name: Prepare shared PHONE runtime
-        run: |
-          python tools/patch_engine_runtime.py
-          python tools/patch_full_database_dashboard.py
+      - name: Build identical runtime from CLEAN source files
+        run: python tools/build_runtime_from_sources.py
       - name: Test original PHONE engine and SQLite safety
         run: |
+          python tools/test_canonical_runtime.py
           python tools/test_full_database_overview.py
           python tools/test_shared_content.py
           python tools/test_quote_database.py

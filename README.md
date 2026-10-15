@@ -52,10 +52,11 @@ jest osobnym artefaktem przebiegu; aplikacja wydania zawiera tylko ABI arm64.
 
 Naprawiono wielokrotne obliczanie par artykułów już obecnych w pamięci podręcznej.
 Wynik rozpoznawania tej samej sprawy i 257 testów GOLD pozostają identyczne.
-Poprawka dotyczy wyłącznie `clean_core/topic_matcher.py` w trakcie budowy
-APK i PC (`tools/patch_engine_runtime.py`). Oryginalny ZIP jest objęty
-kontrolą SHA-256; build przerwie się, jeżeli silnik został nieoczekiwanie
-zmieniony. Pobieranie plików, wybór folderów, panel, format bazy i import
+Poprawka dotyczyła wyłącznie `clean_core/topic_matcher.py` w starszych
+buildach. Od etapu CLEAN 3 wszystkie aktualne pliki programu są zapisane
+w `runtime_source/`, a ZIP powstaje deterministycznie przez
+`tools/build_runtime_from_sources.py` pod kontrolą SHA-256.
+Każda niezatwierdzona zmiana pliku zatrzyma budowanie. Pobieranie plików, wybór folderów, panel, format bazy i import
 pozostają bez zmian. PHONE i PC muszą używać tego samego nowego wydania
 przy przekazywaniu ZIP TRANSFER, ponieważ identyfikator silnika się zmienia.
 
@@ -147,3 +148,22 @@ Usunięte pliki nadal są dostępne w historii Git; nie usunięto żadnych plik�
 APK/SQLite/TRANSFER ani zamrożonego CORE. CI sprawdza brak importów martwego
 kodu i wykonuje dodatkowo ochronę prywatnej sesji Windows. Baza użytkownika
 pozostaje nietknięta.
+
+## SORA 1.2.13 — CLEAN etap 3: pojedyncze źródło kodu
+Kanoniczne pliki całego programu znajdują się w `runtime_source/`
+(66 plików + manifest, bez baz użytkownika). Wbudowany ZIP
+`app/src/main/assets/drogowskazy-runtime.zip` **nie jest śledzony w Git**:
+obydwa workflow budują go wyłącznie przez
+`python tools/build_runtime_from_sources.py`.
+
+Bajty gotowego ZIP muszą być identyczne z zaliczonym silnikiem z etapu 2
+(SHA-256 `bee4fd3c9f67131e8d49cbf2789bce46fdfcde25610aeeb4e3566529e44cffd8`).
+Zmienione źródła wymagają osobnego, świadomie zatwierdzonego wydania:
+samo narzędzie CLEAN **nie** wprowadza nowych funkcji ani nie
+patchuje programu w ciemno.
+
+Zniknęły stare skrypty `patch_engine_runtime.py`,
+`patch_full_database_dashboard.py` i kopie `tools/overview_assets`.
+Kryteria zaliczenia: bitowa zgodność runtime, 257/257 GOLD,
+identyczny identyfikator silnika PHONE i PC, transfer, SQLite,
+raporty, a następnie pełne testy Android/Windows na tym samym commicie.

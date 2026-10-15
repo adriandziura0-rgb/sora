@@ -38,3 +38,7 @@ Wydanie 1.2.13, CLEAN etap 1: identyfikacja aktualizacji także po
 SHA-256 faktycznego pakietu runtime, bez zmiany klasifikatora i SQLite.
 versionCode 16; test wymiany zawartości przy tym samym numerze APK,
 ochrona SQLite, WAL, SHM i cofanie uszkodzonej aktualizacji.
+
+SORA CLEAN etap 3 (bez zmiany wersji produktu): kod źródłowy w
+runtime_source/, składany deterministycznie zamiast łatek nakładanych
+podczas buildu. Hash kodu i model analizy identyczne z 1.2.13 etap 2.

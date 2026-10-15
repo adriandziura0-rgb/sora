@@ -36,11 +36,8 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Optimize analysis engine without changing file downloads
-        run: python tools/patch_engine_runtime.py
-
-      - name: Enable read-only whole-database reports
-        run: python tools/patch_full_database_dashboard.py
+      - name: Build identical runtime from CLEAN source files
+        run: python tools/build_runtime_from_sources.py
 
       - name: Verify bundled program and installer
         shell: bash
@@ -49,6 +46,7 @@ jobs:
           python -m pip install Flask==3.1.3
           python tools/test_project_store.py
           python tools/test_native_clean.py
+          python tools/test_canonical_runtime.py
           node tools/test_native_panel.mjs
           python tools/test_runtime.py
           python tools/test_transfer.py

@@ -51,6 +51,14 @@ assert "python desktop/test_engine.py" in windows
 assert "python desktop/test_local_session.py" in windows
 assert "python tools/test_native_clean.py" in windows
 assert "python tools/test_native_clean.py" in android
+assert "python tools/build_runtime_from_sources.py" in windows
+assert "python tools/build_runtime_from_sources.py" in android
+assert "python tools/test_canonical_runtime.py" in windows
+assert "python tools/test_canonical_runtime.py" in android
+assert not (ROOT / "tools/patch_engine_runtime.py").exists()
+assert not (ROOT / "tools/patch_full_database_dashboard.py").exists()
+assert not (ROOT / "tools/overview_assets").exists()
+assert (ROOT / "runtime_source/zip_manifest.json").is_file()
 assert "python desktop/build_windows.py" not in windows
 assert ("app/src/main/assets/drogowskazy-runtime.zip" in windows
         or "app/src/main/**" in windows), "Build Windows musi śledzić zmiany runtime APK"
