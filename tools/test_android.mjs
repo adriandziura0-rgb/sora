@@ -418,8 +418,14 @@ try{
  assert.ok(persisted?.id,'At least one completed article is required for A2');
  const original=await page.evaluate(async id=>await(await fetch('/api/baza/dokument/'+id+'/wynik')).json(),persisted.id);
  await page.evaluate(id=>otworzWynikZBazy(id),persisted.id);
- await waitJs(()=>typeof aktywnyZapisanyDokument==='object' && aktywnyZapisanyDokument?.id===persisted.id
-   && document.getElementById('soraStoredDocumentAudit')!==null);
+ // page.waitForFunction executes in WebView: explicitly pass the Node-side id.
+ await page.waitForFunction(
+   id=>typeof aktywnyZapisanyDokument==='object'
+     && aktywnyZapisanyDokument?.id===id
+     && document.getElementById('soraStoredDocumentAudit')!==null,
+   persisted.id,
+   {timeout:120000}
+ );
  const storedExport=JSON.parse((await exportButton('#downloadResultsBtn','audit-stored-article.json')).toString());
  assert.deepEqual(storedExport.wynik_analizy,original.wynik,'A2 export must exactly match saved SQLite analysis');
  assert.equal(storedExport.saved_document.id,persisted.id);
