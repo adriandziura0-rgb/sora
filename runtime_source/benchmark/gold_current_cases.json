@@ -1,0 +1,2517 @@
+{
+  "schema": "drogowskazy_gold_current_v1",
+  "name": "CURRENT_GOLD_REGRESSION",
+  "status": "regression",
+  "target_stage": "CURRENT",
+  "description": "Jedyny aktywny zestaw regresyjny bieżącego rdzenia analizy.",
+  "relation_cases": [
+    {
+      "id": "rel_001",
+      "text": "Jan Kowalski powiedział, że projekt wymaga poprawek.",
+      "expect_relation": true,
+      "speaker": "Jan Kowalski",
+      "speaker_kind": "person",
+      "claim_contains": "projekt wymaga poprawek"
+    },
+    {
+      "id": "rel_002",
+      "text": "Anna Nowak stwierdziła, że komisja powinna opublikować dokumenty.",
+      "expect_relation": true,
+      "speaker": "Anna Nowak",
+      "speaker_kind": "person",
+      "claim_contains": "komisja powinna opublikować dokumenty"
+    },
+    {
+      "id": "rel_003",
+      "text": "Michał Zieliński ocenił, że decyzja była przedwczesna.",
+      "expect_relation": true,
+      "speaker": "Michał Zieliński",
+      "speaker_kind": "person",
+      "claim_contains": "decyzja była przedwczesna"
+    },
+    {
+      "id": "rel_004",
+      "text": "Katarzyna Wiśniewska podkreśliła, że termin nie zostanie zmieniony.",
+      "expect_relation": true,
+      "speaker": "Katarzyna Wiśniewska",
+      "speaker_kind": "person",
+      "claim_contains": "termin nie zostanie zmieniony"
+    },
+    {
+      "id": "rel_005",
+      "text": "Piotr Lewandowski poinformował, że spotkanie odbędzie się jutro.",
+      "expect_relation": true,
+      "speaker": "Piotr Lewandowski",
+      "speaker_kind": "person",
+      "claim_contains": "spotkanie odbędzie się jutro"
+    },
+    {
+      "id": "rel_006",
+      "text": "Joanna Mazur wyjaśniła, że raport obejmuje trzy lata.",
+      "expect_relation": true,
+      "speaker": "Joanna Mazur",
+      "speaker_kind": "person",
+      "claim_contains": "raport obejmuje trzy lata"
+    },
+    {
+      "id": "rel_007",
+      "text": "Tomasz Wójcik zaznaczył, że nie zna szczegółów umowy.",
+      "expect_relation": true,
+      "speaker": "Tomasz Wójcik",
+      "speaker_kind": "person",
+      "claim_contains": "nie zna szczegółów umowy"
+    },
+    {
+      "id": "rel_008",
+      "text": "Ewa Krawczyk przyznała, że projekt wymaga dodatkowych konsultacji.",
+      "expect_relation": true,
+      "speaker": "Ewa Krawczyk",
+      "speaker_kind": "person",
+      "claim_contains": "projekt wymaga dodatkowych konsultacji"
+    },
+    {
+      "id": "rel_009",
+      "text": "Paweł Dąbrowski zapowiedział, że złoży poprawkę do ustawy.",
+      "expect_relation": true,
+      "speaker": "Paweł Dąbrowski",
+      "speaker_kind": "person",
+      "claim_contains": "złoży poprawkę do ustawy"
+    },
+    {
+      "id": "rel_010",
+      "text": "Monika Król odpowiedziała, że nie komentuje trwającego postępowania.",
+      "expect_relation": true,
+      "speaker": "Monika Król",
+      "speaker_kind": "person",
+      "claim_contains": "nie komentuje trwającego postępowania"
+    },
+    {
+      "id": "rel_011",
+      "text": "Projekt wymaga poprawek — powiedział Jan Kowalski.",
+      "expect_relation": true,
+      "speaker": "Jan Kowalski",
+      "speaker_kind": "person",
+      "claim_contains": "Projekt wymaga poprawek"
+    },
+    {
+      "id": "rel_012",
+      "text": "Nie ma podstaw do zmiany decyzji — stwierdziła Anna Nowak.",
+      "expect_relation": true,
+      "speaker": "Anna Nowak",
+      "speaker_kind": "person",
+      "claim_contains": "Nie ma podstaw do zmiany decyzji"
+    },
+    {
+      "id": "rel_013",
+      "text": "Termin pozostaje aktualny — podkreślił Michał Zieliński.",
+      "expect_relation": true,
+      "speaker": "Michał Zieliński",
+      "speaker_kind": "person",
+      "claim_contains": "Termin pozostaje aktualny"
+    },
+    {
+      "id": "rel_014",
+      "text": "Raport zostanie opublikowany jutro — poinformowała Katarzyna Wiśniewska.",
+      "expect_relation": true,
+      "speaker": "Katarzyna Wiśniewska",
+      "speaker_kind": "person",
+      "claim_contains": "Raport zostanie opublikowany jutro"
+    },
+    {
+      "id": "rel_015",
+      "text": "Jan Kowalski: Projekt wymaga pilnych poprawek.",
+      "expect_relation": true,
+      "speaker": "Jan Kowalski",
+      "speaker_kind": "person",
+      "claim_contains": "Projekt wymaga pilnych poprawek"
+    },
+    {
+      "id": "rel_016",
+      "text": "Anna Nowak: Komisja powinna ujawnić pełny raport.",
+      "expect_relation": true,
+      "speaker": "Anna Nowak",
+      "speaker_kind": "person",
+      "claim_contains": "Komisja powinna ujawnić pełny raport"
+    },
+    {
+      "id": "rel_017",
+      "text": "Zdaniem Jana Kowalskiego projekt wymaga dodatkowych konsultacji.",
+      "expect_relation": true,
+      "speaker": "Jan Kowalski",
+      "speaker_kind": "person",
+      "claim_contains": "projekt wymaga dodatkowych konsultacji"
+    },
+    {
+      "id": "rel_018",
+      "text": "Według Anny Nowak decyzja nie ma wystarczającego uzasadnienia.",
+      "expect_relation": true,
+      "speaker": "Anna Nowak",
+      "speaker_kind": "person",
+      "claim_contains": "decyzja nie ma wystarczającego uzasadnienia"
+    },
+    {
+      "id": "rel_019",
+      "text": "W ocenie Michała Zielińskiego termin jest zbyt krótki.",
+      "expect_relation": true,
+      "speaker": "Michał Zieliński",
+      "speaker_kind": "person",
+      "claim_contains": "termin jest zbyt krótki"
+    },
+    {
+      "id": "rel_020",
+      "text": "W opinii Katarzyny Wiśniewskiej raport powinien być jawny.",
+      "expect_relation": true,
+      "speaker": "Katarzyna Wiśniewska",
+      "speaker_kind": "person",
+      "claim_contains": "raport powinien być jawny"
+    },
+    {
+      "id": "rel_021",
+      "text": "Rząd poinformował, że projekt trafi jutro do Sejmu.",
+      "expect_relation": true,
+      "speaker": "Rząd",
+      "speaker_kind": "institution",
+      "claim_contains": "projekt trafi jutro do Sejmu"
+    },
+    {
+      "id": "rel_022",
+      "text": "Komisja zapowiedziała dodatkowe czynności.",
+      "expect_relation": true,
+      "speaker": "Komisja",
+      "speaker_kind": "institution",
+      "claim_contains": "dodatkowe czynności"
+    },
+    {
+      "id": "rel_023",
+      "text": "Prokuratura Krajowa podała, że postępowanie nadal trwa.",
+      "expect_relation": true,
+      "speaker": "Prokuratura Krajowa",
+      "speaker_kind": "institution",
+      "claim_contains": "postępowanie nadal trwa"
+    },
+    {
+      "id": "rel_024",
+      "text": "Ministerstwo Sprawiedliwości poinformowało, że projekt opublikowano w BIP.",
+      "expect_relation": true,
+      "speaker": "Ministerstwo Sprawiedliwości",
+      "speaker_kind": "institution",
+      "claim_contains": "projekt opublikowano w BIP"
+    },
+    {
+      "id": "rel_025",
+      "text": "Senat stwierdził, że poprawki wymagają dalszej pracy.",
+      "expect_relation": true,
+      "speaker": "Senat",
+      "speaker_kind": "institution",
+      "claim_contains": "poprawki wymagają dalszej pracy"
+    },
+    {
+      "id": "rel_026",
+      "text": "Sejm poinformował, że posiedzenie rozpocznie się o godzinie dziesiątej.",
+      "expect_relation": true,
+      "speaker": "Sejm",
+      "speaker_kind": "institution",
+      "claim_contains": "posiedzenie rozpocznie się"
+    },
+    {
+      "id": "rel_027",
+      "text": "Najwyższa Izba Kontroli podała, że kontrola wykazała nieprawidłowości.",
+      "expect_relation": true,
+      "speaker": "Najwyższa Izba Kontroli",
+      "speaker_kind": "institution",
+      "claim_contains": "kontrola wykazała nieprawidłowości"
+    },
+    {
+      "id": "rel_028",
+      "text": "Komisja Europejska stwierdziła, że procedura pozostaje otwarta.",
+      "expect_relation": true,
+      "speaker": "Komisja Europejska",
+      "speaker_kind": "institution",
+      "claim_contains": "procedura pozostaje otwarta"
+    },
+    {
+      "id": "rel_029",
+      "text": "CBA poinformowało, że czynności zakończono.",
+      "expect_relation": true,
+      "speaker": "CBA",
+      "speaker_kind": "institution",
+      "claim_contains": "czynności zakończono"
+    },
+    {
+      "id": "rel_030",
+      "text": "ABW podała, że nie komentuje szczegółów operacji.",
+      "expect_relation": true,
+      "speaker": "ABW",
+      "speaker_kind": "institution",
+      "claim_contains": "nie komentuje szczegółów operacji"
+    },
+    {
+      "id": "rel_031",
+      "text": "Ministerstwo Finansów wyjaśniło, że zmiana nie wpłynie na tegoroczny budżet.",
+      "expect_relation": true,
+      "speaker": "Ministerstwo Finansów",
+      "speaker_kind": "institution",
+      "claim_contains": "zmiana nie wpłynie"
+    },
+    {
+      "id": "rel_032",
+      "text": "Prokuratura Okręgowa potwierdziła, że dokumenty trafiły do sądu.",
+      "expect_relation": true,
+      "speaker": "Prokuratura Okręgowa",
+      "speaker_kind": "institution",
+      "claim_contains": "dokumenty trafiły do sądu"
+    },
+    {
+      "id": "rel_033",
+      "text": "Trybunał Konstytucyjny stwierdził, że rozprawa odbędzie się we wrześniu.",
+      "expect_relation": true,
+      "speaker": "Trybunał Konstytucyjny",
+      "speaker_kind": "institution",
+      "claim_contains": "rozprawa odbędzie się"
+    },
+    {
+      "id": "rel_034",
+      "text": "Rząd zapowiedział, że przedstawi nowy projekt w przyszłym tygodniu.",
+      "expect_relation": true,
+      "speaker": "Rząd",
+      "speaker_kind": "institution",
+      "claim_contains": "przedstawi nowy projekt"
+    },
+    {
+      "id": "rel_035",
+      "text": "Komisja Finansów Publicznych poinformowała, że przyjęła harmonogram prac.",
+      "expect_relation": true,
+      "speaker": "Komisja Finansów Publicznych",
+      "speaker_kind": "institution",
+      "claim_contains": "przyjęła harmonogram prac"
+    },
+    {
+      "id": "rel_036",
+      "text": "PiS twierdzi, że projekt jest szkodliwy.",
+      "expect_relation": true,
+      "speaker": "Prawo i Sprawiedliwość",
+      "speaker_kind": "party",
+      "claim_contains": "projekt jest szkodliwy"
+    },
+    {
+      "id": "rel_037",
+      "text": "KO poinformowała, że poprze poprawkę.",
+      "expect_relation": true,
+      "speaker": "Koalicja Obywatelska",
+      "speaker_kind": "party",
+      "claim_contains": "poprze poprawkę"
+    },
+    {
+      "id": "rel_038",
+      "text": "PSL stwierdziło, że potrzebne są dalsze konsultacje.",
+      "expect_relation": true,
+      "speaker": "Polskie Stronnictwo Ludowe",
+      "speaker_kind": "party",
+      "claim_contains": "potrzebne są dalsze konsultacje"
+    },
+    {
+      "id": "rel_039",
+      "text": "Konfederacja oceniła, że ustawa jest zbyt restrykcyjna.",
+      "expect_relation": true,
+      "speaker": "Konfederacja",
+      "speaker_kind": "party",
+      "claim_contains": "ustawa jest zbyt restrykcyjna"
+    },
+    {
+      "id": "rel_040",
+      "text": "Nowa Lewica zapowiedziała, że zgłosi własny projekt.",
+      "expect_relation": true,
+      "speaker": "Nowa Lewica",
+      "speaker_kind": "party",
+      "claim_contains": "zgłosi własny projekt"
+    },
+    {
+      "id": "rel_041",
+      "text": "Platforma Obywatelska podkreśliła, że poprze komisję śledczą.",
+      "expect_relation": true,
+      "speaker": "Platforma Obywatelska",
+      "speaker_kind": "party",
+      "claim_contains": "poprze komisję śledczą"
+    },
+    {
+      "id": "rel_042",
+      "text": "Prawo i Sprawiedliwość stwierdziło, że nie zmieni stanowiska.",
+      "expect_relation": true,
+      "speaker": "Prawo i Sprawiedliwość",
+      "speaker_kind": "party",
+      "claim_contains": "nie zmieni stanowiska"
+    },
+    {
+      "id": "rel_043",
+      "text": "Koalicja Obywatelska zapowiedziała, że przedstawi poprawki.",
+      "expect_relation": true,
+      "speaker": "Koalicja Obywatelska",
+      "speaker_kind": "party",
+      "claim_contains": "przedstawi poprawki"
+    },
+    {
+      "id": "rel_044",
+      "text": "Suwerenna Polska oceniła, że decyzja jest błędna.",
+      "expect_relation": true,
+      "speaker": "Suwerenna Polska",
+      "speaker_kind": "party",
+      "claim_contains": "decyzja jest błędna"
+    },
+    {
+      "id": "rel_045",
+      "text": "Trzecia Droga poinformowała, że rozpocznie konsultacje.",
+      "expect_relation": true,
+      "speaker": "Trzecia Droga",
+      "speaker_kind": "party",
+      "claim_contains": "rozpocznie konsultacje"
+    },
+    {
+      "id": "rel_046",
+      "text": "TVN24 podał, że projekt trafi jutro do Sejmu.",
+      "expect_relation": true,
+      "source": "TVN24",
+      "claim_contains": "projekt trafi jutro do Sejmu"
+    },
+    {
+      "id": "rel_047",
+      "text": "PAP poinformowała, że posiedzenie rozpocznie się o południu.",
+      "expect_relation": true,
+      "source": "PAP",
+      "claim_contains": "posiedzenie rozpocznie się"
+    },
+    {
+      "id": "rel_048",
+      "text": "Onet napisał, że dokument został opublikowany rano.",
+      "expect_relation": true,
+      "source": "Onet",
+      "claim_contains": "dokument został opublikowany"
+    },
+    {
+      "id": "rel_049",
+      "text": "Interia podała, że rozmowy zakończyły się bez porozumienia.",
+      "expect_relation": true,
+      "source": "Interia",
+      "claim_contains": "rozmowy zakończyły się"
+    },
+    {
+      "id": "rel_050",
+      "text": "RMF FM informuje, że droga została ponownie otwarta.",
+      "expect_relation": true,
+      "source": "RMF FM",
+      "claim_contains": "droga została ponownie otwarta"
+    },
+    {
+      "id": "rel_051",
+      "text": "Radio ZET podaje, że konferencja została odwołana.",
+      "expect_relation": true,
+      "source": "Radio ZET",
+      "claim_contains": "konferencja została odwołana"
+    },
+    {
+      "id": "rel_052",
+      "text": "Gazeta Wyborcza pisze, że komisja otrzymała nowe dokumenty.",
+      "expect_relation": true,
+      "source": "Gazeta Wyborcza",
+      "claim_contains": "komisja otrzymała nowe dokumenty"
+    },
+    {
+      "id": "rel_053",
+      "text": "Reuters podał, że rozmowy będą kontynuowane jutro.",
+      "expect_relation": true,
+      "source": "Reuters",
+      "claim_contains": "rozmowy będą kontynuowane"
+    },
+    {
+      "id": "rel_054",
+      "text": "Polsat informuje, że transmisja rozpocznie się wieczorem.",
+      "expect_relation": true,
+      "source": "Polsat",
+      "claim_contains": "transmisja rozpocznie się"
+    },
+    {
+      "id": "rel_055",
+      "text": "TV Republika podaje, że konferencja zacznie się o dziewiątej.",
+      "expect_relation": true,
+      "source": "TV Republika",
+      "claim_contains": "konferencja zacznie się"
+    },
+    {
+      "id": "rel_056",
+      "text": "Komisja zebrała się we wtorek.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_057",
+      "text": "Jan Kowalski wszedł do budynku.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_058",
+      "text": "Projekt wymaga poprawek i dalszych konsultacji.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_059",
+      "text": "TVN24 transmitował konferencję na żywo.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_060",
+      "text": "Rząd obradował przez trzy godziny.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_061",
+      "text": "PiS i KO spotkały się w Sejmie.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_062",
+      "text": "Czy projekt zostanie przyjęty jutro?",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_063",
+      "text": "W raporcie znajdują się trzy rozdziały.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_064",
+      "text": "Komisja przesłuchała świadka w sprawie budżetu.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_065",
+      "text": "Jan Kowalski, przewodniczący komisji, pojawił się na sali.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_066",
+      "text": "Według harmonogramu posiedzenie rozpocznie się rano.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_067",
+      "text": "Źródło: TVN24",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_068",
+      "text": "Sejm przyjął ustawę większością głosów.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_069",
+      "text": "Prokuratura prowadzi postępowanie od maja.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_070",
+      "text": "Anna Nowak spotkała się z dziennikarzami po posiedzeniu.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_071",
+      "text": "To bardzo poważna sprawa - ocenił na konferencji prasowej szef KPRM Zaznaczył, że chodzi o wykorzystanie systemów.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_072",
+      "text": "Krzysztof Kwiatkowski, mówiąc o fakcie zakupu Pegasusa ze środków Funduszu Sprawiedliwości, przypomniał, że w tej sprawie składał zawiadomienia.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Kwiatkowski",
+      "claim_contains": "w tej sprawie składał zawiadomienia"
+    },
+    {
+      "id": "rel_073",
+      "text": "Krzysztof Kwiatkowski powiedział wcześniej, że projekt jest gotowy. Jak komentował Kwiatkowski, mamy projekty ustaw, minister Adam Bodnar już przygotował projekt ustawy.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Kwiatkowski",
+      "claim_contains": "mamy projekty ustaw"
+    },
+    {
+      "id": "rel_074",
+      "text": "Marcin Samsel powiedział wcześniej, że program był niebezpieczny. Firma NSO Group to byli funkcjonariusze służb izraelskich - odpowiedział, nawiązując do izraelskiego kontrwywiadu.",
+      "expect_relation": true,
+      "speaker": "Marcin Samsel",
+      "claim_contains": "Firma NSO Group to byli funkcjonariusze"
+    },
+    {
+      "id": "rel_075",
+      "text": "Krzysztof Kwiatkowski powiedział, że ujawnił zakup Pegasusa. Jak stwierdził, w tej sprawie mamy trzy bulwersujące fakty.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Kwiatkowski",
+      "claim_contains": "trzy bulwersujące fakty"
+    },
+    {
+      "id": "rel_076",
+      "text": "To bardzo poważna sprawa - ocenił na konferencji prasowej szef KPRM Jan Grabiec.",
+      "expect_relation": true,
+      "speaker": "Jan Grabiec",
+      "claim_contains": "To bardzo poważna sprawa"
+    },
+    {
+      "id": "rel_077",
+      "text": "Tomasz Trela powiedział, że projekt jest gotowy. Zdaniem Tomasza Treli trzeba działać dalej.",
+      "expect_relation": true,
+      "speaker": "Tomasz Trela",
+      "claim_contains": "trzeba działać dalej"
+    },
+    {
+      "id": "rel_078",
+      "text": "Joanna Kluzik-Rostkowska powiedziała, że raport jest niepełny. Zdaniem Joanny Kluzik-Rostkowskiej dokumenty trzeba uzupełnić.",
+      "expect_relation": true,
+      "speaker": "Joanna Kluzik-Rostkowska",
+      "claim_contains": "dokumenty trzeba uzupełnić"
+    },
+    {
+      "id": "rel_079",
+      "text": "Robert Kropiwnicki powiedział, że komisja zbada sprawę. Dodał, że państwo musi zareagować.",
+      "expect_relation": true,
+      "speaker": "Robert Kropiwnicki",
+      "action": "dodał",
+      "claim_contains": "państwo musi zareagować"
+    },
+    {
+      "id": "rel_080",
+      "text": "Joanna Kluzik-Rostkowska powiedziała, że nie jest usatysfakcjonowana przesłuchaniem. Dodała, że informacja o raporcie pojawiła się później.",
+      "expect_relation": true,
+      "speaker": "Joanna Kluzik-Rostkowska",
+      "action": "dodała",
+      "claim_contains": "informacja o raporcie"
+    },
+    {
+      "id": "rel_081",
+      "text": "Ministerstwo Sprawiedliwości poinformowało, że przygotowało raport. Dodało, że raport zostanie opublikowany jutro.",
+      "expect_relation": true,
+      "speaker": "Ministerstwo Sprawiedliwości",
+      "action": "dodało",
+      "claim_contains": "raport zostanie opublikowany"
+    },
+    {
+      "id": "rel_082",
+      "text": "Robert Kropiwnicki podkreślał wagę sprawy. Następnie mówił Kropiwnicki do polityków PiS, że powinni się wstydzić.\n\nDodał, że państwo musi zareagować.",
+      "expect_relation": true,
+      "speaker": "Robert Kropiwnicki",
+      "action": "mówił",
+      "claim_contains": "powinni się wstydzić"
+    },
+    {
+      "id": "rel_083",
+      "text": "Poseł Konfederacji Sławomir Mentzen mówił, że Pegasus jest oprogramowaniem szpiegowskim. Dodał, że historia użycia systemu była nielegalna.",
+      "expect_relation": true,
+      "speaker": "Sławomir Mentzen",
+      "action": "dodał",
+      "claim_contains": "historia użycia systemu"
+    },
+    {
+      "id": "rel_084",
+      "text": "Michał Szczerba powiedział, że komisja wezwie świadków. Jak stwierdził, przesłuchanie Obajtka będzie okazją do wyjaśnienia sprawy.",
+      "expect_relation": true,
+      "speaker": "Michał Szczerba",
+      "action": "stwierdził",
+      "claim_contains": "przesłuchanie Obajtka"
+    },
+    {
+      "id": "rel_085",
+      "text": "Prezes Najwyższej Izby Kontroli Marian Banaś napisał, że czas wrócić do sprawy. Dodał, że NIK sygnalizowała wątpliwości.",
+      "expect_relation": true,
+      "speaker": "Marian Banaś",
+      "action": "dodał",
+      "claim_contains": "NIK sygnalizowała"
+    },
+    {
+      "id": "rel_086",
+      "text": "Marcin Bosacki powiedział, że trzeba wyjaśnić decyzje polityczne. Dodał, że komisja ma większe prerogatywy.",
+      "expect_relation": true,
+      "speaker": "Marcin Bosacki",
+      "action": "dodał",
+      "claim_contains": "większe prerogatywy"
+    },
+    {
+      "id": "rel_087",
+      "text": "Prokuratura Krajowa poinformowała, że prowadzi czynności. Dodała, że dokumenty zostaną przekazane komisji.",
+      "expect_relation": true,
+      "speaker": "Prokuratura Krajowa",
+      "action": "dodała",
+      "claim_contains": "dokumenty zostaną przekazane"
+    },
+    {
+      "id": "rel_088",
+      "text": "PiS poinformowało, że przedstawi stanowisko. Dodało, że dokument zostanie opublikowany.",
+      "expect_relation": true,
+      "speaker": "Prawo i Sprawiedliwość",
+      "action": "dodało",
+      "claim_contains": "dokument zostanie opublikowany"
+    },
+    {
+      "id": "rel_089",
+      "text": "To bardzo poważna sprawa - ocenił na konferencji prasowej szef KPRM Zaznaczył, że chodzi o system.",
+      "expect_relation": false
+    },
+    {
+      "id": "rel_090",
+      "text": "Krzysztof Brejza powiedział, że komisja ujawni informacje. Dodał, że dane były transferowane podczas kampanii wyborczej.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Brejza",
+      "action": "dodał",
+      "claim_contains": "dane były transferowane"
+    },
+    {
+      "id": "rel_091",
+      "text": "Mikołaj Pawlak zeznał, że przygotował wstępną wersję umowy w rozmowie z prokuratorem Tietzem. — Było to zwykłe przygotowanie umowy dla kolejnego zadania, które miało być wykonywane — powiedział były dyrektor w MS.",
+      "expect_relation": true,
+      "speaker": "Mikołaj Pawlak",
+      "action": "powiedział",
+      "claim_contains": "Było to zwykłe przygotowanie umowy",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 5,
+        "note": "role description -> known entity"
+      }
+    },
+    {
+      "id": "rel_092",
+      "text": "Senator KO Krzysztof Brejza został przesłuchany przez komisję. Brejza: Ta sprawa nie ma szarości, jest czarno-biała. To nigdy nie powinno się wydarzyć.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Brejza",
+      "claim_contains": "Ta sprawa nie ma szarości",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 9,
+        "note": "surname colon attribution"
+      }
+    },
+    {
+      "id": "rel_093",
+      "text": "Senator KO Krzysztof Brejza zabrał głos. — Był to zamach na wolne wybory w Polsce — przypomniał Brejza, zabierając głos przed pytaniami komisji.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Brejza",
+      "action": "przypomniał",
+      "claim_contains": "zamach na wolne wybory",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 9,
+        "note": "verb + surname attribution"
+      }
+    },
+    {
+      "id": "rel_094",
+      "text": "O kwestii inwigilacji mówiła we wtorek prokurator Ewa Wrzosek. — Siedzą przed państwem senator, przedstawiciel pracodawców, pani mecenas, prokurator, lider ruchu rolniczego. Jaka jest nasza cecha wspólna? Nie jesteśmy przestępcami. Bo gdybyśmy nimi byli, biorąc pod uwagę te inwigilacje, to oznaczałoby, że już dawno powinniśmy siedzieć w więzieniach — stwierdziła.",
+      "expect_relation": true,
+      "speaker": "Ewa Wrzosek",
+      "action": "stwierdziła",
+      "claim_contains": "Bo gdybyśmy nimi byli",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 10,
+        "note": "long quote speaker state"
+      }
+    },
+    {
+      "id": "rel_095",
+      "text": "Zbigniew Ziobro napisał, że komisja działa nielegalnie. Posłowie podszywający się pod nieistniejącą komisję poniosą odpowiedzialność karną — dodał były szef MS.",
+      "expect_relation": true,
+      "speaker": "Zbigniew Ziobro",
+      "action": "dodał",
+      "claim_contains": "poniosą odpowiedzialność karną",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 3,
+        "note": "role alias former justice minister"
+      }
+    },
+    {
+      "id": "rel_096",
+      "text": "Zbigniew Ziobro wiedział dokładnie, co się dzisiaj wydarzy — powiedziała Arleta Zalewska, reporterka Faktów TVN.",
+      "expect_relation": true,
+      "speaker": "Arleta Zalewska",
+      "action": "powiedziała",
+      "claim_contains": "wiedział dokładnie",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 6,
+        "note": "explicit reporter attribution"
+      }
+    },
+    {
+      "id": "rel_097",
+      "text": "Wojciech Czuchnowski z Gazety Wyborczej wskazał, że komisja ma cel społeczny. Dodał, że nie może być sytuacji, w której ktoś ostentacyjnie lekceważy swoje obowiązki.",
+      "expect_relation": true,
+      "speaker": "Wojciech Czuchnowski",
+      "action": "dodał",
+      "claim_contains": "lekceważy swoje obowiązki",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 7,
+        "note": "same-speaker continuation"
+      }
+    },
+    {
+      "id": "rel_098",
+      "text": "Tomasz Trela powiedział, że na Ziobrę przyjdzie czas. W kolejce czeka Maciej Wąsik. Ci ludzie są do wezwania i do przesłuchania — dodał.",
+      "expect_relation": true,
+      "speaker": "Tomasz Trela",
+      "action": "dodał",
+      "claim_contains": "Ci ludzie są do wezwania",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 8,
+        "note": "object mention must not steal speaker"
+      }
+    },
+    {
+      "id": "rel_099",
+      "text": "Tomasz Trela powiedział, że na Ziobrę przyjdzie czas. W kolejce czeka Maciej Wąsik. — Dzisiaj wypełniamy wszystkie przepisy Kodeksu postępowania karnego. Traktujemy wszystkich dokładnie tak samo — podkreślił.",
+      "expect_relation": true,
+      "speaker": "Tomasz Trela",
+      "action": "podkreślił",
+      "claim_contains": "Traktujemy wszystkich dokładnie tak samo",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 8,
+        "note": "speaker persists after target mention"
+      }
+    },
+    {
+      "id": "rel_100",
+      "text": "Mikołaj Pawlak powiedział, że przygotował draft umowy. Dodał, że był przy podpisaniu umowy, ale siedział przy innym stole niż ministrowie podpisujący dokument.",
+      "expect_relation": true,
+      "speaker": "Mikołaj Pawlak",
+      "action": "dodał",
+      "claim_contains": "był przy podpisaniu umowy",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 5,
+        "note": "plain anaphora after explicit speaker"
+      }
+    },
+    {
+      "id": "rel_101",
+      "text": "Lider Agrounii Michał Kołodziejczak stwierdził, że był inwigilowany Pegasusem. Mówił, że władza nie ugina się przed niczym. Mało tego, do dziś jestem ośmieszany i szkalowany w telewizji publicznej — dodał.",
+      "expect_relation": true,
+      "speaker": "Michał Kołodziejczak",
+      "action": "dodał",
+      "claim_contains": "ośmieszany i szkalowany",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 10,
+        "note": "multi-sentence quote continuation"
+      }
+    },
+    {
+      "id": "rel_102",
+      "text": "Citizen Lab potwierdziło, że Michał Kołodziejczak był inwigilowany kilkukrotnie w maju 2019 roku.",
+      "expect_relation": true,
+      "speaker": "Citizen Lab",
+      "speaker_kind": "institution",
+      "action": "potwierdziło",
+      "claim_contains": "Michał Kołodziejczak był inwigilowany",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 10,
+        "note": "institution speaker"
+      }
+    },
+    {
+      "id": "rel_103",
+      "text": "10 września TK stwierdził, że zakres działania sejmowej komisji śledczej ds. Pegasusa jest niezgodny z Konstytucją. pic.twitter.com/BVqvr12w8C — Zbigniew Ziobro | SP (@ZiobroPL) Komisja bada legalność użycia Pegasusa.",
+      "expect_relation": true,
+      "speaker": "Trybunał Konstytucyjny",
+      "action": "stwierdził",
+      "claim_contains": "zakres działania sejmowej komisji śledczej ds. Pegasusa jest niezgodny z Konstytucją",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 2,
+        "note": "clean relation must stop before social embed"
+      }
+    },
+    {
+      "id": "rel_104",
+      "text": "Magdalena Sroka pytała świadka o klauzulę tajności. Mikołaj Pawlak odpowiedział, że ten, kto występuje, czyli CBA, nadał klauzulę.",
+      "expect_relation": true,
+      "speaker": "Mikołaj Pawlak",
+      "action": "odpowiedział",
+      "claim_contains": "CBA, nadał klauzulę",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 4,
+        "note": "questioner/target must not become speaker"
+      }
+    },
+    {
+      "id": "rel_105",
+      "text": "Senator KO Krzysztof Brejza, były szef Pracodawców RP Andrzej Malinowski, prokurator Ewa Wrzosek i lider Agrounii Michał Kołodziejczak zostali przesłuchani przez komisję śledczą Parlamentu Europejskiego do spraw Pegasusa. Na przesłuchaniu nie pojawili się przedstawiciele polskich władz. We wtorek rozpoczęło się przesłuchanie senatora KO Krzysztofa Brejzy, prokurator Ewy Wrzosek, Andrzeja Malinowskiego i Michała Kołodziejczaka, którzy według analizy Citizen Lab byli podsłuchiwani przy pomocy Pegasusa. Brejza: Ta sprawa nie ma szarości, jest czarno-biała. To nigdy nie powinno się wydarzyć. Stałemu monitoringowi podlegał sztab wyborczy opozycji przez służby nadzorowane przez władzę. — Był to zamach na wolne wybory w Polsce — przypomniał Brejza, zabierając głos przed pytaniami komisji.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Brejza",
+      "claim_contains": "Ta sprawa nie ma szarości",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 2,
+        "note": "full-context surname-colon attribution among several people"
+      }
+    },
+    {
+      "id": "rel_106",
+      "text": "Senator KO Krzysztof Brejza, były szef Pracodawców RP Andrzej Malinowski, prokurator Ewa Wrzosek i lider Agrounii Michał Kołodziejczak zostali przesłuchani przez komisję śledczą Parlamentu Europejskiego do spraw Pegasusa. Na przesłuchaniu nie pojawili się przedstawiciele polskich władz. We wtorek rozpoczęło się przesłuchanie senatora KO Krzysztofa Brejzy, prokurator Ewy Wrzosek, Andrzeja Malinowskiego i Michała Kołodziejczaka, którzy według analizy Citizen Lab byli podsłuchiwani przy pomocy Pegasusa. Brejza: Ta sprawa nie ma szarości, jest czarno-biała. To nigdy nie powinno się wydarzyć. Stałemu monitoringowi podlegał sztab wyborczy opozycji przez służby nadzorowane przez władzę. — Był to zamach na wolne wybory w Polsce — przypomniał Brejza, zabierając głos przed pytaniami komisji.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Brejza",
+      "action": "przypomniał",
+      "claim_contains": "zamach na wolne wybory",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 3,
+        "note": "full-context verb + surname attribution"
+      }
+    },
+    {
+      "id": "rel_107",
+      "text": "Citizen Lab potwierdziło, że Michał Kołodziejczak był inwigilowany kilka miesięcy przed wyborami parlamentarnymi. O kwestii inwigilacji mówiła we wtorek także prokurator Ewa Wrzosek. — Siedzą przed państwem senator, przedstawiciel pracodawców, pani mecenas, prokurator, lider ruchu rolniczego. Jaka jest nasza cecha wspólna? Nie jesteśmy przestępcami. Bo gdybyśmy nimi byli, biorąc pod uwagę te inwigilacje — które, jak przedstawiciele pana Kamińskiego i Ziobry mówią, że były legalne i przeprowadzone zgodnie z prawem — to oznaczałyby, że jesteśmy przestępcami i już dawno powinniśmy siedzieć w więzieniach — stwierdziła. — Inwigilacje były prowadzone od roku 2018, 2019, 2020. Do tego czasu powinny już się odbyć procesy z naszym udziałem, powinniśmy zostać skazani na podstawie zebranych materiałów. Być może to było zamierzeniem służb specjalnych, które nas inwigilowały — mówiła dalej Wrzosek. Wrzosek: Inwigilacje były prowadzone od roku 2018, 2019, 2020. Do tego czasu powinny już się odbyć procesy z naszym udziałem.",
+      "expect_relation": true,
+      "speaker": "Ewa Wrzosek",
+      "action": "stwierdziła",
+      "claim_contains": "Bo gdybyśmy nimi byli",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "long multi-sentence quote speaker state"
+      }
+    },
+    {
+      "id": "rel_108",
+      "text": "Citizen Lab potwierdziło, że Michał Kołodziejczak był inwigilowany kilka miesięcy przed wyborami parlamentarnymi. O kwestii inwigilacji mówiła we wtorek także prokurator Ewa Wrzosek. — Siedzą przed państwem senator, przedstawiciel pracodawców, pani mecenas, prokurator, lider ruchu rolniczego. Jaka jest nasza cecha wspólna? Nie jesteśmy przestępcami. Bo gdybyśmy nimi byli, biorąc pod uwagę te inwigilacje — które, jak przedstawiciele pana Kamińskiego i Ziobry mówią, że były legalne i przeprowadzone zgodnie z prawem — to oznaczałyby, że jesteśmy przestępcami i już dawno powinniśmy siedzieć w więzieniach — stwierdziła. — Inwigilacje były prowadzone od roku 2018, 2019, 2020. Do tego czasu powinny już się odbyć procesy z naszym udziałem, powinniśmy zostać skazani na podstawie zebranych materiałów. Być może to było zamierzeniem służb specjalnych, które nas inwigilowały — mówiła dalej Wrzosek. Wrzosek: Inwigilacje były prowadzone od roku 2018, 2019, 2020. Do tego czasu powinny już się odbyć procesy z naszym udziałem.",
+      "expect_relation": true,
+      "speaker": "Ewa Wrzosek",
+      "claim_contains": "Do tego czasu powinny już się odbyć procesy z naszym udziałem",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "surname-colon continuation across sentence boundary"
+      }
+    },
+    {
+      "id": "rel_109",
+      "text": "To był cały system działania polegający na tym, żeby niszczyć niewygodnych przeciwników — mówił w TVN24 o inwigilacji Pegasusem Tomasz Siemoniak, minister koordynator służb specjalnych.",
+      "expect_relation": true,
+      "speaker": "Tomasz Siemoniak",
+      "action": "mówił",
+      "claim_contains": "niszczyć niewygodnych przeciwników",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "explicit role + full-name attribution after claim"
+      }
+    },
+    {
+      "id": "rel_110",
+      "text": "Postanowienie sądu zostało skutecznie zrealizowane. Świadek został dowieziony na posiedzenie komisji sejmowej i na tym nasza rola się skończyła — powiedziała rzeczniczka Komendanta Głównego Policji inspektor Katarzyna Nowak.",
+      "expect_relation": true,
+      "speaker": "Katarzyna Nowak",
+      "action": "powiedziała",
+      "claim_contains": "Świadek został dowieziony",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "speaker after role descriptor and institution"
+      }
+    },
+    {
+      "id": "rel_111",
+      "text": "Rzecznik Komendanta Stołecznego Policji Robert Szumiata przekazał, że osoba sama dobrowolnie opuściła siedzibę redakcji. Zaznaczył, że nie było mowy o jakimkolwiek siłowym działaniu.",
+      "expect_relation": true,
+      "speaker": "Robert Szumiata",
+      "action": "zaznaczył",
+      "claim_contains": "nie było mowy o jakimkolwiek siłowym działaniu",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 5,
+        "note": "explicit speaker followed by anaphoric continuation"
+      }
+    },
+    {
+      "id": "rel_112",
+      "text": "Prokuratura Krajowa potwierdziła, że Krzysztof Brejza był inwigilowany Pegasusem.",
+      "expect_relation": true,
+      "speaker": "Prokuratura Krajowa",
+      "speaker_kind": "institution",
+      "action": "potwierdziła",
+      "claim_contains": "Krzysztof Brejza był inwigilowany",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 7,
+        "note": "institution speaker must remain institution"
+      }
+    },
+    {
+      "id": "rel_113",
+      "text": "Krzysztof Brejza był pytany, o co zapytałby Ziobrę. — Zapytałbym Zbigniewa Ziobrę, dlaczego współtworzył system zła, gdzie nie tylko inwigilowano sztab, wpływano na wyniki wyborów — odpowiedział.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Brejza",
+      "action": "odpowiedział",
+      "claim_contains": "dlaczego współtworzył system zła",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 7,
+        "note": "question context -> answer with anaphoric attribution"
+      }
+    },
+    {
+      "id": "rel_114",
+      "text": "Lider Agrounii Michał Kołodziejczak stwierdził, że był inwigilowany Pegasusem. To pokazuje patologię tej władzy — mówił. Mało tego, do dziś jestem ośmieszany i szkalowany w telewizji publicznej — dodał.",
+      "expect_relation": true,
+      "speaker": "Michał Kołodziejczak",
+      "action": "dodał",
+      "claim_contains": "ośmieszany i szkalowany",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "multi-sentence speaker continuation"
+      }
+    },
+    {
+      "id": "rel_115",
+      "text": "Citizen Lab potwierdziło, że Michał Kołodziejczak był inwigilowany kilkukrotnie w maju 2019 roku.",
+      "expect_relation": true,
+      "speaker": "Citizen Lab",
+      "speaker_kind": "institution",
+      "action": "potwierdziło",
+      "claim_contains": "Michał Kołodziejczak był inwigilowany",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "institutional research source as speaker"
+      }
+    },
+    {
+      "id": "rel_116",
+      "text": "Tomasz Siemoniak mówił w TVN24 o inwigilacji Pegasusem. — Jeżeli, a to zostało pokazane ponad wszelką wątpliwość, inwigiluje się szefa kampanii wyborczej Koalicji Obywatelskiej, to przecież nie po to, żeby się dowiedzieć, czy ktoś coś ukradł w urzędzie — stwierdził, odnosząc się do inwigilacji Krzysztofa Brejzy. — Pewne rzeczy wyglądają na oczywiste. Odpowiada za to minister Kamiński, minister Ziobro, nie zapominajmy też o roli prokuratury. To był cały system działania polegający na tym, żeby niszczyć niewygodnych przeciwników. Nielegalna inwigilacja Pegasusem była pierwszym punktem w tym całym łańcuchu różnych działań — powiedział minister. Wskazywał, że polityczny sens tej afery dotyczy tego, co wiedzieli premierzy i ministrowie. — I co się działo w głowach tych polityków, że kupili oprogramowanie do inwigilacji terrorystów i stosowali je wobec różnych osób w Polsce — dodał.",
+      "expect_relation": true,
+      "speaker": "Tomasz Siemoniak",
+      "action": "dodał",
+      "claim_contains": "kupili oprogramowanie do inwigilacji terrorystów",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "object mentions Kamiński/Ziobro must not steal active speaker"
+      }
+    },
+    {
+      "id": "rel_117",
+      "text": "Tomasz Trela mówił o pracach komisji. — My w tym bierzemy udział. Politycy PiS nie biorą udziału, oni taki fortel sobie wymyślili: „nie będziemy brać udziału w komisji, ale będziemy się przysłuchiwać. Będziemy sprawdzać, o czym wy chcecie się tam dopytać” — powiedział gość TVN24.",
+      "expect_relation": true,
+      "speaker": "Tomasz Trela",
+      "action": "powiedział",
+      "claim_contains": "Będziemy sprawdzać",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 3,
+        "note": "długi quote + deskryptor „gość TVN24”"
+      }
+    },
+    {
+      "id": "rel_118",
+      "text": "Krzysztof Brejza, senator Koalicji Obywatelskiej, powiedział, że służby wymagają kontroli.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Brejza",
+      "claim_contains": "służby wymagają kontroli",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "afiliacja partyjna nie może przejąć mówcy"
+      }
+    },
+    {
+      "id": "rel_119",
+      "text": "Tomasz Siemoniak z Koalicji Obywatelskiej stwierdził, że trwa audyt służb.",
+      "expect_relation": true,
+      "speaker": "Tomasz Siemoniak",
+      "action": "stwierdził",
+      "claim_contains": "trwa audyt",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "osoba + afiliacja"
+      }
+    },
+    {
+      "id": "rel_120",
+      "text": "Tomasz Trela powiedział, że komisja będzie konsekwentna. W kolejce czeka Maciej Wąsik. — Ci ludzie są do wezwania — dodał.",
+      "expect_relation": true,
+      "speaker": "Tomasz Trela",
+      "action": "dodał",
+      "claim_contains": "Ci ludzie są do wezwania",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 3,
+        "note": "osoba wspomniana jako cel nie zmienia active speaker"
+      }
+    },
+    {
+      "id": "rel_121",
+      "text": "Najwyższa Izba Kontroli poinformowała, że wróci do kontroli sprawy inwigilacji. Dodała, że działania będą kontynuowane.",
+      "expect_relation": true,
+      "speaker": "Najwyższa Izba Kontroli",
+      "action": "Dodała",
+      "claim_contains": "działania będą kontynuowane",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 9,
+        "note": "instytucja jako jawny speaker + anafora"
+      }
+    },
+    {
+      "id": "rel_122",
+      "text": "Magdalena Sroka w podcaście „Wybory kobiet” powiedziała, że komisja przesłucha prezesa partii.",
+      "expect_relation": true,
+      "speaker": "Magdalena Sroka",
+      "claim_contains": "komisja przesłucha prezesa",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 3,
+        "note": "program/tytuł nie przejmuje speaker"
+      }
+    },
+    {
+      "id": "rel_123",
+      "text": "Krzysztof Kwiatkowski przedstawił pismo z 15 lutego 2018 roku podpisane przez wiceministra sprawiedliwości Michała Wosia. \"Uprzejmie informuję, iż dotacja celowa z wykorzystanych środków otrzymanych z Funduszu Sprawiedliwości została rozliczona w całości\" - napisał Woś.",
+      "expect_relation": true,
+      "speaker": "Michał Woś",
+      "action": "napisał",
+      "claim_contains": "dotacja celowa"
+    },
+    {
+      "id": "rel_124",
+      "text": "Jako pierwszy głos zabrał Krzysztof Kwiatkowski. - Rozpocznę od tego, co najważniejsze. Środki z Funduszu Sprawiedliwości nie mogły zostać przekazane CBA. A to w tych ustawach jest ograniczenie finansowania służb specjalnych - mówił dalej.",
+      "expect_relation": true,
+      "speaker": "Krzysztof Kwiatkowski",
+      "action": "mówił",
+      "claim_contains": "ograniczenie finansowania służb specjalnych"
+    },
+    {
+      "id": "rel_125",
+      "text": "\"Słowa, które nie powinny padać z ust poważnego polityka\", który stwierdził w Polsat News, że Donald Tusk powinien podać się do dymisji.",
+      "expect_relation": false
+    }
+  ],
+  "p3_cases": [
+    {
+      "id": "frame_001",
+      "text": "Opozycja była inwigilowana Pegasusem podczas kampanii wyborczej, co podważa uczciwość wyborów.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_002",
+      "text": "Podsłuchiwano sztab opozycji w kampanii, a spór dotyczy wiarygodności wyborów.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_003",
+      "text": "Pegasus miał być używany wobec opozycji, co mogło wpłynąć na uczciwość kampanii wyborczej.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_004",
+      "text": "Komisja została nazwana cyrkiem, choć jej przewodniczący podkreślał powagę państwowej procedury.",
+      "expected_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_005",
+      "text": "Państwowa procedura została przedstawiona jako spektakl i błazenada.",
+      "expected_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_006",
+      "text": "Komisja ma rozliczyć odpowiedzialnych, lecz świadek unika stawienia się i odwleka przesłuchanie.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_007",
+      "text": "Wezwanie do odpowiedzialności zderza się z unikaniem odpowiedzi i przeciąganiem przesłuchania.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_008",
+      "text": "Przesłuchanie ma służyć rozliczeniu sprawy, ale polityk nie stawia się i unika odpowiedzi.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_009",
+      "text": "Procedura jest legalna, ale opozycja nazywa ją polityczną grą.",
+      "expected_phrases": [
+        "legalność/procedura kontra gra polityczna"
+      ],
+      "forbidden_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ]
+    },
+    {
+      "id": "frame_010",
+      "text": "Spór polityczny dotyczy legalności procedury i decyzji sądu.",
+      "expected_phrases": [
+        "legalność/procedura kontra gra polityczna"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_011",
+      "text": "Immunitet stał się elementem politycznego konfliktu wokół procedury.",
+      "expected_phrases": [
+        "legalność/procedura kontra gra polityczna"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_012",
+      "text": "Komisja wezwała Jarosława Kaczyńskiego na przesłuchanie, lecz polityk odmówił stawienia się i unikał odpowiedzi.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie",
+        "instytucja kontra osoba"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_013",
+      "text": "Sejmowa komisja zażądała od Jana Kowalskiego wyjaśnień, a on odmówił odpowiedzi.",
+      "expected_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_014",
+      "text": "Komisja pozostaje w sporze z Anną Nowak, która odmawia stawienia się na przesłuchanie.",
+      "expected_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_015",
+      "text": "TVN24 podał, że polityczny spór zaostrzył się po wypowiedzi ministra.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "źródło medialne kontra aktor polityczny"
+      ]
+    },
+    {
+      "id": "frame_016",
+      "text": "Onet informuje o politycznej wypowiedzi i stanowisku komisji.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "źródło medialne kontra aktor polityczny"
+      ]
+    },
+    {
+      "id": "frame_017",
+      "text": "PAP podała, że komisja oceniła działania ministra jako polityczne.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "źródło medialne kontra aktor polityczny"
+      ]
+    },
+    {
+      "id": "frame_018",
+      "text": "Komisja przesłuchała świadka w sprawie budżetu.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "instytucja kontra osoba"
+      ]
+    },
+    {
+      "id": "frame_019",
+      "text": "Komisja przesłuchała świadków w sprawie budżetu.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "instytucja kontra osoba"
+      ]
+    },
+    {
+      "id": "frame_020",
+      "text": "Sejmowa komisja zebrała się we wtorek. Na sali był Jarosław Kaczyński.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "instytucja kontra osoba"
+      ]
+    },
+    {
+      "id": "frame_021",
+      "text": "Procedura została opisana w regulaminie i nie wywołała sporu.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_022",
+      "text": "Rząd opublikował harmonogram prac komisji.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_023",
+      "text": "TVN24 transmitował konferencję ministra.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_024",
+      "text": "Opozycja prowadziła kampanię wyborczą bez wzmianki o inwigilacji.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_025",
+      "text": "Sąd wydał postanowienie zgodnie z procedurą.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_026",
+      "text": "Jan Kowalski rozmawiał z członkami komisji po posiedzeniu.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_027",
+      "text": "Komisja Europejska opublikowała raport roczny.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_028",
+      "text": "Polityczna debata dotyczyła podatków, a nie legalności procedury.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_029",
+      "text": "Pegasus jest nazwą systemu informatycznego w tekście technicznym.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_030",
+      "text": "Minister spotkał się z dziennikarzem TVN24 po konferencji.",
+      "expected_phrases": [],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_031",
+      "text": "Gazeta Wyborcza podała, że prokuratura bada zakup Pegasusa i możliwą inwigilację.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ]
+    },
+    {
+      "id": "frame_032",
+      "text": "Pegasus był używany do inwigilacji opozycji.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ]
+    },
+    {
+      "id": "frame_033",
+      "text": "Komisja przesłuchała Jana Kowalskiego w sprawie budżetu.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "instytucja kontra osoba"
+      ]
+    },
+    {
+      "id": "frame_034",
+      "text": "Komisja wezwała Jana Kowalskiego na przesłuchanie.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "instytucja kontra osoba"
+      ]
+    },
+    {
+      "id": "frame_035",
+      "text": "Komisja wezwała Jana Kowalskiego, który odmówił stawienia się i unikał odpowiedzi.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie",
+        "instytucja kontra osoba"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_036",
+      "text": "Według Gazety Wyborczej system Pegasus miał służyć do analizy danych, a prokuratura prowadzi czynności.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ]
+    },
+    {
+      "id": "frame_037",
+      "text": "Komisja stwierdziła, że osoby krytyczne wobec rządu były inwigilowane Pegasusem, a wybory z 2019 roku nie były uczciwe i nie dawały równych szans.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "forbidden_phrases": []
+    },
+    {
+      "id": "frame_038",
+      "text": "Będziemy w tej komisji ciężko pracowali - zadeklarował Michał Gramatyka.",
+      "expected_phrases": []
+    },
+    {
+      "id": "frame_039",
+      "text": "To absolutnie skandaliczne, że wszystkie te dane eksportowano poza granicę kraju.",
+      "expected_phrases": []
+    },
+    {
+      "id": "frame_040",
+      "text": "Pegasus był przedmiotem rozmowy. Podcast nazywa się \"Wybory kobiet\". Mówiono też o opozycji.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ]
+    },
+    {
+      "id": "frame_041",
+      "text": "Pegasus był używany do inwigilacji opozycji.\n\nTo osobny akapit o procedurze.\n\nSondaże pokazują wyniki wyborów prezydenckich.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ]
+    },
+    {
+      "id": "frame_042",
+      "text": "W TVN24 Anna Nowak powiedziała, że jutro będzie padać.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "źródło medialne kontra aktor polityczny"
+      ]
+    },
+    {
+      "id": "frame_043",
+      "text": "Komisja omówiła procedurę techniczną i polityczny harmonogram prac.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "legalność/procedura kontra gra polityczna"
+      ]
+    },
+    {
+      "id": "frame_044",
+      "text": "Komisja wezwała Jana Kowalskiego. Osobno rząd zapowiedział rozliczenie finansów.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "instytucja kontra osoba"
+      ]
+    },
+    {
+      "id": "frame_045",
+      "text": "Zaproponuję, by wezwać Daniela Obajtka przed komisję śledczą - zapowiedział przewodniczący tej komisji Michał Szczerba.",
+      "expected_phrases": []
+    },
+    {
+      "id": "frame_046",
+      "text": "Opozycja była inwigilowana Pegasusem podczas kampanii wyborczej, co podważa uczciwość wyborów.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ]
+    },
+    {
+      "id": "frame_047",
+      "text": "Komisja ma rozliczyć odpowiedzialnych, lecz świadek unika stawienia się i odwleka przesłuchanie.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ]
+    },
+    {
+      "id": "frame_048",
+      "text": "Procedura jest legalna, ale opozycja nazywa ją polityczną grą.",
+      "expected_phrases": [
+        "legalność/procedura kontra gra polityczna"
+      ]
+    },
+    {
+      "id": "frame_049",
+      "text": "Komisja wezwała Jarosława Kaczyńskiego na przesłuchanie, lecz polityk odmówił stawienia się i unikał odpowiedzi.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie",
+        "instytucja kontra osoba"
+      ]
+    },
+    {
+      "id": "frame_050",
+      "text": "Komisja przesłuchała Jana Kowalskiego w sprawie budżetu.",
+      "expected_phrases": []
+    },
+    {
+      "id": "frame_051",
+      "text": "Poseł powiedział, że służby zdobywały informacje o politykach opozycji po to, aby uzyskać przewagę wyborczą podczas kampanii. Pegasus służył do inwigilacji.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ]
+    },
+    {
+      "id": "frame_052",
+      "text": "Stałemu monitoringowi podlegał sztab wyborczy opozycji przez służby nadzorowane przez władzę. Był to zamach na wolne wybory w Polsce. Inwigilacja Pegasusem była wykorzystywana podczas kampanii wyborczej.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 9,
+        "note": "strong election integrity evidence"
+      }
+    },
+    {
+      "id": "frame_053",
+      "text": "Zbigniew Ziobro i całe jego polityczne zaplecze odgrywa polityczny spektakl. Komisja działa z szacunkiem do państwa i z szacunkiem do prawa.",
+      "expected_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 6,
+        "note": "explicit bipolar spectacle/state evidence"
+      }
+    },
+    {
+      "id": "frame_054",
+      "text": "Pawlak został wezwany przed komisję, lecz odmówił złożenia przyrzeczenia i opuścił salę. Komisja zapowiedziała wniosek o karę za niestawienie się.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 5,
+        "note": "responsibility/avoidance"
+      }
+    },
+    {
+      "id": "frame_055",
+      "text": "Świadkowie związani z poprzednim obozem władzy nie stawiają się na przesłuchania. Komisja kieruje wnioski o ukaranie i przymusowe doprowadzenie.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 7,
+        "note": "witness no-show and coercive procedure"
+      }
+    },
+    {
+      "id": "frame_056",
+      "text": "Citizen Lab potwierdziło, że Michał Kołodziejczak był inwigilowany kilka miesięcy przed wyborami parlamentarnymi, gdy zapowiadał rejestrację partii politycznej.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 10,
+        "note": "election proximity alone is insufficient"
+      }
+    },
+    {
+      "id": "frame_057",
+      "text": "Temat: \"To były minuty\". Ziobro \"odgrywa spektakl\", ale \"można było chwilę poczekać\".",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 6,
+        "note": "headline/title alone is not evidence"
+      }
+    },
+    {
+      "id": "frame_058",
+      "text": "Ewa Wrzosek była inwigilowana. W innym fragmencie opisano, że w 2020 roku wszczęła śledztwo w sprawie organizacji wyborów prezydenckich w pandemii.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 10,
+        "note": "distant unrelated election mention"
+      }
+    },
+    {
+      "id": "frame_059",
+      "text": "Wojciech Czuchnowski z Gazety Wyborczej komentował zachowanie Ziobry. Komisja czekała kilka minut.",
+      "expected_phrases": [],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 6,
+        "note": "medium/name should not create P3"
+      }
+    },
+    {
+      "id": "frame_060",
+      "text": "Stałemu monitoringowi podlegał sztab wyborczy opozycji przez służby nadzorowane przez władzę. Był to zamach na wolne wybory w Polsce. Sprawa dotyczyła inwigilacji Pegasusem w kampanii wyborczej. Pozyskana korespondencja została wykorzystana do uderzenia w wybory.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 2,
+        "note": "strong election-integrity evidence: opposition campaign + free elections + Pegasus"
+      }
+    },
+    {
+      "id": "frame_061",
+      "text": "Krzysztof Brejza powiedział, że podczas kampanii wyborczej inwigilowano sztab Koalicji Obywatelskiej i wpływano na wyniki wyborów. Ocenił wykorzystanie Pegasusa jako uderzenie w wolne wybory.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 7,
+        "note": "direct statement: surveilled campaign staff and influenced election results"
+      }
+    },
+    {
+      "id": "frame_062",
+      "text": "Tomasz Siemoniak powiedział, że inwigiluje się szefa kampanii wyborczej Koalicji Obywatelskiej. To był cały system działania polegający na tym, żeby niszczyć niewygodnych przeciwników.",
+      "expected_phrases": [
+        "inwigilacja jako narzędzie walki politycznej"
+      ],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "weaker political-weapon frame without explicit fairness/result manipulation"
+      }
+    },
+    {
+      "id": "frame_063",
+      "text": "Rzecznik Komendanta Stołecznego Policji Robert Szumiata przekazał, że policja będzie teraz sporządzać dokumentację, m.in. protokół zatrzymania. Szumiata był też pytany przez dziennikarzy o to, czy Zbigniew Ziobro został zatrzymany skutecznie, skoro w dokumencie nakazującym aresztowanie posła miało być polecenie doprowadzenia go na posiedzenie komisji na godz. 10.30. Wyjaśnił, że dokument jednocześnie mówił o doprowadzeniu osoby na komisję śledczą.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 5,
+        "note": "neutral police documentation/procedure must not become conflict frame"
+      }
+    },
+    {
+      "id": "frame_064",
+      "text": "Katarzyna Nowak wyjaśniła procedurę realizacji nakazu doprowadzenia świadka. Jeśli nakaz wpłynie, policjanci najpierw udają się pod adres zameldowania, a potem sprawdzają inne znane miejsca pobytu.",
+      "expected_phrases": [],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 5,
+        "note": "neutral operational procedure"
+      }
+    },
+    {
+      "id": "frame_065",
+      "text": "Citizen Lab potwierdziło, że Michał Kołodziejczak był inwigilowany kilkukrotnie w maju 2019 roku, kilka miesięcy przed wyborami parlamentarnymi, gdy zapowiadał rejestrację partii politycznej.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "temporal proximity to elections alone is not election-fairness evidence"
+      }
+    },
+    {
+      "id": "frame_066",
+      "text": "Były świadek nie stawił się przed komisją i swoją nieobecność uzasadniał wyrokiem Trybunału. Komisja chce go ponownie przesłuchać. Krzysztof Brejza stwierdził, że to jest wymówka i że boją się odpowiedzialności karnej.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 7,
+        "note": "explicit avoidance plus responsibility"
+      }
+    },
+    {
+      "id": "frame_067",
+      "text": "Komisja Parlamentu Europejskiego zwróciła się do Mariusza Kamińskiego o współpracę i odpowiedzi na pytania. Mariusz Kamiński odmówił współpracy i odpowiedzi na pytania komisji.",
+      "expected_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "real institution-person conflict with explicit refusal"
+      }
+    },
+    {
+      "id": "frame_068",
+      "text": "Komenda Stołeczna Policji opublikowała komunikat, że priorytetem dla policjantów jest bezpieczeństwo wszystkich osób na miejscu i przewidywanie zagrożeń.",
+      "expected_phrases": [],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 5,
+        "note": "safety statement/social post is not a P3 conflict frame"
+      }
+    },
+    {
+      "id": "frame_069",
+      "text": "Ewa Wrzosek była inwigilowana Pegasusem w 2021 roku. W osobnym wcześniejszym postępowaniu w 2020 roku wszczęła śledztwo w sprawie organizacji wyborów prezydenckich podczas pandemii.",
+      "expected_phrases": [],
+      "forbidden_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "same-document election mention from another episode must not be fused with surveillance"
+      }
+    },
+    {
+      "id": "frame_070",
+      "text": "Najwyższa Izba Kontroli oceniła, że nielegalna inwigilacja polityków i obywateli z użyciem Pegasusa to jeden z najpoważniejszych kryzysów demokracji i wymaga kontroli państwa.",
+      "expected_phrases": [
+        "inwigilacja państwa kontra standardy demokratyczne"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "kryzys demokracji + inwigilacja"
+      }
+    },
+    {
+      "id": "frame_071",
+      "text": "Służby inwigilowały Pegasusem sztab wyborczy opozycji podczas kampanii. Pozyskane informacje wykorzystano do wpływania na wyniki wyborów. Był to zamach na wolne wybory.",
+      "expected_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "mocne election evidence"
+      }
+    },
+    {
+      "id": "frame_072",
+      "text": "Inwigilowano Pegasusem szefa kampanii wyborczej Koalicji Obywatelskiej. To był system działania służący do niszczenia niewygodnych przeciwników politycznych.",
+      "expected_phrases": [
+        "inwigilacja jako narzędzie walki politycznej"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "political weapon bez jawnej manipulacji wynikiem"
+      }
+    },
+    {
+      "id": "frame_073",
+      "text": "Marszałek Sejmu pełniła drugą funkcję w państwie. Przed komisją powiedziała, że nic nie wie, w niczym nie uczestniczyła i nie pamięta podejmowanych decyzji.",
+      "expected_phrases": [
+        "odpowiedzialność urzędu kontra dystansowanie się"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "wysoki urząd kontra dystansowanie"
+      }
+    },
+    {
+      "id": "frame_074",
+      "text": "Policja przekazała, że będzie teraz sporządzać dokumentację, w tym protokół zatrzymania. Rzecznik wyjaśnił procedurę realizacji nakazu.",
+      "expected_phrases": [],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "neutralna procedura policyjna — NO P3"
+      }
+    },
+    {
+      "id": "frame_075",
+      "text": "Z szacunku do państwa i prawa komisja musi działać zgodnie z procedurą. Politycy urządzają jednak cyrk polityczny i odgrywają spektakl.",
+      "expected_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "cyrk/spektakl + państwo/prawo"
+      }
+    },
+    {
+      "id": "frame_076",
+      "text": "Komisja wezwała Jana Kowalskiego. Jan Kowalski odmówił stawiennictwa i wszedł w spór z komisją.",
+      "expected_phrases": [
+        "odpowiedzialność kontra unikanie",
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "generic frame tylko przy rzeczywistym konflikcie"
+      }
+    },
+    {
+      "id": "frame_077",
+      "text": "Magdalena Sroka wystąpiła w podcaście „Wybory kobiet” i powiedziała, że komisja pracuje zgodnie z harmonogramem.",
+      "expected_phrases": [],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 3,
+        "note": "tytuł programu „Wybory kobiet” nie jest evidence wyborów"
+      }
+    },
+    {
+      "id": "frame_078",
+      "text": "Gazeta Wyborcza opisała kontrolę w urzędzie. Artykuł nie dotyczył kampanii, wyborów ani inwigilacji politycznej.",
+      "expected_phrases": [],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "nazwa medium nie jest evidence wyborczym"
+      }
+    },
+    {
+      "id": "frame_079",
+      "text": "Koalicja Obywatelska była wymieniona jako afiliacja Krzysztofa Brejzy. Nie padła żadna wypowiedź partii ani opis konfliktu.",
+      "expected_phrases": [],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 9,
+        "note": "afiliacja sama nie tworzy P3"
+      }
+    },
+    {
+      "id": "frame_080",
+      "text": "Kto podejmował decyzje polityczne, żeby tego typu systemu inwigilacji totalnej używać w walce wyborczej oraz politycznej.",
+      "expected_phrases": [
+        "inwigilacja jako narzędzie walki politycznej"
+      ]
+    },
+    {
+      "id": "frame_081",
+      "text": "Krzysztof Brejza był 33 razy inwigilowany Pegasusem przed wyborami parlamentarnymi w 2019 roku. Poseł pełnił wówczas funkcję szefa sztabu KO. Kalendarium pokazuje, jak Pegasusa wykorzystano do celów politycznych.",
+      "expected_phrases": [
+        "inwigilacja jako narzędzie walki politycznej"
+      ]
+    },
+    {
+      "id": "frame_082",
+      "text": "CBA przeprowadziło całościowy audyt dotyczący systemu Pegasus i przekazało prokuraturze materiały o stwierdzonych nieprawidłowościach.",
+      "expected_phrases": []
+    }
+  ],
+  "frame_ranking_cases": [
+    {
+      "id": "rank_001",
+      "text": "Zbigniew Ziobro i całe jego polityczne zaplecze odgrywa polityczny spektakl. Komisja działa z szacunkiem do państwa i z szacunkiem do prawa. Ziobro nie stawił się wcześniej na przesłuchanie.",
+      "expected_top_phrase": "powaga państwa kontra spektakl polityczny",
+      "required_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 6,
+        "note": "specific explicit frame should beat generic avoidance"
+      }
+    },
+    {
+      "id": "rank_002",
+      "text": "Stałemu monitoringowi podlegał sztab wyborczy opozycji. Był to zamach na wolne wybory w Polsce. Inwigilacja Pegasusem była wykorzystana w kampanii wyborczej. Komisja przesłuchiwała Krzysztofa Brejzę.",
+      "expected_top_phrase": "inwigilacja opozycji kontra uczciwość wyborów",
+      "required_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 9,
+        "note": "election frame should beat generic institution/person"
+      }
+    },
+    {
+      "id": "rank_003",
+      "text": "Pawlak został wezwany przed komisję, lecz odmówił złożenia przyrzeczenia i opuścił salę. Komisja wystąpiła o karę za niestawienie się.",
+      "expected_top_phrase": "odpowiedzialność kontra unikanie",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 5,
+        "note": "generic but directly evidenced avoidance frame"
+      }
+    },
+    {
+      "id": "rank_004",
+      "text": "Świadkowie nie stawiają się przed komisją. Komisja kieruje wnioski o ukaranie i przymusowe doprowadzenie. Tomasz Trela mówi, że to zorganizowana akcja.",
+      "expected_top_phrase": "odpowiedzialność kontra unikanie",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 7,
+        "note": "no-show witnesses"
+      }
+    },
+    {
+      "id": "rank_005",
+      "text": "Stałemu monitoringowi podlegał sztab wyborczy opozycji przez służby nadzorowane przez władzę. Był to zamach na wolne wybory w Polsce. Sprawa dotyczyła inwigilacji Pegasusem w kampanii wyborczej. Pozyskana korespondencja została wykorzystana do uderzenia w wybory. Komisja Parlamentu Europejskiego przesłuchała Krzysztofa Brejzę po sporze z władzami.",
+      "expected_top_phrase": "inwigilacja opozycji kontra uczciwość wyborów",
+      "required_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 2,
+        "note": "strong election frame must outrank generic institution-person"
+      }
+    },
+    {
+      "id": "rank_006",
+      "text": "Krzysztof Brejza powiedział, że podczas kampanii wyborczej inwigilowano sztab Koalicji Obywatelskiej i wpływano na wyniki wyborów. Ocenił wykorzystanie Pegasusa jako uderzenie w wolne wybory. Komisja badała również odpowiedzialność konkretnych polityków.",
+      "expected_top_phrase": "inwigilacja opozycji kontra uczciwość wyborów",
+      "required_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 7,
+        "note": "election-result manipulation must be winner if detected"
+      }
+    },
+    {
+      "id": "rank_007",
+      "text": "Tomasz Siemoniak powiedział, że inwigiluje się szefa kampanii wyborczej Koalicji Obywatelskiej. To był cały system działania polegający na tym, żeby niszczyć niewygodnych przeciwników.",
+      "expected_top_phrase": "inwigilacja jako narzędzie walki politycznej",
+      "required_phrases": [
+        "inwigilacja jako narzędzie walki politycznej"
+      ],
+      "forbidden_top_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "weaker political-weapon frame should surface instead of no-frame/overclaim"
+      }
+    },
+    {
+      "id": "rank_008",
+      "text": "Rzecznik Komendanta Stołecznego Policji Robert Szumiata przekazał, że policja będzie teraz sporządzać dokumentację, m.in. protokół zatrzymania. Szumiata był też pytany przez dziennikarzy o to, czy Zbigniew Ziobro został zatrzymany skutecznie, skoro w dokumencie nakazującym aresztowanie posła miało być polecenie doprowadzenia go na posiedzenie komisji na godz. 10.30. Wyjaśnił, że dokument jednocześnie mówił o doprowadzeniu osoby na komisję śledczą.",
+      "expect_no_frames": true,
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 5,
+        "note": "neutral procedure should have no P3 winner"
+      }
+    },
+    {
+      "id": "rank_009",
+      "text": "Świadek nie stawił się na wezwanie komisji. Komisja chce go przesłuchać i kieruje wniosek o doprowadzenie. Zbigniew Ziobro odmawia stawienia się, a członkowie komisji mówią o odpowiedzialności.",
+      "expected_top_phrase": "odpowiedzialność kontra unikanie",
+      "required_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ],
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 7,
+        "note": "specific responsibility/avoidance should outrank generic person-institution conflict"
+      }
+    },
+    {
+      "id": "rank_010",
+      "text": "Krzysztof Brejza powiedział, że inwigilowano sztab opozycji i wpływano na wyniki wyborów. Dodał, że był to system niszczenia niewygodnych przeciwników politycznych.",
+      "expected_top_phrase": "inwigilacja opozycji kontra uczciwość wyborów",
+      "required_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 7,
+        "note": "strong election evidence has priority over weaker political-weapon interpretation"
+      }
+    },
+    {
+      "id": "rank_011",
+      "text": "Służby inwigilowały Pegasusem sztab wyborczy opozycji podczas kampanii. Pozyskane informacje wykorzystano do wpływania na wyniki wyborów. Był to zamach na wolne wybory. Komisja przesłuchała Krzysztofa Brejzę po sporze z władzami.",
+      "expected_top_phrase": "inwigilacja opozycji kontra uczciwość wyborów",
+      "required_phrases": [
+        "inwigilacja opozycji kontra uczciwość wyborów"
+      ],
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "election frame musi pokonać generic"
+      }
+    },
+    {
+      "id": "rank_012",
+      "text": "Najwyższa Izba Kontroli oceniła, że nielegalna inwigilacja polityków i obywateli z użyciem Pegasusa to jeden z najpoważniejszych kryzysów demokracji. Komisja przesłuchała prezesa NIK po sporze z rządem.",
+      "expected_top_phrase": "inwigilacja państwa kontra standardy demokratyczne",
+      "required_phrases": [
+        "inwigilacja państwa kontra standardy demokratyczne"
+      ],
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "democracy frame musi pokonać generic"
+      }
+    },
+    {
+      "id": "rank_013",
+      "text": "Marszałek Sejmu pełniła drugą funkcję w państwie. Przed komisją powiedziała, że nic nie wie, w niczym nie uczestniczyła i nie pamięta podejmowanych decyzji. Komisja weszła z nią w spór.",
+      "expected_top_phrase": "odpowiedzialność urzędu kontra dystansowanie się",
+      "required_phrases": [
+        "odpowiedzialność urzędu kontra dystansowanie się"
+      ],
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "dystansowanie high-office ponad generic"
+      }
+    },
+    {
+      "id": "rank_014",
+      "text": "Z szacunku do państwa i prawa komisja działa zgodnie z procedurą. Politycy odgrywają polityczny spektakl i urządzają cyrk. Komisja weszła w spór z jednym z polityków.",
+      "expected_top_phrase": "powaga państwa kontra spektakl polityczny",
+      "required_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ],
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "spektakl specyficzny ponad generic"
+      }
+    },
+    {
+      "id": "rank_015",
+      "text": "Inwigilowano Pegasusem szefa kampanii Koalicji Obywatelskiej. Był to system działania służący do niszczenia niewygodnych przeciwników politycznych. Komisja przesłuchała polityka po sporze z władzami.",
+      "expected_top_phrase": "inwigilacja jako narzędzie walki politycznej",
+      "required_phrases": [
+        "inwigilacja jako narzędzie walki politycznej"
+      ],
+      "forbidden_top_phrases": [
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "political weapon ponad generic"
+      }
+    },
+    {
+      "id": "rank_016",
+      "text": "Komisja wezwała Jana Kowalskiego. Jan Kowalski odmówił stawiennictwa i wszedł w spór z komisją.",
+      "expected_top_phrase": "odpowiedzialność kontra unikanie",
+      "required_phrases": [
+        "odpowiedzialność kontra unikanie",
+        "instytucja kontra osoba"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "bardziej specyficzna rama unikania ponad generic"
+      }
+    },
+    {
+      "id": "rank_017",
+      "text": "Kto podejmował decyzje polityczne, żeby tego typu systemu inwigilacji totalnej używać w walce wyborczej oraz politycznej. Żaden z wezwanych polityków PiS nie stawił się na komisji.",
+      "expected_top_phrase": "inwigilacja jako narzędzie walki politycznej",
+      "required_phrases": [
+        "inwigilacja jako narzędzie walki politycznej",
+        "odpowiedzialność kontra unikanie"
+      ],
+      "forbidden_top_phrases": [
+        "odpowiedzialność kontra unikanie"
+      ]
+    },
+    {
+      "id": "rank_018",
+      "text": "Zbigniew Ziobro odgrywa polityczny spektakl. Komisja nie pozwoli naruszać powagi państwa i procedur. Ziobro nie stawił się wcześniej na przesłuchanie.",
+      "expected_top_phrase": "powaga państwa kontra spektakl polityczny",
+      "required_phrases": [
+        "powaga państwa kontra spektakl polityczny"
+      ]
+    }
+  ],
+  "top_cases": [
+    {
+      "id": "top_001",
+      "text": "Ta kartka byłaby nawet zabawna - skomentował Zbigniew Ziobro. z art. 231 Kodeksu karnego. 10 września TK stwierdził, że zakres działania… pic.twitter.com/BVqvr12w8C — Zbigniew Ziobro | SP (@ZiobroPL) Komisja śledcza ds. Pegasusa bada legalność działań.",
+      "forbidden_top_contains": [
+        "pic.twitter.com",
+        "@ZiobroPL"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 2,
+        "note": "social embed artifact must never enter TOP"
+      }
+    },
+    {
+      "id": "top_002",
+      "text": "Zbigniew Ziobro wiedział dokładnie, co się dzisiaj wydarzy — powiedziała Arleta Zalewska, reporterka Faktów TVN.",
+      "required_top_contains": [
+        "Zbigniew Ziobro wiedział dokładnie"
+      ],
+      "expected_top_speaker": "Arleta Zalewska",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 6,
+        "note": "clean top positive control"
+      }
+    },
+    {
+      "id": "top_003",
+      "text": "Jeśli sąd wyda postanowienie o doprowadzeniu ich przed komisję, zmięknie im polityczna rura — powiedział w TVN24 Tomasz Trela, wiceszef komisji.",
+      "required_top_contains": [
+        "zmięknie im polityczna rura"
+      ],
+      "expected_top_speaker": "Tomasz Trela",
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 7,
+        "note": "clean top positive control"
+      }
+    },
+    {
+      "id": "top_004",
+      "text": "Ta komisja jest po to, żeby przyszedł pan Jarosław Kaczyński, pan i wytłumaczyli się przed obywatelami — wskazał Tomasz Trela.",
+      "forbidden_top_contains": [
+        "pan i wytłumaczyli"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 14,
+        "note": "malformed slot remains blocked"
+      }
+    },
+    {
+      "id": "top_005",
+      "text": "Mikołaj Pawlak powiedział, że dokument przygotowano. — Tekst ( - red. nie został domknięty — dodał.",
+      "forbidden_top_contains": [
+        "red."
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 5,
+        "note": "broken editorial insert must not dominate TOP"
+      }
+    },
+    {
+      "id": "top_006",
+      "text": "Zbigniew Ziobro napisał: sprawa jest ważna. https://example.org/post @ZiobroPL — dodał.",
+      "forbidden_top_contains": [
+        "https://",
+        "@ZiobroPL"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 2,
+        "note": "generic URL/handle artifact control"
+      }
+    },
+    {
+      "id": "top_007",
+      "text": "Komenda Stołeczna Policji poinformowała, że priorytetem jest bezpieczeństwo. pic.twitter.com/SFQOgvmIyJ — Policja Warszawa (@Policja_KSP) akr/ads tvn24.pl. Katarzyna Nowak powiedziała, że postanowienie sądu zostało skutecznie zrealizowane.",
+      "forbidden_top_contains": [
+        "pic.twitter.com",
+        "@Policja_KSP",
+        "akr/ads"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "social embed and editorial tail must not enter TOP"
+      }
+    },
+    {
+      "id": "top_008",
+      "text": "To był cały system działania polegający na tym, żeby niszczyć niewygodnych przeciwników — mówił w TVN24 Tomasz Siemoniak.",
+      "required_top_contains": [
+        "niszczyć niewygodnych przeciwników"
+      ],
+      "expected_top_speaker": "Tomasz Siemoniak",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "clean high-value attributed quote"
+      }
+    },
+    {
+      "id": "top_009",
+      "text": "Krzysztof Brejza powiedział: Zapytałbym Zbigniewa Ziobrę, dlaczego współtworzył system zła, gdzie nie tylko inwigilowano sztab, wpływano na wyniki wyborów.",
+      "required_top_contains": [
+        "współtworzył system zła"
+      ],
+      "expected_top_speaker": "Krzysztof Brejza",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "clean attributed high-value claim"
+      }
+    },
+    {
+      "id": "top_010",
+      "text": "ads/kab Temat: Tych przypadków jest więcej, liczby są znacząco wyższe. Tomasz Siemoniak powiedział, że nielegalna inwigilacja Pegasusem była pierwszym punktem systemu niszczenia niewygodnych przeciwników.",
+      "forbidden_top_contains": [
+        "ads/kab",
+        "Temat:"
+      ],
+      "required_top_contains": [
+        "nielegalna inwigilacja Pegasusem"
+      ],
+      "expected_top_speaker": "Tomasz Siemoniak",
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "headline/editorial metadata must not contaminate TOP claim"
+      }
+    },
+    {
+      "id": "top_011",
+      "text": "Tomasz Siemoniak powiedział, że trwa intensywny audyt nielegalnej inwigilacji z użyciem Pegasusa.",
+      "required_top_contains": [
+        "trwa intensywny audyt"
+      ],
+      "expected_top_speaker": "Tomasz Siemoniak",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 4,
+        "note": "czysta mocna relacja"
+      }
+    },
+    {
+      "id": "top_012",
+      "text": "Komenda opublikowała komunikat. pic.twitter.com/ABC123 — Policja Warszawa (@Policja_KSP). Katarzyna Nowak powiedziała, że postanowienie sądu zrealizowano.",
+      "forbidden_top_contains": [
+        "pic.twitter.com",
+        "@Policja_KSP"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "artefakt social embed nie może wejść do TOP"
+      }
+    },
+    {
+      "id": "top_013",
+      "text": "Anita Kucharska-Dziedzic powiedziała, że to było dosyć żenujące widowisko i nie ma innych argumentów na obronę immunitetu.",
+      "required_top_contains": [
+        "żenujące widowisko"
+      ],
+      "expected_top_speaker": "Anita Kucharska-Dziedzic",
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 4,
+        "note": "wysokiej jakości claim bez artefaktów"
+      }
+    },
+    {
+      "id": "top_014",
+      "text": "Arleta Zalewska powiedziała, że Zbigniew Ziobro wiedział dokładnie, co się wydarzy.",
+      "required_top_contains": [
+        "wiedział dokładnie"
+      ],
+      "expected_top_speaker": "Arleta Zalewska"
+    }
+  ],
+  "role_integrity_cases": [
+    {
+      "id": "role_001",
+      "text": "Tomasz Trela powiedział, że na Ziobrę przyjdzie czas. W kolejce czeka Maciej Wąsik. Ci ludzie są do wezwania i do przesłuchania — dodał. Traktujemy wszystkich dokładnie tak samo — podkreślił.",
+      "claim_contains": "Ci ludzie są do wezwania",
+      "expected_speaker": "Tomasz Trela",
+      "forbidden_speakers": [
+        "Maciej Wąsik"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 8,
+        "note": "target mention must not become speaker"
+      }
+    },
+    {
+      "id": "role_002",
+      "text": "Zbigniew Ziobro wiedział dokładnie, co się dzisiaj wydarzy — powiedziała Arleta Zalewska. Reporterka przypomniała Jarosława Kaczyńskiego. — Komisja mogła chwilę poczekać — dodała.",
+      "claim_contains": "Komisja mogła chwilę poczekać",
+      "expected_speaker": "Arleta Zalewska",
+      "forbidden_speakers": [
+        "Jarosław Kaczyński",
+        "Zbigniew Ziobro"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 6,
+        "note": "mentioned object cannot steal female speaker"
+      }
+    },
+    {
+      "id": "role_003",
+      "text": "Magdalena Sroka pytała świadka o klauzulę tajności. Mikołaj Pawlak odpowiedział, że CBA nadało klauzulę. — Nie uczestniczyłem w zawieraniu tej umowy — dodał.",
+      "claim_contains": "Nie uczestniczyłem",
+      "expected_speaker": "Mikołaj Pawlak",
+      "forbidden_speakers": [
+        "Magdalena Sroka",
+        "CBA"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 4,
+        "note": "questioner/institution mention cannot steal speaker"
+      }
+    },
+    {
+      "id": "role_004",
+      "text": "Michał Kołodziejczak mówił, że władza nie ugina się przed niczym. Citizen Lab potwierdziło wcześniejszą inwigilację. — Do dziś jestem ośmieszany w telewizji publicznej — dodał.",
+      "claim_contains": "Do dziś jestem ośmieszany",
+      "expected_speaker": "Michał Kołodziejczak",
+      "forbidden_speakers": [
+        "Citizen Lab"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 10,
+        "note": "intervening institutional source cannot steal speaker"
+      }
+    },
+    {
+      "id": "role_005",
+      "text": "Na antenie TVN24 sprawę komentował Wojciech Czuchnowski z Gazety Wyborczej. — Nie dziwię się reakcji komisji — mówił. Dodał, że nie może być ostentacyjnego lekceważenia obowiązków.",
+      "claim_contains": "ostentacyjnego lekceważenia",
+      "expected_speaker": "Wojciech Czuchnowski",
+      "forbidden_speakers": [
+        "TVN24",
+        "Gazeta Wyborcza"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 7,
+        "note": "medium/source never speaker"
+      }
+    },
+    {
+      "id": "role_006",
+      "text": "O kwestii inwigilacji mówiła prokurator Ewa Wrzosek. — Nie jesteśmy przestępcami. Bo gdybyśmy nimi byli, już dawno powinniśmy siedzieć w więzieniach — stwierdziła.",
+      "claim_contains": "Bo gdybyśmy nimi byli",
+      "expected_speaker": "Ewa Wrzosek",
+      "forbidden_speakers": [
+        "Kamiński",
+        "Ziobro"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 10,
+        "note": "quote speaker state"
+      }
+    },
+    {
+      "id": "role_007",
+      "text": "Mikołaj Pawlak przygotował draft umowy. — Było to zwykłe przygotowanie umowy dla kolejnego zadania — powiedział były dyrektor w MS.",
+      "claim_contains": "zwykłe przygotowanie umowy",
+      "expected_speaker": "Mikołaj Pawlak",
+      "forbidden_speakers": [
+        "MS"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 5,
+        "note": "role-to-entity link"
+      }
+    },
+    {
+      "id": "role_008",
+      "text": "Krzysztof Brejza był szefem sztabu. — Był to zamach na wolne wybory w Polsce — przypomniał Brejza. Komisja PE prowadziła przesłuchanie.",
+      "claim_contains": "zamach na wolne wybory",
+      "expected_speaker": "Krzysztof Brejza",
+      "forbidden_speakers": [
+        "Komisja PE"
+      ],
+      "source_basis": {
+        "source": "6a.PDF",
+        "page": 9,
+        "note": "surname alias remains speaker"
+      }
+    },
+    {
+      "id": "role_009",
+      "text": "Senator KO Krzysztof Brejza, były szef Pracodawców RP Andrzej Malinowski, prokurator Ewa Wrzosek i lider Agrounii Michał Kołodziejczak zostali przesłuchani przez komisję śledczą Parlamentu Europejskiego do spraw Pegasusa. Na przesłuchaniu nie pojawili się przedstawiciele polskich władz. We wtorek rozpoczęło się przesłuchanie senatora KO Krzysztofa Brejzy, prokurator Ewy Wrzosek, Andrzeja Malinowskiego i Michała Kołodziejczaka, którzy według analizy Citizen Lab byli podsłuchiwani przy pomocy Pegasusa. Brejza: Ta sprawa nie ma szarości, jest czarno-biała. To nigdy nie powinno się wydarzyć. Stałemu monitoringowi podlegał sztab wyborczy opozycji przez służby nadzorowane przez władzę. — Był to zamach na wolne wybory w Polsce — przypomniał Brejza, zabierając głos przed pytaniami komisji.",
+      "claim_contains": "Ta sprawa nie ma szarości",
+      "expected_speaker": "Krzysztof Brejza",
+      "forbidden_speakers": [
+        "Ewa Wrzosek",
+        "Andrzej Malinowski",
+        "Michał Kołodziejczak",
+        "Citizen Lab"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 2,
+        "note": "several nearby names must not steal Brejza colon speaker"
+      }
+    },
+    {
+      "id": "role_010",
+      "text": "Citizen Lab potwierdziło, że Michał Kołodziejczak był inwigilowany kilka miesięcy przed wyborami parlamentarnymi. O kwestii inwigilacji mówiła we wtorek także prokurator Ewa Wrzosek. — Siedzą przed państwem senator, przedstawiciel pracodawców, pani mecenas, prokurator, lider ruchu rolniczego. Jaka jest nasza cecha wspólna? Nie jesteśmy przestępcami. Bo gdybyśmy nimi byli, biorąc pod uwagę te inwigilacje — które, jak przedstawiciele pana Kamińskiego i Ziobry mówią, że były legalne i przeprowadzone zgodnie z prawem — to oznaczałyby, że jesteśmy przestępcami i już dawno powinniśmy siedzieć w więzieniach — stwierdziła. — Inwigilacje były prowadzone od roku 2018, 2019, 2020. Do tego czasu powinny już się odbyć procesy z naszym udziałem, powinniśmy zostać skazani na podstawie zebranych materiałów. Być może to było zamierzeniem służb specjalnych, które nas inwigilowały — mówiła dalej Wrzosek. Wrzosek: Inwigilacje były prowadzone od roku 2018, 2019, 2020. Do tego czasu powinny już się odbyć procesy z naszym udziałem.",
+      "claim_contains": "Bo gdybyśmy nimi byli",
+      "expected_speaker": "Ewa Wrzosek",
+      "forbidden_speakers": [
+        "Mariusz Kamiński",
+        "Zbigniew Ziobro",
+        "Citizen Lab",
+        "Michał Kołodziejczak"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "people mentioned inside quote must not become speaker"
+      }
+    },
+    {
+      "id": "role_011",
+      "text": "Tomasz Siemoniak mówił w TVN24 o inwigilacji Pegasusem. — Jeżeli, a to zostało pokazane ponad wszelką wątpliwość, inwigiluje się szefa kampanii wyborczej Koalicji Obywatelskiej, to przecież nie po to, żeby się dowiedzieć, czy ktoś coś ukradł w urzędzie — stwierdził, odnosząc się do inwigilacji Krzysztofa Brejzy. — Pewne rzeczy wyglądają na oczywiste. Odpowiada za to minister Kamiński, minister Ziobro, nie zapominajmy też o roli prokuratury. To był cały system działania polegający na tym, żeby niszczyć niewygodnych przeciwników. Nielegalna inwigilacja Pegasusem była pierwszym punktem w tym całym łańcuchu różnych działań — powiedział minister. Wskazywał, że polityczny sens tej afery dotyczy tego, co wiedzieli premierzy i ministrowie. — I co się działo w głowach tych polityków, że kupili oprogramowanie do inwigilacji terrorystów i stosowali je wobec różnych osób w Polsce — dodał.",
+      "claim_contains": "kupili oprogramowanie do inwigilacji terrorystów",
+      "expected_speaker": "Tomasz Siemoniak",
+      "forbidden_speakers": [
+        "Mariusz Kamiński",
+        "Zbigniew Ziobro",
+        "Beata Szydło"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 6,
+        "note": "targets mentioned by Siemoniak must not steal speaker state"
+      }
+    },
+    {
+      "id": "role_012",
+      "text": "Katarzyna Nowak wyjaśniła procedurę doprowadzenia Zbigniewa Ziobry. — Postanowienie sądu zostało skutecznie zrealizowane i na tym nasza rola się skończyła — przekazała.",
+      "claim_contains": "na tym nasza rola się skończyła",
+      "expected_speaker": "Katarzyna Nowak",
+      "forbidden_speakers": [
+        "Zbigniew Ziobro"
+      ],
+      "source_basis": {
+        "source": "7a.PDF",
+        "page": 4,
+        "note": "target Ziobro must not replace police spokesperson as speaker"
+      }
+    },
+    {
+      "id": "role_013",
+      "text": "Krzysztof Brejza, senator Koalicji Obywatelskiej, powiedział, że służby wymagają kontroli.",
+      "claim_contains": "służby wymagają kontroli",
+      "expected_speaker": "Krzysztof Brejza",
+      "forbidden_speakers": [
+        "Koalicja Obywatelska"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "affiliation != speaker"
+      }
+    },
+    {
+      "id": "role_014",
+      "text": "Tomasz Siemoniak z Koalicji Obywatelskiej stwierdził, że trwa audyt służb.",
+      "claim_contains": "trwa audyt służb",
+      "expected_speaker": "Tomasz Siemoniak",
+      "forbidden_speakers": [
+        "Koalicja Obywatelska"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 1,
+        "note": "party affiliation must not hijack"
+      }
+    },
+    {
+      "id": "role_015",
+      "text": "Tomasz Trela powiedział, że komisja będzie konsekwentna. W kolejce czeka Maciej Wąsik. — Ci ludzie są do wezwania — dodał.",
+      "claim_contains": "Ci ludzie są do wezwania",
+      "expected_speaker": "Tomasz Trela",
+      "forbidden_speakers": [
+        "Maciej Wąsik"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 3,
+        "note": "target mention must not change active speaker"
+      }
+    },
+    {
+      "id": "role_016",
+      "text": "Magdalena Sroka w podcaście „Wybory kobiet” powiedziała, że komisja przesłucha prezesa.",
+      "claim_contains": "komisja przesłucha prezesa",
+      "expected_speaker": "Magdalena Sroka",
+      "forbidden_speakers": [
+        "Wybory kobiet"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 3,
+        "note": "program != speaker"
+      }
+    },
+    {
+      "id": "role_017",
+      "text": "Tomasz Trela mówił o pracach komisji. — Będziemy sprawdzać, o czym chcecie się dopytać — powiedział gość TVN24.",
+      "claim_contains": "Będziemy sprawdzać",
+      "expected_speaker": "Tomasz Trela",
+      "forbidden_speakers": [
+        "TVN24"
+      ],
+      "source_basis": {
+        "source": "9a.PDF",
+        "page": 3,
+        "note": "role descriptor resolves to active quote speaker"
+      }
+    },
+    {
+      "id": "role_018",
+      "text": "Jako pierwszy głos zabrał Krzysztof Kwiatkowski. Michał Woś został wymieniony jako autor pisma. A to w tych ustawach jest ograniczenie finansowania służb specjalnych - mówił dalej.",
+      "claim_contains": "ograniczenie finansowania służb specjalnych",
+      "expected_speaker": "Krzysztof Kwiatkowski",
+      "forbidden_speakers": [
+        "Michał Woś"
+      ]
+    }
+  ]
+}

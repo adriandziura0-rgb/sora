@@ -1,0 +1,26 @@
+{
+  "P0_kontrast": {
+    "may_promote_to": ["P1_kontrast"],
+    "conditions": ["człon A + marker + człon B", "nie tylko A, ale także/również/też B", "z jednej strony A, z drugiej strony B"]
+  },
+  "P0_marker_dychotomii": {
+    "may_promote_to": ["P1_falszywa_dychotomia"],
+    "conditions": ["albo A, albo B", "nie ma trzeciej drogi", "tylko dwie opcje"]
+  },
+  "P0_marker_wyliczenia": {
+    "may_promote_to": ["P1_wyliczenie"],
+    "conditions": ["po pierwsze + po drugie", "lista wartościująca/argumentacyjna po dwukropku"]
+  },
+  "P0_marker_pytania": {
+    "may_promote_to": ["P1_pytanie_retoryczne"],
+    "conditions": ["pytanie oceniające lub presyjne, nie techniczne"]
+  },
+  "P0_marker_insynuacji": {
+    "may_promote_to": ["P1_insynuacja"],
+    "conditions": ["sugestia winy/motywu bez dowodu"]
+  },
+  "P0_marker_hiperboli": {
+    "may_promote_to": ["P1_hiperbola"],
+    "conditions": ["skrajna skala + emocjonalny skutek", "brak negacji"]
+  }
+}

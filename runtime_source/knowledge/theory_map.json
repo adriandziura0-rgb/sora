@@ -1,0 +1,44 @@
+{
+  "P1_kontrast": {
+    "domain": ["retoryka", "analiza dyskursu", "lingwistyka tekstu"],
+    "definition_pl": "Zestawienie dwóch członów pozostających w relacji napięcia, przeciwstawienia lub korekty.",
+    "promotion_rule": "P0 marker kontrastu awansuje do P1 tylko przy członie A i członie B oraz istotności analitycznej.",
+    "guards": ["brak drugiego członu", "opis fabularny bez funkcji argumentacyjnej"]
+  },
+  "P1_falszywa_dychotomia": {
+    "domain": ["logika nieformalna", "fallacy theory", "argumentacja"],
+    "definition_pl": "Zawężenie wyboru do dwóch opcji przy pominięciu realnych alternatyw.",
+    "promotion_rule": "Wymagana struktura wymuszonego wyboru, np. albo A, albo B, albo brak trzeciej drogi.",
+    "guards": ["realna alternatywa binarna", "opis procedury tak/nie"]
+  },
+  "P1_pytanie_retoryczne": {
+    "domain": ["retoryka", "pragmatyka"],
+    "definition_pl": "Pytanie, które nie służy uzyskaniu informacji, lecz wzmacnia ocenę lub presję.",
+    "promotion_rule": "Pytanie musi zawierać ocenę/presję; pytania techniczne są blokowane.",
+    "guards": ["pytanie informacyjne", "pytanie techniczne"]
+  },
+  "P1_wyliczenie": {
+    "domain": ["retoryka", "argumentacja"],
+    "definition_pl": "Lista elementów użyta w funkcji wzmacniania argumentu, wartościowania albo porządkowania tezy.",
+    "promotion_rule": "Neutralne listy miast, dat i parametrów nie awansują do P1.",
+    "guards": ["lista nazw własnych", "lista techniczna", "brak wartościowania"]
+  },
+  "P1_insynuacja": {
+    "domain": ["analiza dyskursu", "pragmatyka", "argumentacja"],
+    "definition_pl": "Sugestia winy, ukrytego motywu lub powiązania bez przedstawienia dowodu.",
+    "promotion_rule": "Wymagana sugestia ukrytego sensu, nie zwykłe pytanie proceduralne.",
+    "guards": ["neutralne pytanie techniczne"]
+  },
+  "P2_ramowanie_bezpieczenstwa": {
+    "domain": ["framing", "critical discourse analysis"],
+    "definition_pl": "Hipoteza, że tekst organizuje interpretację przez ramę bezpieczeństwa, zagrożenia i presji działania.",
+    "promotion_rule": "P2 powstaje z wielu P0/P1; nigdy z jednego słowa.",
+    "guards": ["pojedyncze słowo bezpieczeństwo"]
+  },
+  "P2_manipulacja_narracyjna": {
+    "domain": ["critical discourse analysis", "framing", "argumentacja"],
+    "definition_pl": "Hipoteza, że układ technik i markerów może prowadzić odbiorcę do jednostronnej interpretacji.",
+    "promotion_rule": "Zawsze jako NARRATIVE_HYPOTHESIS, nie werdykt.",
+    "guards": ["brak mocnych P1", "brak powiązania z winą, motywem albo presją"]
+  }
+}

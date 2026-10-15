@@ -1,0 +1,8 @@
+{
+  "framing": ["Entman: framing as selection and salience", "Lakoff: frames and metaphor in political cognition"],
+  "critical_discourse_analysis": ["van Dijk: discourse and manipulation", "Fairclough/Wodak: discourse, power, ideology"],
+  "argumentation": ["Walton: argumentation schemes and informal logic", "Toulmin: claims, warrants, backing", "Perelman: rhetoric and audience"],
+  "rhetoric": ["Arystoteles: środki perswazji i figury retoryczne"],
+  "cognitive_linguistics": ["Lakoff & Johnson: conceptual metaphor"],
+  "nlp_argument_mining": ["argument mining", "fallacy detection", "stance and framing detection"]
+}

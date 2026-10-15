@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport"/>
+<title>Drogowskazy — {{ stage }}</title>
+<link href="/static/style.css?v={{ app_version }}" rel="stylesheet"/>
+<link href="/static/full-database.css?v={{ app_version }}" rel="stylesheet"/>
+<link href="/static/shared-content.css?v={{ app_version }}" rel="stylesheet"/>
+<link href="/static/same-story-mobile.css?v={{ app_version }}" rel="stylesheet"/>
+</head>
+<body>
+<section aria-label="Raport do zapisu PDF" class="print-report" id="printReport"></section>
+<div class="wrap">
+<header class="page-head">
+<div class="title-wrap">
+<h1>Drogowskazy — {{ stage }}</h1>
+<div class="muted">Jedna aktywna wersja programu · Użytkownik i Ekspert · build {{ app_version }}</div>
+</div>
+<div class="status-pill backend-checking" id="backendStatusPill" title="Stan połączenia frontend ↔ backend"><span class="status-dot"></span><span id="backendStatusText">backend: sprawdzam…</span></div>
+</header>
+<section aria-label="Sterowanie przestrzenią roboczą" class="workspace-toolbar" id="workspaceToolbar">
+<div class="workspace-mode-group">
+<span class="workspace-label">Tryb interfejsu</span>
+<div aria-label="Tryb interfejsu" class="interface-mode-switch">
+<button class="interface-mode-btn active" id="userModeBtn" type="button">Użytkownik</button>
+<button class="interface-mode-btn" id="expertModeBtn" type="button">Ekspert</button>
+<button class="interface-mode-btn" id="appSettingsBtn" type="button" hidden>Ustawienia aplikacji</button>
+</div>
+<div aria-live="polite" class="interface-mode-status" id="interfaceModeStatus">Tryb Użytkownik: skrócony wynik, TOP, relacje i tekst. Ostatni widok zostanie przywrócony.</div>
+</div>
+<div class="workspace-nav-group production-only-ui">
+<span class="workspace-label">Główna nawigacja</span>
+<nav aria-label="Główna nawigacja aplikacji" class="production-nav">
+<button aria-current="page" class="production-nav-btn active" data-production-view="wynik" type="button">Wynik</button>
+<button class="production-nav-btn" data-production-view="top" type="button">TOP</button>
+<button class="production-nav-btn" data-production-view="relacje" type="button">Relacje</button>
+<button class="production-nav-btn" data-production-view="tekst" type="button">Tekst</button>
+<button class="production-nav-btn" data-production-view="baza" type="button">Baza / porównania</button>
+</nav>
+<div class="active-result-status no-result" id="activeResultStatus" aria-live="polite"><strong>Aktywny wynik:</strong> brak. Otwórz dokument w „Baza / porównania” albo uruchom analizę tekstu.</div>
+</div>
+<div class="workspace-nav-group expert-workspace-nav expert-only-ui" id="expertWorkspaceNav">
+<span class="workspace-label">Nawigacja ekspercka</span>
+<nav aria-label="Nawigacja trybu Ekspert" class="expert-quick-nav">
+<button class="expert-quick-nav-btn active" data-expert-view="p0" type="button">P0</button>
+<button class="expert-quick-nav-btn" data-expert-view="p1" type="button">P1</button>
+<button class="expert-quick-nav-btn" data-expert-view="p2" type="button">P2</button>
+<button class="expert-quick-nav-btn" data-expert-view="relacje" type="button">Relacje</button>
+<button class="expert-quick-nav-btn" data-expert-view="audyt" type="button">Audyt</button>
+</nav>
+<div aria-live="polite" class="expert-nav-status" id="expertNavStatus">Aktywny widok ekspercki: P0.</div>
+</div>
+<div class="workspace-layout-group">
+<span class="workspace-label">Układ pracy</span>
+<div aria-label="Układ pracy" class="workspace-layout-switch">
+<button class="workspace-layout-btn active" id="splitWorkspaceBtn" type="button">Tekst + wynik</button>
+<button class="workspace-layout-btn" id="resultsFocusBtn" type="button">Skupienie na wyniku</button>
+</div>
+</div>
+</section>
+<div class="operation-progress global-operation-progress" id="operationProgress" hidden role="status" aria-live="polite" aria-atomic="true">
+<div class="operation-progress-head"><strong id="operationProgressLabel">Gotowe</strong><span id="operationProgressValue">0%</span></div>
+<progress id="operationProgressBar" max="100" value="0"></progress>
+<div class="operation-progress-detail muted small" id="operationProgressDetail">Oczekiwanie.</div>
+</div>
+<main class="split-layout" id="splitLayout">
+<section class="pane left-pane" id="editorPane">
+<div class="panel editor-panel">
+<div class="panel-head">
+<div>
+<h2>Tekst roboczy</h2>
+<div class="sub">Wklej tekst i uruchom analizę. Menu wyników znajduje się nad panelem analityka.</div>
+</div>
+</div>
+<div class="panel-body left-panel-inner">
+<details class="source-text-details" id="sourceTextDetails" open>
+<summary><span class="source-text-label">Tekst do analizy</span><span class="source-file-summary muted small" id="sourceFileSummary">Wpisany tekst</span></summary>
+<div class="source-text-body">
+<textarea id="textInput" placeholder="Wklej tekst do analizy albo użyj przycisku „Wczytaj plik”..." spellcheck="false"></textarea>
+</div>
+</details>
+<div aria-label="Wczytywanie pliku tekstowego" class="file-load-panel">
+<input accept=".txt,.md,.markdown,.csv,.json,.log,.html,.htm,text/plain,text/markdown,text/csv,application/json,text/html" class="file-input-hidden" id="fileInput" type="file"/>
+<input accept=".txt,.md,.markdown,.csv,.json,.log,.html,.htm,text/plain,text/markdown,text/csv,application/json,text/html" class="file-input-hidden" id="fileInputMany" type="file" multiple/>
+<input accept=".txt,.md,.markdown,.csv,.json,.log,.html,.htm,text/plain,text/markdown,text/csv,application/json,text/html" class="file-input-hidden" id="folderInput" type="file" webkitdirectory directory multiple/>
+<button class="secondary" id="loadFileBtn" type="button">Wczytaj plik</button>
+<button class="secondary" id="appendFileBtn" type="button">Dopisz plik</button>
+<button class="secondary" id="appendManyFilesBtn" type="button">Dodaj kilka</button>
+<button class="secondary" id="appendAllFilesBtn" type="button">Dodaj folder</button>
+<span class="file-load-status muted small" id="fileLoadStatus">Obsługiwane: .txt, .md, .csv, .json, .log, .html. „Dodaj kilka” otwiera wybór wielu plików; „Dodaj folder” wybiera cały katalog z podfolderami. Bezpieczny pakiet: do ok. 1,8 MB na jedno żądanie.</span>
+
+</div>
+<details class="database-panel" id="databasePanel">
+<summary><span>Pliki i foldery → baza dokumentów</span><span class="database-summary-count" id="databaseSummaryCount">0 zapisanych</span></summary>
+<div class="database-panel-body">
+<p class="muted small database-intro">„Dodaj pliki do bazy” wybiera jeden lub kilka dokumentów, także z Pobranych. „Dodaj folder” wczytuje katalog z podfolderami. Obsługiwane: TXT, MD, CSV, JSON, LOG i HTML, do 2 MB na plik. Analiza trwa w tle po przekazaniu plików. Kopię .sqlite3 wczytaj przyciskiem „Przywróć kopię SQLite”.</p>
+<input accept=".txt,.md,.markdown,.csv,.json,.log,.html,.htm,text/plain,text/markdown,text/csv,application/json,text/html" class="file-input-hidden" id="databaseFilesInput" type="file" multiple/>
+<input accept=".txt,.md,.markdown,.csv,.json,.log,.html,.htm,text/plain,text/markdown,text/csv,application/json,text/html" class="file-input-hidden" id="databaseFolderInput" type="file" webkitdirectory directory multiple/>
+<input accept=".txt,.md,.markdown,.csv,.json,.log,.html,.htm,text/plain,text/markdown,text/csv,application/json,text/html" class="file-input-hidden" id="databaseFolderPackInput" type="file" webkitdirectory directory multiple/>
+<div class="database-actions">
+<button id="importFilesToDatabaseBtn" type="button">+ Dodaj pliki do bazy</button>
+<button id="importFolderToDatabaseBtn" type="button">+ Dodaj folder do bazy</button>
+<button class="secondary" id="restoreDatabaseBackupBtn" type="button" hidden>Przywróć kopię SQLite</button>
+<button class="secondary" id="cancelDatabaseImportBtn" type="button" hidden>Zatrzymaj dodawanie</button>
+<button class="secondary" id="refreshDatabaseBtn" type="button">Odśwież bazę</button>
+<button class="secondary strong-action expert-tool" id="aggregateDatabaseBtn" type="button">Połącz wszystkie analizy</button>
+<button class="secondary strong-action expert-tool" id="reanalyzeDatabaseBtn" type="button">Przelicz całą bazę aktualnym silnikiem</button>
+<button class="secondary" id="downloadDatabaseBtn" type="button">Pobierz SQLite</button>
+</div>
+<div class="database-progress" id="databaseProgress" hidden role="status" aria-live="polite" aria-atomic="true">
+<div class="database-progress-head"><strong id="databaseProgressLabel">Oczekiwanie</strong><span id="databaseProgressValue">0/0</span></div>
+<progress id="databaseProgressBar" max="100" value="0"></progress>
+<div class="database-current muted small" id="databaseCurrentFile">Nie wybrano folderu.</div>
+</div>
+<div aria-label="Stan kolejki importu" class="database-counters">
+<div><strong id="databasePendingCount">0</strong><span>oczekuje</span></div>
+<div><strong id="databaseSavedCount">0</strong><span>gotowe</span></div>
+<div><strong id="databaseDuplicateCount">0</strong><span>duplikaty</span></div>
+<div><strong id="databaseErrorCount">0</strong><span>błędy</span></div>
+<div><strong id="databaseSkippedCount">0</strong><span>pominięto</span></div>
+</div>
+<div class="database-status muted small" id="databaseStatus">Baza zostanie utworzona automatycznie przy pierwszym uruchomieniu.</div>
+<div class="database-status muted small" id="databaseImportFeedback" hidden aria-live="polite"></div>
+<div class="database-status database-kind-stats small" id="databaseKindStats">Artykuły: 0 · pliki techniczne: 0 · rekordy razem: 0</div>
+<div class="database-status muted small expert-tool" id="databaseAggregateHint">„Przelicz całą bazę aktualnym silnikiem” aktualizuje zapisane wyniki bez zmiany dokumentów. Potem „Połącz wszystkie analizy” buduje jeden zbiorczy widok.</div>
+<details class="database-compare-panel" id="databaseComparePanel">
+<summary>Porównaj linie redakcyjne / foldery</summary>
+<div class="database-compare-body">
+<p class="muted small">Porównanie jest opisowe i liczy wyłącznie właściwe artykuły. Pliki techniczne (metadata.json, raw.html, indeksy) pozostają w bazie, ale nie wpływają na wynik. Dla małych prób program pokaże ostrzeżenie.</p>
+<div class="sora-selection-layout"><div class="sora-selection-choice">
+<div class="database-compare-controls database-compare-controls-main">
+<label>Co porównujesz?
+<select id="databaseCompareMode">
+<option value="folder" selected>Foldery w bazie</option>
+<option value="publisher">Redakcje / źródła</option>
+</select>
+</label>
+<div class="database-group-picker">
+<div class="database-group-picker-head"><strong>Wybierz grupy do porównania</strong><span id="databaseCompareSelectedCount">Wybrane: 0 · dostępne: 0 · limit: 10</span></div>
+<div class="database-compare-folder-help" id="databaseCompareFolderHelp">
+<span>Każdy folder trzeba najpierw dodać do bazy. Dodaj pojedynczo albo wybierz folder nadrzędny zawierający kilka folderów redakcji.</span>
+<div class="database-compare-add-buttons"><button class="secondary" id="addCompareFolderBtn" type="button">+ Dodaj 1 folder</button><button class="secondary" id="addCompareFolderPackBtn" type="button">+ Dodaj pakiet folderów</button></div>
+</div>
+<div class="database-group-list" id="databaseCompareGroupList" role="group" aria-label="Grupy do porównania"></div>
+<select id="databaseCompareGroups" multiple hidden aria-hidden="true"></select>
+</div>
+<div class="database-compare-action-row">
+<button class="secondary strong-action" id="compareDatabaseBtn" type="button">Porównaj zaznaczone</button>
+<button class="secondary expert-tool" id="downloadDatabaseComparisonBtn" type="button" disabled>Pobierz JSON</button>
+</div>
+</div>
+<div class="database-status muted small" id="databaseCompareStatus">Najpierw dodaj foldery do bazy. Potem zaznacz od 2 do 10 grup.</div>
+</div><div class="sora-selection-report">
+<button type="button" id="openFullOverviewBtn" class="sora-overview-nav-btn" aria-controls="soraFullOverview">Pokaż analizę zaznaczonych</button>
+<section id="soraFullOverview" class="sora-full-overview" hidden aria-label="Analiza tylko wybranych folderów i redakcji"><div class="sora-overview-header"><h2>Wyniki zaznaczonych materiałów</h2><p>Wybierz foldery lub redakcje po lewej, a następnie pokaż ich analizę. Nie obejmuje pozostałych danych z bazy.</p><div class="sora-overview-actions"><button type="button" id="soraFullOverviewRefresh">Odśwież zaznaczone</button><button type="button" id="soraFullOverviewBack">Ukryj wyniki</button></div></div><p class="sora-overview-status" id="soraFullOverviewStatus" role="status" aria-live="polite">Zaznacz grupę, aby wyświetlić jej wyniki.</p><div id="soraFullOverviewContent" aria-live="off"></div></section>
+<div class="database-comparison-result" id="databaseComparisonResult"></div>
+</div></div>
+</div>
+</details>
+<details class="database-compare-panel sora-shared-panel" id="sharedContentPanel"><summary>Wspólne treści i różnice między artykułami</summary><div class="database-compare-body"><p class="muted sora-shared-help">Niezależnie od wyszukiwarki tematów: zaznacz od 2 do 10 folderów lub redakcji powyżej, a następnie porównaj zapisane teksty. Program pokaże dosłownie wspólne fragmenty, artykuły o podobnych tytułach oraz różniące się fragmenty. Nie nazywa ich automatycznie manipulacją ani pominięciem.</p><button type="button" id="findSharedContentBtn" class="secondary strong-action sora-shared-action">Szukaj wspólnych treści i różnic</button><p id="sharedContentStatus" class="sora-shared-status" role="status" aria-live="polite">Czekam na Twój wybór. Nie przeszukuję bazy automatycznie.</p><div id="sharedContentResults" class="sora-shared-results" aria-live="off"></div></div></details>
+<details class="database-compare-panel" id="sameStoryComparePanel">
+<summary>Ta sama sprawa → różne redakcje</summary>
+<div class="database-compare-body">
+<p class="muted small">Program grupuje wyłącznie właściwe artykuły o tej samej sprawie na podstawie tytułu, leadu, nazw własnych, rzadkich słów i daty. Pliki techniczne są pomijane, a kontrola spójności blokuje łańcuchowe sklejanie odległych historii.</p>
+<div class="database-compare-controls same-story-controls">
+<label>Temat
+<select id="sameStoryTopic"></select>
+</label>
+<div class="database-group-picker same-story-group-picker">
+<div class="database-group-picker-head"><strong>Redakcje w tej sprawie</strong><span id="sameStorySelectedCount">Wybrane: 0 · dostępne: 0 · limit: 10</span></div>
+<div class="database-group-list" id="sameStoryGroupList" role="group" aria-label="Redakcje do porównania tej samej sprawy"></div>
+<select id="sameStoryGroups" multiple hidden aria-hidden="true"></select>
+</div>
+<div class="database-compare-action-row">
+<button class="secondary strong-action" id="compareSameStoryBtn" type="button">Porównaj zaznaczone w tej sprawie</button>
+<button class="secondary expert-tool" id="downloadSameStoryComparisonBtn" type="button" disabled>Pobierz JSON</button>
+</div>
+</div>
+<div class="database-status muted small" id="sameStoryStatus">Wybierz temat i zaznacz od 2 do 10 redakcji.</div>
+<div class="database-comparison-result" id="sameStoryComparisonResult"></div>
+</div>
+</details>
+<details class="database-compare-panel expert-tool" id="manualBenchmarkPanel">
+<summary>Benchmark ręczny skuteczności relacji</summary>
+<div class="database-compare-body">
+<p class="muted small">Losowo-deterministyczna próba zapisanych relacji. Oceniasz całą relację oraz osobno mówcę, claim, target i źródło. To mierzy precyzję wygenerowanych relacji; recall wymaga osobnego golda wszystkich oczekiwanych relacji.</p>
+<div class="database-compare-controls">
+<label>Próba
+<select id="benchmarkSampleSize"><option value="20">20</option><option value="30" selected>30</option><option value="50">50</option><option value="100">100</option></select>
+</label>
+<label>Seed
+<input id="benchmarkSeed" type="text" value="v44" maxlength="100"/>
+</label>
+<button class="secondary strong-action" id="loadBenchmarkSampleBtn" type="button">Wczytaj próbę</button>
+<button class="secondary" id="refreshBenchmarkStatsBtn" type="button">Odśwież wynik</button>
+</div>
+<div class="database-status muted small" id="benchmarkStatus">Brak aktywnej próby.</div>
+<div class="manual-benchmark-card" id="benchmarkCard"></div>
+<div class="database-comparison-result" id="benchmarkStats"></div>
+</div>
+</details>
+<details class="database-compare-panel expert-tool" id="effectivenessGoldPanel">
+<summary>GOLD skuteczności — pełne dokumenty (precision + recall + F1)</summary>
+<div class="database-compare-body">
+<p class="muted small">To jest niezależny GOLD skuteczności. Dla całego dokumentu popraw listę relacji tak, aby zawierała wszystkie relacje, które naprawdę powinny być wykryte. Możesz usuwać fałszywe relacje, poprawiać pola i dopisywać brakujące. Dopiero zapis kompletnego dokumentu pozwala uczciwie policzyć FP, FN, precision, recall i F1.</p>
+<div class="database-compare-controls">
+<label>Próba dokumentów<select id="goldSampleSize"><option value="5">5</option><option value="10" selected>10</option><option value="20">20</option><option value="30">30</option></select></label>
+<label>Seed<input id="goldSeed" type="text" value="gold-v1" maxlength="100"/></label>
+<button class="secondary strong-action" id="loadGoldSampleBtn" type="button">Wczytaj dokumenty GOLD</button>
+<button class="secondary" id="refreshGoldStatsBtn" type="button">Odśwież metryki</button>
+</div>
+<div class="database-status muted small" id="goldStatus">Brak aktywnej próby GOLD.</div>
+<div class="manual-benchmark-card" id="goldCard"></div>
+<div class="database-comparison-result" id="goldStats"></div>
+</div>
+</details>
+<details class="database-documents-panel">
+<summary>Dokumenty w bazie — według folderów <span class="muted small" id="databaseFolderSummary"></span></summary>
+<div class="database-documents" id="databaseDocuments"><div class="database-empty">Brak zapisanych dokumentów.</div></div>
+</details>
+</div>
+</details>
+<div class="editor-actions">
+<button data-work-mode="analiza" id="analyzeBtn" type="button">Analizuj</button>
+<button data-work-mode="sugestie" id="suggestBtn" type="button">Szukaj sugestii / Pokaż sugestie</button>
+<button class="secondary expert-tool" data-work-mode="raport" id="reportBtn" type="button">Raport techniczny</button>
+<button class="secondary" id="downloadResultsBtn" type="button">Pobierz wyniki</button>
+<button class="secondary" id="printPdfBtn" type="button">Drukuj / PDF</button>
+<button class="secondary" id="clearBtn" type="button">Nowa analiza / Wyczyść</button>
+</div>
+<div class="session-status muted small" id="sessionStatus" role="status" aria-live="polite">Autosave lokalny: uruchamianie…</div>
+<details class="mode-help" id="workModeHelp" open="">
+<summary>Tryb pracy: <span id="activeModeName">Analizuj</span></summary>
+<div class="mode-description" id="activeModeDescription">Analiza pokazuje relacje, TOP, aktorów, sprawczość, P0–P5 i audyty jakości.</div>
+<div class="mode-cards" id="modeCards"></div>
+</details>
+
+
+
+
+<details class="text-preview-card" id="textPreviewDetails">
+<summary>Podgląd tekstu z oznaczeniami</summary>
+<div class="ui-subtitle preview-title">Widok podświetleń w tekście</div>
+<div aria-label="Widok podświetleń w tekście" class="preview-tools">
+<button class="preview-filter active" data-preview-view="wszystko" type="button">Hierarchia</button>
+<button class="preview-filter clean" data-preview-view="czyste" type="button">Czyste TOP</button>
+<button class="preview-filter r" data-preview-view="r" type="button">R</button>
+<button class="preview-filter ractors" data-preview-view="raktorzy" type="button">R aktorzy</button>
+<button class="preview-filter sources" data-preview-view="zrodla" type="button">Źródła/media</button>
+<button class="preview-filter fact" data-preview-view="fact" type="button">Fakt/opinia/cytat</button>
+<button class="preview-filter relation" data-preview-view="relacje" type="button">Kto mówi → o kim</button>
+<button class="preview-filter p0" data-preview-view="p0" type="button">Tylko P0</button>
+<button class="preview-filter p1" data-preview-view="p1" type="button">Tylko P1</button>
+<button class="preview-filter p2" data-preview-view="p2" type="button">Tylko P2</button>
+<button class="preview-filter p3" data-preview-view="p3" type="button">P3</button>
+<button class="preview-filter p4" data-preview-view="p4" type="button">P4</button>
+<button class="preview-filter p5" data-preview-view="p5" type="button">P5</button>
+<button class="preview-filter cand" data-preview-view="kandydaci" type="button">Tylko kandydaci</button>
+<span class="mini-note">Domyślnie: Hierarchia pokazuje wyższe warstwy nad niższymi. Kliknij poziom, żeby pokazać tylko tę warstwę. Czyste TOP pokazuje tylko najlepsze karty analityczne.</span>
+</div>
+<div class="highlight-preview-frame" id="highlightPreviewFrame">
+<div aria-describedby="highlightDetails" class="highlight-preview empty-preview" id="highlightPreview" tabindex="0">Podświetlenia pojawią się po analizie.</div>
+<div aria-live="polite" class="highlight-details muted small" id="highlightDetails" role="status">Kliknij oznaczony fragment, żeby zobaczyć szczegóły.</div>
+</div>
+</details>
+</div>
+</div>
+</section>
+<section class="pane right-pane" id="analystPane">
+<div class="panel analyst-panel">
+<div class="panel-head">
+<div>
+<h2>Panel analityka</h2>
+<div class="sub">Sprawdź statystyki, relacje wypowiedzi, źródła/media, aktorów i raport. Widok kart oraz podświetlenia tekstu są rozdzielone.</div>
+</div>
+</div>
+<div class="panel-body right-panel-inner">
+<div class="user-results-dashboard production-only-ui" id="userResultsDashboard">
+  <section class="user-result-panel active" data-user-result-panel="wynik" id="userResultPanelWynik">
+    <div class="user-empty-state" id="userResultWynik"><strong>Brak aktywnego wyniku.</strong><span>Otwórz dokument z bazy albo uruchom analizę tekstu.</span></div>
+  </section>
+  <section class="user-result-panel" data-user-result-panel="top" id="userResultPanelTop" hidden>
+    <div class="user-empty-state" id="userResultTop"><strong>Brak TOP.</strong><span>Najpierw otwórz wynik dokumentu lub uruchom analizę.</span></div>
+  </section>
+  <section class="user-result-panel" data-user-result-panel="relacje" id="userResultPanelRelacje" hidden>
+    <div class="user-empty-state" id="userResultRelacje"><strong>Brak relacji.</strong><span>Najpierw otwórz wynik dokumentu lub uruchom analizę.</span></div>
+  </section>
+  <section class="user-result-panel" data-user-result-panel="tekst" id="userResultPanelTekst" hidden>
+    <div class="user-text-toolbar" role="group" aria-label="Podświetlenia tekstu">
+      <button class="user-text-filter active" data-user-text-view="wszystko" type="button">Wszystko</button>
+      <button class="user-text-filter" data-user-text-view="czyste" type="button">TOP</button>
+      <button class="user-text-filter" data-user-text-view="relacje" type="button">Relacje</button>
+    </div>
+    <div class="user-text-preview" id="userTextPreview">Brak analizowanego tekstu.</div>
+    <div class="user-text-details muted small" id="userTextDetails">Kliknij oznaczony fragment, aby zobaczyć szczegóły.</div>
+  </section>
+</div>
+<details class="results-navigation-card production-results-controls" id="resultsNavigationCard" open=""><summary>Menu wyników i sterowanie oknami</summary><div class="results-navigation-body"><p class="muted small results-navigation-intro">Wybierz zakres kart albo otwórz i zamknij wszystkie sekcje raportu.</p><div class="ui-subtitle section-view-title">Widok kart</div>
+<div class="section-menu-filter section-view-title" role="search">
+<label for="sectionMenuSearch">Znajdź sekcję</label>
+<div class="section-menu-search-row">
+<input id="sectionMenuSearch" type="search" placeholder="Np. relacje, P2, raport, aktorzy..." autocomplete="off"/>
+<button class="small-action" id="clearSectionMenuSearch" type="button">Wyczyść</button>
+</div>
+<div class="muted small" id="sectionMenuSearchStatus" aria-live="polite">Dostępne sekcje zostaną policzone po analizie.</div>
+<div class="section-menu-groups" id="sectionMenuGroups" role="group" aria-label="Grupa sekcji">
+<button class="section-group-btn active" type="button" data-menu-group="all" aria-pressed="true">Wszystkie</button>
+<button class="section-group-btn" type="button" data-menu-group="main" aria-pressed="false">Główne</button>
+<button class="section-group-btn" type="button" data-menu-group="pipeline" aria-pressed="false">Warstwy analizy</button>
+<button class="section-group-btn" type="button" data-menu-group="relations" aria-pressed="false">Relacje</button>
+<button class="section-group-btn" type="button" data-menu-group="audit" aria-pressed="false">Audyt</button>
+</div>
+</div>
+<div aria-label="Widok kart" class="view-switch section-view-switch" id="sectionViewMenu">
+<button class="view-btn active" data-menu-group="main" data-view="start" type="button">Start raportu</button>
+<button class="view-btn" data-menu-group="main" data-view="wszystko" type="button">Wszystko</button>
+<button class="view-btn" data-menu-group="main" data-view="czyste" type="button">Czyste TOP</button>
+<button class="view-btn" data-menu-group="main" data-view="jednostki" type="button">Jednostki znaczenia</button>
+<button class="view-btn" data-menu-group="pipeline" data-view="p0" type="button">P0</button>
+<button class="view-btn" data-menu-group="pipeline" data-view="p1" type="button">P1</button>
+<button class="view-btn" data-menu-group="pipeline" data-view="p2" type="button">P2</button>
+<button class="view-btn" data-menu-group="pipeline" data-view="kandydaci" type="button">Kandydaci</button>
+<button class="view-btn" data-menu-group="relations" data-view="zrodla" type="button">Źródła/media</button>
+<button class="view-btn" data-menu-group="relations" data-view="fact" type="button">Fakt/opinia/cytat</button>
+<button class="view-btn" data-menu-group="relations" data-view="relacje" type="button">Kto mówi → o kim</button>
+<button class="view-btn" data-menu-group="relations" data-view="aktorzy" type="button">Aktorzy</button>
+<button class="view-btn" data-menu-group="relations" data-view="sprawczosc" type="button">Sprawczość</button>
+<button class="view-btn" data-menu-group="audit" data-view="semantyka" type="button">Audyt jakości</button>
+<button class="view-btn" data-menu-group="audit" data-view="audytwidocznosci" type="button">Audyt widoczności</button>
+<button class="view-btn" data-menu-group="audit" data-view="bramki" type="button">Bramki/degradacje</button>
+<button class="view-btn" data-menu-group="audit" data-view="audytrole" type="button">Audyt ról</button>
+<button class="view-btn" data-menu-group="audit" data-view="sugestie" type="button">Sugestie</button>
+<button class="view-btn" data-menu-group="main" data-view="raport" type="button">Raport</button>
+</div><div class="section-plan muted small" id="sectionPlanBox">Plan sekcji załaduje się po analizie.</div><div aria-label="Sterowanie oknami i podpoziomami" class="window-tools">
+<button class="small-action strong-action" id="openAllWindowsBtn" type="button">Otwórz wszystkie okna i podpoziomy</button>
+<button class="small-action" id="openSublevelsBtn" type="button">Otwórz podpoziomy</button>
+<button class="small-action" id="closeSublevelsBtn" type="button">Zamknij podpoziomy</button>
+<button class="small-action" id="closeAllWindowsBtn" type="button">Zamknij okna</button>
+<button aria-pressed="false" class="small-action" id="singleWindowModeBtn" type="button">Tryb jednego okna: wyłączony</button>
+<span class="mini-note">Start raportu jest krótki. Szczegóły otwierasz przyciskami albo widokiem „Wszystko”.</span>
+</div></div></details>
+<div class="active-section-toolbar" id="activeSectionToolbar" aria-label="Nawigacja po aktywnych sekcjach">
+  <button class="small-action" id="previousSectionBtn" type="button" aria-label="Poprzednia dostępna sekcja">← Poprzednia</button>
+  <div class="active-section-status"><span class="muted small">Aktywny widok</span><strong id="activeSectionLabel">Start raportu</strong></div>
+  <button class="small-action" id="nextSectionBtn" type="button" aria-label="Następna dostępna sekcja">Następna →</button>
+  <button class="small-action" id="openResultsMenuBtn" type="button">Menu sekcji</button>
+</div>
+<section aria-labelledby="summary30Title" class="card summary30-card">
+<h2 id="summary30Title">Podsumowanie w 30 sekund</h2>
+<p id="summary30">Po analizie tutaj pojawi się skrót najważniejszych relacji.</p>
+</section>
+<details class="section-card stats-main-card collapsible-card" data-section="statystyki" id="narzedziaCard">
+<summary>Narzędzia i statystyki</summary>
+<div class="collapsible-content" id="summary"></div>
+</details>
+<details class="section-card readable-report-wrapper collapsible-card" data-section="start czyste wszystko" id="readableReportCard" open="">
+<summary>Wynik analizy — raport czytelny</summary>
+<div class="collapsible-content" id="readableReportSection"></div>
+</details>
+<details class="section-card production-relation-wrapper collapsible-card production-only-ui" data-section="start relacje" id="productionRelationCard" open="">
+<summary>Główna karta relacji</summary>
+<div class="collapsible-content" id="productionRelationSection"></div>
+</details>
+<details class="section-card meaning-units-wrapper collapsible-card" data-section="start czyste wszystko jednostki" id="meaningUnitsCard" open="">
+<summary>Jednostki znaczenia</summary>
+<div class="collapsible-content" id="meaningUnitsSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="p0" id="p0Card">
+<summary>P0 — wskaźniki</summary>
+<div class="collapsible-content" id="p0Section"></div>
+</details>
+<details class="section-card collapsible-card" data-section="p1" id="p1Card">
+<summary>P1 — potwierdzone struktury</summary>
+<div class="collapsible-content" id="p1Section"></div>
+</details>
+<details class="section-card collapsible-card" data-section="p2" id="p2Card">
+<summary>P2 — hipotezy narracyjne</summary>
+<div class="collapsible-content" id="p2Section"></div>
+</details>
+<details class="section-card collapsible-card" data-section="kandydaci" id="kandydaciCard">
+<summary>Kandydaci do przeglądu</summary>
+<div class="collapsible-content" id="candidatesSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="start czyste" id="cleanTopCard">
+<summary>Czyste TOP analizy</summary>
+<div class="collapsible-content" id="cleanTopSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="fact" id="factOpinionQuoteCard">
+<summary>Fakt / opinia / cytat</summary>
+<div class="collapsible-content" id="factOpinionQuoteSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="relacje" id="statementRelationsCard">
+<summary>Kto mówi → o kim → co mówi</summary>
+<div class="collapsible-content" id="statementRelationsSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="semantyka" id="semanticEffectivenessCard">
+<summary>Audyt jakości i integralności</summary>
+<div class="collapsible-content" id="semanticEffectivenessSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="start audytwidocznosci" id="visibilityAuditCard">
+<summary>Audyt widoczności — pokazane / ukryte / TOP</summary>
+<div class="collapsible-content" id="visibilityAuditSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="start bramki" id="gatesAuditCard">
+<summary>Bramki i degradacje — blokady / kandydaci / nieawansy</summary>
+<div class="collapsible-content" id="gatesAuditSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="start audytrole relacje rsprawczosc" id="roleAuditCard">
+<summary>Audyt ról — mówca / medium / program / obiekt / sprawczość</summary>
+<div class="collapsible-content" id="roleAuditSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="start aktorzy" id="aktorzyCard">
+<summary>Mapa aktorów</summary>
+<div class="collapsible-content" id="actorMapSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="start sprawczosc" id="sprawczoscCard">
+<summary>Mapa sprawczości</summary>
+<div class="collapsible-content" id="agencyMapSection"></div>
+</details>
+<details class="section-card collapsible-card" data-section="sugestie" id="sugestieCard">
+<summary>Sugestie rozwojowe</summary>
+<div class="collapsible-content" id="suggestionsSection"></div>
+</details>
+<details class="section-card collapsible-card expert-tool" data-section="raport" id="raportCard">
+<summary>Raport roboczy</summary>
+<div class="collapsible-content">
+<div class="report-actions">
+<button class="small-action" id="copyReportBtn" type="button">Kopiuj Markdown</button>
+<button class="small-action" id="downloadMdBtn" type="button">Pobierz .md</button>
+<button class="small-action" id="downloadJsonBtn" type="button">Pobierz .json</button>
+</div>
+<p class="hint">Eksport jest jednorazowy i lokalny: Markdown oraz JSON bieżącej analizy.</p>
+<pre class="report-box" id="reportBox"></pre>
+</div>
+</details>
+</div>
+</div>
+</section>
+</main>
+</div>
+<dialog class="section-window" id="sectionWindowDialog" aria-labelledby="sectionWindowTitle">
+  <div class="section-window-shell">
+    <header class="section-window-head">
+      <h2 id="sectionWindowTitle">Podgląd sekcji</h2>
+      <button class="small-action" id="closeSectionWindowBtn" type="button" aria-label="Zamknij okno sekcji">Zamknij</button>
+    </header>
+    <div class="section-window-body" id="sectionWindowBody"></div>
+  </div>
+</dialog>
+<script src="/static/app.js?v={{ app_version }}"></script>
+<script src="/static/full-database.js?v={{ app_version }}"></script>
+<script src="/static/shared-content.js?v={{ app_version }}"></script>
+<script src="/static/import-recovery.js?v={{ app_version }}"></script>
+<script src="/static/same-story-mobile.js?v={{ app_version }}"></script>
+</body>
+</html>

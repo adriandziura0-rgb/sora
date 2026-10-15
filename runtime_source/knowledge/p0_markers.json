@@ -1,0 +1,11 @@
+{
+  "P0_kontrast": ["choć", "chociaż", "ale", "jednak", "natomiast", "mimo że", "nie tylko", "z jednej strony", "z drugiej strony"],
+  "P0_marker_dychotomii": ["albo", "nie ma trzeciej drogi", "jedyny wybór", "tylko dwie opcje"],
+  "P0_marker_wyliczenia": ["po pierwsze", "po drugie", "po trzecie"],
+  "P0_marker_pytania": ["czy naprawdę", "czy ktokolwiek", "kto normalny", "czy można"],
+  "P0_marker_insynuacji": ["czy to przypadek", "nie twierdzimy", "trudno nie zauważyć", "pojawiają się pytania", "pytania same się nasuwają"],
+  "P0_marker_hiperboli": ["największy", "absolutny", "totalny", "katastrofa", "runie", "bezprecedensowy", "nigdy wcześniej"],
+  "P0_marker_generalizacji": ["wszyscy", "nikt", "zawsze", "nigdy", "każdy", "żaden"],
+  "P0_rama_bezpieczenstwa": ["bezpieczeństwo", "zagrożenie", "stabilność", "porządek", "chaos", "ochrona", "ryzyko", "odporność państwa"],
+  "P0_odpowiedzialnosc_wina": ["bierze odpowiedzialność", "kto blokuje", "winni", "sabotaż", "osłabiają państwo"]
+}

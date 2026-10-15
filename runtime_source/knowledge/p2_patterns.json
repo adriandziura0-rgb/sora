@@ -1,0 +1,11 @@
+{
+  "P2_ramowanie_bezpieczenstwa": {
+    "requires": ["minimum 2 markery bezpieczeństwa", "marker zagrożenia", "presja działania"]
+  },
+  "P2_polaryzacja": {
+    "requires": ["dwa obozy", "wartościowanie", "delegitymizacja"]
+  },
+  "P2_manipulacja_narracyjna": {
+    "requires": ["silne P1 lub kandydat", "emocjonalne P0", "wina/ukryty motyw/zawężenie wyboru"]
+  }
+}

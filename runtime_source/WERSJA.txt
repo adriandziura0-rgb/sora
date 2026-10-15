@@ -1,0 +1,4 @@
+Drogowskazy V4.5.12 APK CONTINUATION — 2026-10-06
+Build: 4.5.12-apk-continuation-20261006
+Runtime: Drogowskazy Sora APK / Chaquopy Python 3.13
+Zasada: po restarcie wznawiane są wyłącznie rekordy processing; rekordy done nigdy nie wracają do kolejki.
