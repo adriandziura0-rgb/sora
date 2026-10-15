@@ -1,0 +1,3 @@
+# CLEAN stage 3: preserve byte-for-byte identical cross-platform engine and UI.
+# Native Windows Git must not rewrite embedded UTF-8/LF source files to CRLF.
+/runtime_source/** text eol=lf
