@@ -79,7 +79,7 @@ Path(sys.argv[3]).write_text(json.dumps(results,ensure_ascii=False),encoding='ut
             payload={'document_id':item['document_id'],'expected_relations':item['predicted_relations'],'completed':True};endpoint='dokument'
         e.request(f'/api/baza/{kind}/{endpoint}',payload)
         assert e.request(f'/api/baza/{kind}/wynik')
-    from presentation import materialize,readable_report,evidence_range,write_pdf
+    from report_projection import materialize,readable_report,evidence_range,write_pdf
     assert readable_report(materialize(e.request('/api/baza/zbiorczy_wynik')))
     assert evidence_range({'poczatek':0,'koniec':3,'fragment':'abc','link_status':'linked'},'abc')==(0,3)
     assert evidence_range({'poczatek':0,'koniec':3,'fragment':'xyz'},'abc') is None

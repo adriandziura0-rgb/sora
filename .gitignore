@@ -4,3 +4,34 @@ local.properties
 **/build/
 *.iml
 .DS_Store
+
+# Lokalna baza użytkownika, dzienniki SQLite i kopie — nigdy w Git
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+
+# Klucze APK, tokeny i konfiguracja maszyn
+*.keystore
+*.jks
+*.p12
+.env
+.env.*
+!.env.example
+
+# Pliki generowane, nie źródła programu
+dist/
+test-output/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.apk
+*.aab
+*.pdb
+*.log
+*.tmp
+*.bak

@@ -14,7 +14,7 @@ URUCHOMIENIE
    Po awarii backendu watchdog uruchamia go ponownie, bez kasowania danych.
    Chwilowy brak odpowiedzi nie zabija pracującego silnika.
 5. Wymagany jest Microsoft Edge WebView2 Runtime. Windows 11 zwykle już go ma.
-5. Jeśli program nie ruszy, logi są w:
+6. Jeśli program nie ruszy, logi są w:
    %LOCALAPPDATA%\\DrogowskazySoraPC\\blad_okna_webview2.txt
    %LOCALAPPDATA%\\DrogowskazySoraPC\\blad_silnika_pc.txt
 
@@ -48,3 +48,9 @@ KONTROLE
 JEŚLI WYSTĄPI BŁĄD
 Zachowaj katalog danych. Prześlij blad_okna_webview2.txt lub
 blad_silnika_pc.txt. Nie odinstalowuj telefonu ani nie czyść baz danych.
+
+PORZĄDKI KODU — SORA CLEAN, ETAP 2
+Ta paczka jest budowana wyłącznie z natywnego hosta C# WebView2 i backendu PHONE.
+Historyczne okna Tkinter, Qt/pywebview, stare skrypty budowania i powiązane testy
+nie są częścią bieżących źródeł. Zachowano raportowanie PHONE ↔ PC, testy
+sesji localhost, SQLite, GOLD i TRANSFER. Bez zmian interfejsu i danych.

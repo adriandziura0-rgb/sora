@@ -32,6 +32,7 @@ jobs:
         run: |
           python -m py_compile desktop/sora_backend.py desktop/engine.py desktop/local_session.py desktop/build_native_windows.py
           node desktop/test_windows_adapter.mjs
+          python tools/test_native_clean.py
           node tools/test_import_recovery.mjs
       - name: Install only Python engine dependencies
         run: python -m pip install Flask==3.1.2 pyinstaller==6.16.0 reportlab==4.4.4 Pillow==11.3.0
@@ -46,6 +47,7 @@ jobs:
           python tools/test_quote_database.py
           python tools/test_topic_matcher_cache.py
           python desktop/test_engine.py
+          python desktop/test_local_session.py
           python tools/test_transfer.py
       - name: Build native C# WebView2 and headless PHONE backend
         run: python desktop/build_native_windows.py

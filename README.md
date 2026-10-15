@@ -135,3 +135,15 @@ APK `versionCode=16`. Identyfikator runtime to SHA-256 zawartości
 Aktualizacja nawet z identycznym numerem aktywuje zmieniony kod WebView
 i pozostawia SQLite/WAL/SHM oraz katalog `data` nienaruszone.
 Przed aktualizacją wykonaj eksport TRANSFER lub kopię SQLite.
+
+## SORA CLEAN — etap 2 (15.10.2026)
+
+Natywne wydanie Windows działa przez C# WinForms WebView2 i `SoraSilnik.exe`.
+Na gałęzi CLEAN etap 2 usunięto wyłącznie potwierdzone, nieaktywne źródła
+starych aplikacji desktopowych (Tkinter, Qt/pywebview, ich stare budownicze i testy).
+Moduł `presentation.py`, którego używał test poprawności raportu, zachowano
+bez zmian treści jako `desktop/report_projection.py` z poprawionym importem testu.
+Usunięte pliki nadal są dostępne w historii Git; nie usunięto żadnych plików
+APK/SQLite/TRANSFER ani zamrożonego CORE. CI sprawdza brak importów martwego
+kodu i wykonuje dodatkowo ochronę prywatnej sesji Windows. Baza użytkownika
+pozostaje nietknięta.
