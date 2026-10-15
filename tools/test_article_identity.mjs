@@ -30,6 +30,7 @@ assert.equal(exported.analysis_run_id,run);
 assert.equal(exported.saved_document.id,5);
 assert.deepEqual(JSON.parse(JSON.stringify(exported.raport_json)),result);
 assert.deepEqual(events.map(x=>x.u),['/api/baza/dokument/5/wynik']);
+assert.equal(events[0].opts.cache,'no-store','Stored article must bypass HTTP cache');
 record={...record,document:{...record.document,updated_at:'new timestamp'}};
 assert.equal(await runExport(),null,'Background reanalysis must invalidate export');
 assert.equal(events.filter(x=>x.u?.includes('/api/raport')).length,0);

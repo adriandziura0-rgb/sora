@@ -2189,7 +2189,7 @@ async function eksportZapisanegoArtykulu(){
   if(!saved || !displayed)throw new Error('Brak otwartego zapisanego artykułu.');
   if(saved.zmieniony)throw new Error('Tekst artykułu został zmieniony. Otwórz zapisany artykuł ponownie przed eksportem.');
   // Wyłącznie GET istniejącego rekordu. Nigdy POST /api/raport ani nowy run.
-  const record=await pobierzJson('/api/baza/dokument/'+encodeURIComponent(saved.id)+'/wynik',{},'Kontrola zapisanego artykułu');
+  const record=await pobierzJson('/api/baza/dokument/'+encodeURIComponent(saved.id)+'/wynik',{cache:'no-store'},'Kontrola zapisanego artykułu');
   if(saved!==aktywnyZapisanyDokument || displayed!==ostatnieDane)
     throw new Error('W trakcie eksportu zmieniono aktywny artykuł. Spróbuj ponownie.');
   const doc=record.document||{}, result=record.wynik||{};
@@ -3002,7 +3002,7 @@ async function otworzWynikZBazy(documentId){
   zbiorczeDokumentyMap = {};
   ustawStatusBazy(`Wczytuję zapisany wynik dokumentu #${documentId}…`);
   try{
-    const data=await pobierzJson(`/api/baza/dokument/${documentId}/wynik`,{},'Odczyt wyniku z bazy');
+    const data=await pobierzJson(`/api/baza/dokument/${documentId}/wynik`,{cache:'no-store'},'Odczyt wyniku z bazy');
     const pole=$('textInput');
     if(pole) pole.value=String(data.tekst||'');
     const doc=data.document||{};
