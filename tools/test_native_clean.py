@@ -52,6 +52,7 @@ assert "python desktop/test_local_session.py" in windows
 assert "python tools/test_native_clean.py" in windows
 assert "python tools/test_native_clean.py" in android
 assert "python desktop/build_windows.py" not in windows
-assert "app/src/main/assets/drogowskazy-runtime.zip" in windows
+assert ("app/src/main/assets/drogowskazy-runtime.zip" in windows
+        or "app/src/main/**" in windows), "Build Windows musi śledzić zmiany runtime APK"
 
 print("PASS: CLEAN etap 2; bez martwych plików/importów Tk/Qt; aktywny natywny WebView2, test raportów i prywatnej sesji")
