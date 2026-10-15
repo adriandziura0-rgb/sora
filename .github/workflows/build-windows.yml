@@ -11,6 +11,7 @@ on:
       - 'app/src/main/python/data_transfer.py'
       - 'tools/**'
       - 'runtime_source/**'
+      - '.gitattributes'
       - '.github/workflows/build-windows.yml'
 permissions:
   contents: read
