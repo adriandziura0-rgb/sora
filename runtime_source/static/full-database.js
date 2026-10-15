@@ -106,16 +106,8 @@
     quotes.open=true;
     quotes.scrollIntoView({behavior:'smooth',block:'start'});
   });
-  function exportFile(name,contents,mime){
-    if(typeof window.pobierzPlik==='function'){
-      window.pobierzPlik(name,contents,mime);
-    }else{
-      const a=document.createElement('a');
-      const url=URL.createObjectURL(new Blob([contents],{type:mime}));
-      a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(url),30000);
-    }
-  }
+  // Wspólny eksport APK/WebView2 — ten sam, którego używają inne raporty.
+  const exportFile = (name, contents, mime) => window.pobierzPlik(name, contents, mime);
   const canExport=()=>!!report && reportScope===selectedScope().key && !inFlight;
   function updateExportButtons(){ exportReport.disabled=!canExport(); exportData.disabled=!canExport(); }
   const reportName=ext=>'Sora_raport_zaznaczonych_'+new Date().toISOString().slice(0,10)+'.'+ext;

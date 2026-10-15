@@ -1,4 +1,4 @@
-1.2.13
+1.2.14
 Drogowskazy Sora Android APK
 Runtime 4.5.12 wbudowany w APK; automatyczny start i panel w aplikacji.
 Aktualizacja zachowuje prywatny katalog data. Bezpośredni import plików do bazy,
@@ -42,3 +42,8 @@ ochrona SQLite, WAL, SHM i cofanie uszkodzonej aktualizacji.
 SORA CLEAN etap 3 (bez zmiany wersji produktu): kod źródłowy w
 runtime_source/, składany deterministycznie zamiast łatek nakładanych
 podczas buildu. Hash kodu i model analizy identyczne z 1.2.13 etap 2.
+
+Wydanie 1.2.14 CLEAN etap 4: wspólny eksport raportów HTML/JSON,
+odseparowana diagnostyka Windows, jedna kanoniczna paczka runtime.
+Silnik 4.5.12 FROZEN, brak zmian klasyfikatora i schematu SQLite.
+Aktualizacja zachowuje prywatne dane i TRANSFER PHONE–PC.

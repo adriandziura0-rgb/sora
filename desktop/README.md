@@ -54,3 +54,8 @@ Ta paczka jest budowana wyłącznie z natywnego hosta C# WebView2 i backendu PHO
 Historyczne okna Tkinter, Qt/pywebview, stare skrypty budowania i powiązane testy
 nie są częścią bieżących źródeł. Zachowano raportowanie PHONE ↔ PC, testy
 sesji localhost, SQLite, GOLD i TRANSFER. Bez zmian interfejsu i danych.
+
+SORA 1.2.14 CLEAN
+Instalacyjny ZIP nie zawiera plików PDB, dokumentacji bibliotek WebView2
+ani testowych zrzutów okna. Są dostępne oddzielnie w artefakcie
+Sora-WINDOWS-DIAGNOSTYKA danego przebiegu GitHub Actions.

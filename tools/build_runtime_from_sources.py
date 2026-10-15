@@ -16,7 +16,7 @@ ROOT=Path(__file__).resolve().parents[1]
 SOURCE=ROOT/"runtime_source"
 MANIFEST=SOURCE/"zip_manifest.json"
 TARGET=ROOT/"app/src/main/assets/drogowskazy-runtime.zip"
-RUNTIME_SHA="bee4fd3c9f67131e8d49cbf2789bce46fdfcde25610aeeb4e3566529e44cffd8"
+RUNTIME_SHA="f590c1f6f78fa9dba4ef922f75eb24760661db52d36038683a04833cdcf9213b"
 ENGINE_SHA="acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e"
 
 def sha(data:bytes)->str:return hashlib.sha256(data).hexdigest()

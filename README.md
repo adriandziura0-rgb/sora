@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.13
+# Drogowskazy Sora 1.2.14
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -167,3 +167,15 @@ Zniknęły stare skrypty `patch_engine_runtime.py`,
 Kryteria zaliczenia: bitowa zgodność runtime, 257/257 GOLD,
 identyczny identyfikator silnika PHONE i PC, transfer, SQLite,
 raporty, a następnie pełne testy Android/Windows na tym samym commicie.
+
+## SORA 1.2.14 CLEAN — etap 4 (15.10.2026)
+
+Finalny pakiet PHONE i PC jest budowany z jednego katalogu `runtime_source/`;
+aktualizacja zachowuje bazę SQLite, WAL i SHM. Raport zaznaczonych grup
+używa wspólnego eksportu `pobierzPlik`, tak jak raporty spraw i cytatów.
+Symbole PDB, dokumentacja WebView2 XML i testowe zrzuty ekranu są
+publikowane wyłącznie jako osobny artefakt diagnostyczny Windows,
+nie w instalacyjnej paczce CLEAN. Nie usuwaj aplikacji na telefonie:
+najpierw wyeksportuj TRANSFER, a nowy APK zainstaluj jako aktualizację.
+Zalecana weryfikacja: `python tools/test_release_clean.py`, 257/257 GOLD,
+testy transferu PHONE↔PC, pełny test Android SAF oraz natywny Windows EXE.

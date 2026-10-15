@@ -34,6 +34,7 @@ jobs:
         run: |
           python -m py_compile desktop/sora_backend.py desktop/engine.py desktop/local_session.py desktop/build_native_windows.py
           node desktop/test_windows_adapter.mjs
+          node --check runtime_source/static/full-database.js
           python tools/test_native_clean.py
           node tools/test_import_recovery.mjs
       - name: Install only Python engine dependencies
@@ -43,6 +44,7 @@ jobs:
       - name: Test original PHONE engine and SQLite safety
         run: |
           python tools/test_canonical_runtime.py
+          python tools/test_release_clean.py
           python tools/test_full_database_overview.py
           python tools/test_shared_content.py
           python tools/test_quote_database.py
@@ -81,11 +83,20 @@ jobs:
               -not $result.backgroundVerified -or -not $result.watchdogRestartVerified) {
             throw 'GUI background or watchdog regression'
           }
-          Copy-Item $report '.\dist\Sora\TEST_OK_PRAWDZIWE_OKNO.json'
-          Copy-Item $preview '.\dist\Sora\PODGLAD_PRAWDZIWEGO_OKNA.png'
-      - name: Pack native Sora
+          New-Item -ItemType Directory -Force -Path '.\dist\SoraDiagnostics' | Out-Null
+          Copy-Item $report '.\dist\SoraDiagnostics\TEST_OK_PRAWDZIWE_OKNO.json'
+          Copy-Item $preview '.\dist\SoraDiagnostics\PODGLAD_PRAWDZIWEGO_OKNA.png'
+      - name: Pack CLEAN native Sora without diagnostics
         shell: pwsh
-        run: Compress-Archive -Path dist\Sora -DestinationPath Sora_PHONE_NATYWNA_WEBVIEW2_PC.zip
+        run: |
+          $unexpected = Get-ChildItem '.\dist\Sora' -Recurse -File | Where-Object {
+            $_.Extension -eq '.pdb' -or
+            ($_.Name -like 'Microsoft.Web.WebView2.*.xml') -or
+            ($_.Name -like 'TEST_OK_*.json') -or
+            ($_.Name -like 'PODGLAD_*.png')
+          }
+          if ($unexpected) { throw "Pliki diagnostyczne w paczce: $($unexpected.FullName -join ', ')" }
+          Compress-Archive -Path dist\Sora -DestinationPath Sora_PHONE_NATYWNA_WEBVIEW2_PC.zip
       - name: Extract published ZIP and test the REAL window once again
         shell: pwsh
         run: |
@@ -93,6 +104,13 @@ jobs:
           Expand-Archive -Path Sora_PHONE_NATYWNA_WEBVIEW2_PC.zip -DestinationPath $dest -Force
           $exe = Join-Path $dest 'Sora\Sora.exe'
           if (-not (Test-Path $exe)) { throw 'No Sora.exe in ZIP' }
+          $dirty = Get-ChildItem $dest -Recurse -File | Where-Object {
+            $_.Extension -eq '.pdb' -or
+            ($_.Name -like 'Microsoft.Web.WebView2.*.xml') -or
+            ($_.Name -like 'TEST_OK_*.json') -or
+            ($_.Name -like 'PODGLAD_*.png')
+          }
+          if ($dirty) { throw "CLEAN ZIP contains debug files: $($dirty.FullName -join ', ')" }
           $data = Join-Path $env:RUNNER_TEMP 'sora-extracted-ui-test'
           $p = Start-Process -FilePath $exe -ArgumentList @('--test-ui', '--test-background', '--data-dir', $data) -PassThru
           if (-not $p.WaitForExit(150000)) { $p.Kill(); throw 'Extracted UI timeout' }
@@ -111,6 +129,13 @@ jobs:
           path: Sora_PHONE_NATYWNA_WEBVIEW2_PC.zip
           if-no-files-found: error
           retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: Sora-WINDOWS-DIAGNOSTYKA
+          path: dist/SoraDiagnostics/
+          if-no-files-found: ignore
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

@@ -51,6 +51,24 @@ if backend.exists():
     shutil.rmtree(backend)
 shutil.copytree(root / "dist/SoraSilnik", backend)
 
+# Debug/symbol/XML documentation is preserved in a SEPARATE diagnostics
+# artifact, never shipped with the installer. Do not remove runtime DLL/JSON.
+diagnostics = root / "dist/SoraDiagnostics"
+diagnostics.mkdir(parents=True, exist_ok=True)
+moved_diagnostics = []
+for candidate in list(publish.rglob("*")):
+    if not candidate.is_file():
+        continue
+    debug_pdb = candidate.suffix.lower() == ".pdb"
+    webview_docs = candidate.name.startswith("Microsoft.Web.WebView2.") and candidate.suffix.lower() == ".xml"
+    if debug_pdb or webview_docs:
+        target = diagnostics / candidate.relative_to(publish)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.move(str(candidate), str(target))
+        moved_diagnostics.append(candidate.relative_to(publish).as_posix())
+(diagnostics / "PRZENIESIONE_PLIKI.json").write_text(
+    json.dumps(moved_diagnostics, ensure_ascii=False, indent=2), encoding="utf-8")
+
 shutil.copyfile(root / "desktop/windows_adapter.js", publish / "windows_adapter.js")
 shutil.copyfile(root / "desktop/README.md", publish / "INSTRUKCJA.txt")
 (publish / "SILNIK_PHONE_PC.json").write_text(
@@ -69,4 +87,7 @@ for suspect in publish.rglob("*"):
     if suspect.is_file() and suspect.name.lower() in (
         "python.runtime.dll", "clrloader.dll", "_tkinter.pyd", "qtwebengineprocess.exe"):
         raise RuntimeError("W paczce pozostała niepotrzebna biblioteka: " + str(suspect))
-print("PASS: natywny Sora.exe (C# WebView2), osobny PHONE backend, bez Qt/pythonnet/Tk.")
+assert not any(path.suffix.lower() == ".pdb" or
+               (path.name.startswith("Microsoft.Web.WebView2.") and path.suffix.lower() == ".xml")
+               for path in publish.rglob("*") if path.is_file()), "Diagnostyka w paczce instalacyjnej"
+print("PASS: natywny Sora.exe CLEAN (C# WebView2), osobny PHONE backend, bez Qt/pythonnet/Tk ani debug PDB/XML.")
