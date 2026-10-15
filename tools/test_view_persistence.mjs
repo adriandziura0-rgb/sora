@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
 import {URLSearchParams} from 'node:url';
 
-const source=readFileSync(new URL('./overview_assets/full-database.js',import.meta.url),'utf8');
+const source=readFileSync(new URL('../runtime_source/static/full-database.js',import.meta.url),'utf8');
 function createElement(id) {
   return {
     id, hidden:true, value:'', options:[], disabled:false, _events:{},

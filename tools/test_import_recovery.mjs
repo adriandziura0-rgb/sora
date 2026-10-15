@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {runInNewContext} from 'node:vm';
-const code=readFileSync(new URL('./overview_assets/import-recovery.js',import.meta.url),'utf8');
+const code=readFileSync(new URL('../runtime_source/static/import-recovery.js',import.meta.url),'utf8');
 const controls=new Map();
 function element(id){
   const e={id,hidden:true,open:false,textContent:'',value:'',style:{cssText:''},classList:{
