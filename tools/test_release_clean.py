@@ -32,14 +32,17 @@ with ZipFile(TARGET) as z:
     assert "URL.createObjectURL" not in overview, "Duplicate browser export returned"
     assert "soraStoryDownloadHtml" in story and "soraStoryDownloadJson" in story
     assert "soraDownloadSelectedReport" in overview and "soraDownloadSelectedData" in overview
+assert "offline.querySelectorAll('[data-sora-overview-document]')" in overview
+assert "metricTypes.map(([key,label,kind])" in overview
+assert "offline.innerHTML+'</body></html>'" in overview
 
 version=(ROOT/"app/build.gradle").read_text(encoding="utf-8")
-assert "versionCode 19" in version and "versionName '1.2.16'" in version
-assert (ROOT/"VERSION.txt").read_text(encoding="utf-8").startswith("1.2.16")
+assert "versionCode 20" in version and "versionName '1.2.17'" in version
+assert (ROOT/"VERSION.txt").read_text(encoding="utf-8").startswith("1.2.17")
 desktop=(ROOT/"desktop/build_native_windows.py").read_text(encoding="utf-8")
 windows=(ROOT/".github/workflows/build-windows.yml").read_text(encoding="utf-8")
 assert "SoraDiagnostics" in desktop and "SoraDiagnostics" in windows
 assert "Sora-WINDOWS-DIAGNOSTYKA" in windows
 assert 'shutil.move(str(candidate), str(target))' in desktop
 assert ENGINE_SHA == "acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e"
-print("PASS: CLEAN 1.2.16 A2; shared export HTML/JSON, frozen engine, 66 assets, Windows diagnostics split")
+print("PASS: CLEAN 1.2.17 A2; shared export HTML/JSON, frozen engine, 66 assets, Windows diagnostics split")

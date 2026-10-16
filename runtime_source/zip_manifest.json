@@ -1,6 +1,6 @@
 {
   "schema": "sora-runtime-source-v1",
-  "runtime_sha256": "f8227a6e64e98b94b0fde5174719d842c23c12ac2a6a9a8fc6f7ff69ddd77a8f",
+  "runtime_sha256": "a6f013effc57555009f13dc3ef63d6fdba2b0ca0a65b968c4a821f9b2b6ed2b2",
   "engine_sha256": "acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e",
   "files": [
     {
@@ -1259,7 +1259,7 @@
     },
     {
       "path": "static/full-database.js",
-      "sha256": "51976cac9bc74ee78c71c7be3d09db618798058f75e5c4e96fcb5d551e58fb43",
+      "sha256": "0c0c9c80a4d54dfb996e29e403f205226404ec8ec5216c16ca512fe70e2bf081",
       "date_time": [
         2026,
         10,

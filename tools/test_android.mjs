@@ -243,6 +243,14 @@ try{
  await waitJs(()=>!document.getElementById('soraDownloadSelectedReport').disabled);
  const reportHtml=await exportButton('#soraDownloadSelectedReport','sora-selection-report.html');
  assert.match(reportHtml.toString(),/554|SORA|raport zaznaczonych/);
+ const offlineHtml=reportHtml.toString();
+ assert.equal((offlineHtml.match(/class="sora-overview-metric"/g)||[]).length,8,
+   'Offline HTML must include all eight comparison metrics');
+ assert.doesNotMatch(offlineHtml,/<(?:button|select|input|textarea|script)\b/i,
+   'Offline HTML must not contain dead interactive controls');
+ assert.match(offlineHtml,/P5 — pokrycie/);
+ assert.match(offlineHtml,/Relacje do weryfikacji/);
+ assert.match(offlineHtml,/Ostatnio przeanalizowane dokumenty/);
  const reportJson=JSON.parse((await exportButton('#soraDownloadSelectedData','sora-selection-report.json')).toString());
  assert.equal(reportJson.scope.groups.length,2);
  assert.equal(reportJson.report.ok,true);

@@ -1,4 +1,4 @@
-# Drogowskazy Sora 1.2.16
+# Drogowskazy Sora 1.2.17
 
 Android APK z wbudowanym analizatorem Drogowskazy 4.5.12. Po instalacji dotknięcie
 ikony automatycznie przygotowuje program, uruchamia usługę i otwiera panel w aplikacji.
@@ -193,3 +193,10 @@ Eksport raportu, pełnego JSON i PDF odczytuje ten sam dokument przez GET
 Po zmianie tekstu lub podmianie analizy w SQLite eksport jest blokowany,
 a użytkownik może ponownie otworzyć zapisany artykuł. Nie następuje ciche
 `POST /api/raport` ani przeliczenie classifiera. Dane i schemat SQLite bez zmian.
+
+## SORA 1.2.17 — samodzielny raport HTML dla zaznaczonych grup
+
+- Eksport `Pobierz raport HTML` zapisuje **statyczny, samowystarczalny** raport. Wszystkie 8 metryk porównania widoczne bez zmiany wskaźnika, bez JavaScript i bez kontaktu z SQLite.
+- Ostatnie dokumenty są pozycjami tekstowymi z informacją o pochodzeniu — nie udają przycisków otwierających artykuł, które nie działają poza aplikacją.
+- Panel w aplikacji pozostaje interaktywny, JSON zachowuje oryginalny kontrakt, CORE `ENGINE_SHA`, schemat SQLite, zakres wybranych grup i TRANSFER bez zmian.
+- Regresja Android: eksport HTML nie może zawierać martwych kontrolek, a wszystkie 8 wskaźników muszą być widoczne.
