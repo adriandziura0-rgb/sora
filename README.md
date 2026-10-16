@@ -200,3 +200,11 @@ a użytkownik może ponownie otworzyć zapisany artykuł. Nie następuje ciche
 - Ostatnie dokumenty są pozycjami tekstowymi z informacją o pochodzeniu — nie udają przycisków otwierających artykuł, które nie działają poza aplikacją.
 - Panel w aplikacji pozostaje interaktywny, JSON zachowuje oryginalny kontrakt, CORE `ENGINE_SHA`, schemat SQLite, zakres wybranych grup i TRANSFER bez zmian.
 - Regresja Android: eksport HTML nie może zawierać martwych kontrolek, a wszystkie 8 wskaźników muszą być widoczne.
+
+## Obowiązujące zasady bezkolizyjnej pracy nad dodatkami (audyt 1.2.17)
+
+Na osobnej gałęzi audytowej zapisano [audyt duplikacji, nakładania kodu i kolizji](AUDYT_KOLIZJI_DUPLIKACJI_DODATKOW_SORA_1_2_17.md)
+oraz [stały plan zasad pracy i obowiązkowych testów](PLAN_ZASAD_PRACY_I_TESTOW_KOLIZJI_SORA.md).
+Najpierw test reprodukcji, potem poprawka w `runtime_source/`, nigdy nowa łatka nadpisująca globalny kod.
+Każdy etap chroni zamrożony CORE, SQLite/WAL/SHM, transfer PHONE↔PC i pełne P0–P5.
+Wersja 1.2.17 pozostaje niezmieniona, dopóki nie zakończymy osobnych testów tych poprawek.
