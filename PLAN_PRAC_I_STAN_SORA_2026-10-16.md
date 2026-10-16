@@ -117,3 +117,10 @@ To dokumentacja **stanu kodu, wykonanych etapów, wyników automatycznych build�
 **Reguły stałe:** przed każdą zmianą audit-first; przed i po każdej poprawce kontrola producenta i konsumenta, kolizji i czystości kodu; bez dubli, monkey-patchy i cichego usuwania; nie usuwać baz/projektów/GOLD, nie nadpisywać działającej SQLite, CORE pozostaje zamrożony; napisy UI po polsku. Nie zgadywać danych ani nie uznawać zielonego builda za dowód trafności analizy.
 
 **Obecny status:** wyłącznie zapis ustaleń i planu. Nie rozpoczęto wdrażania P0/P1/A3, nie wykonano nowego testu na prywatnej bazie.
+
+
+## 10. Wynik wykonania etapu AUDYT-0 (16.10.2026)
+
+**Audyt statyczny wykonany i zapisany:** [AUDYT_0_SORA_1_2_17_DAWCA_ODBIORCA_CZYSTOSC_2026-10-16.md](AUDYT_0_SORA_1_2_17_DAWCA_ODBIORCA_CZYSTOSC_2026-10-16.md). Zbadano 11 kluczowych łańcuchów dawca–odbiorca, 123 śledzone pliki Git bez identycznych SHA, 197 unikalnych statycznych ID HTML. Potwierdzono podwójne skanowanie folderu, lukę A→B→A przy cytatach oraz rozbieżność między unikalną treścią dokumentu i wieloma folderami (jeden `relative_path`). Zidentyfikowano limity podglądu 12 i 60.
+
+**Nowa kolejność najbliższych prac:** przed poprawką wykonać T01 (licznik skanów), T02 (identyczny dokument z A i B oraz decyzja o tożsamości źródła), T03 (cytaty A→B→A) z raportem FAIL/PASS. Dopiero później naprawy P0/P1 i ich audyty końcowe; bez automatycznej migracji schematu SQLite/TRANSFER. Nie wykonano w tym etapie nowych testów E2E ani zmian kodu, baz, APK i EXE. `main` nie był aktualizowany.
