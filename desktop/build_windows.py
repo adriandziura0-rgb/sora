@@ -30,9 +30,34 @@ with app.app.test_client() as client:
 Path(sys.argv[3]).write_text(json.dumps({'cases':cases,'results':results},ensure_ascii=False),encoding='utf-8')
 """
 subprocess.run([sys.executable,'-c',script,str(extracted),json.dumps(cases),str(reference)],check=True)
+# To samo HTML/CSS/JS co w Androidzie, wyświetlane przez QtWebEngine.
+# Nie pakujemy pythonnet/CLR: dokładnie ten moduł zawodził na Windows.
+# Tkinter również nie jest wymagany.
 subprocess.run([sys.executable,'-m','PyInstaller','--noconfirm','--clean','--onedir','--windowed',
-    '--name','Sora','--paths',str(root/'app/src/main/python'),'--paths',str(extracted),'--collect-submodules','clean_core',
-    '--collect-all','flask','--collect-all','reportlab','--collect-all','PIL','--add-data',str(asset)+';.','--add-data',str(reference)+';.',str(root/'desktop/sora_pc.py')],check=True,cwd=root)
+    '--name','Sora',
+    # Tworzymy aplikację wyłącznie z WebView2. Nawet opcjonalna zależność Tk
+    # nie może wyzwolić pyi_rth__tkinter wymagającego katalogu _tk_data.
+    '--exclude-module','tkinter','--exclude-module','_tkinter',
+    '--exclude-module','pythonnet','--exclude-module','clr',
+    '--exclude-module','clr_loader','--exclude-module','System',
+    '--exclude-module','PySide6',
+    '--paths',str(root/'app/src/main/python'),'--paths',str(extracted),
+    '--paths',str(root/'desktop'),'--collect-submodules','clean_core',
+    '--collect-all','webview','--collect-all','PyQt6',
+    '--collect-all','PyQt6.QtWebEngineWidgets','--collect-all','qtpy',
+    '--collect-all','flask','--collect-all','reportlab',
+    '--collect-all','PIL','--add-data',str(asset)+';.',
+    '--add-data',str(root/'desktop/windows_adapter.js')+';.',
+    '--add-data',str(reference)+';.',str(root/'desktop/sora_pc_webview.py')],check=True,cwd=root)
+# Przed publikacją odrzuć paczkę zawierającą problematyczny
+# automatyczny hook Tcl/Tk. Kontrola działa bez uruchamiania GUI.
+for toc in (root/'build/Sora').glob('*.toc'):
+    info = toc.read_text(encoding='utf-8', errors='replace')
+    for forbidden in ('pyi_rth__tkinter', 'Python.Runtime.dll',
+                      'pythonnet/runtime/Python.Runtime.dll'):
+        if forbidden in info:
+            raise RuntimeError('Błąd wydania: niepotrzebna zależność '
+                               + forbidden + ' w ' + str(toc))
 output=root/'dist/Sora'
 (output/'SILNIK_PHONE_PC.json').write_text(json.dumps(identity,indent=2),encoding='utf-8')
 (output/'INSTRUKCJA.txt').write_text((root/'desktop/README.md').read_text('utf-8'),encoding='utf-8')

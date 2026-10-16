@@ -1,0 +1,127 @@
+/* Analiza wyłącznie zaznaczonych materiałów, obok wyboru, bez zmian w pobieraniu. */
+.sora-overview-nav-btn {display:block;width:100%;padding:14px 18px;margin:3px 0 12px;border-radius:15px;background:#155e75;color:#fff;font-size:16px;font-weight:850;letter-spacing:.01em}
+.sora-overview-nav-btn.active {box-shadow:0 0 0 3px #67e8f9 inset}
+.sora-full-overview[hidden] {display:none!important}
+.sora-selection-layout {display:grid;grid-template-columns:minmax(220px,0.9fr) minmax(0,1.5fr);gap:16px;align-items:start}
+.sora-selection-choice,.sora-selection-report {min-width:0}
+.sora-selection-choice {position:sticky;top:10px}
+.sora-selection-report {display:grid;gap:12px}
+.sora-full-overview {max-width:100%;margin:0;padding:0;box-sizing:border-box;color:#0f172a}
+.sora-selection-report #databaseComparisonResult {margin-top:8px}
+.sora-selection-report .database-compare-table-wrap {max-width:100%}
+@media(max-width:850px) {
+ .sora-selection-layout {grid-template-columns:1fr;gap:12px}
+ .sora-selection-choice {position:static}
+}
+.sora-overview-header {background:#0f172a;color:#fff;padding:22px 24px;border-radius:20px;box-shadow:0 15px 30px rgba(15,23,42,.12)}
+.sora-overview-header h2 {margin:0;font-size:26px;color:#fff}
+.sora-overview-header p {margin:8px 0 18px;color:#cbd5e1;line-height:1.5}
+.sora-overview-actions {display:flex;flex-wrap:wrap;gap:10px}
+.sora-overview-actions button {background:#e2e8f0;color:#0f172a;border-radius:12px;padding:11px 16px;font-weight:800}
+.sora-overview-actions button:disabled {opacity:.6}
+.sora-overview-status {margin:14px 0;padding:12px 14px;border-radius:12px;background:#f0fdfa;border:1px solid #5eead4;color:#115e59;font-weight:750;overflow-wrap:anywhere}
+.sora-overview-kpis {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:14px 0}
+.sora-overview-kpi {background:#fff;border:1px solid #dbe3ef;border-radius:15px;padding:14px;min-width:0;display:flex;flex-direction:column}
+.sora-overview-kpi span {font-weight:750;font-size:14px;color:#475569}
+.sora-overview-kpi strong {font-size:30px;line-height:1.35;color:#0f172a;margin:6px 0}
+.sora-overview-kpi small {font-size:12px;line-height:1.3;color:#64748b}
+.sora-overview-columns {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sora-overview-section {margin:8px 0 12px;background:#fff;border:1px solid #dbe3ef;border-radius:18px;padding:18px;min-width:0}
+.sora-overview-section h3 {margin:0 0 12px;font-size:20px;line-height:1.3}
+.sora-overview-section p {line-height:1.5}
+.sora-overview-muted {color:#64748b;font-size:13px;line-height:1.5}
+.sora-overview-control {display:grid;gap:7px;font-weight:750;font-size:14px;color:#334155;margin:14px 0}
+.sora-overview-control select {width:100%;padding:12px 10px;border-radius:12px;border:1px solid #94a3b8;background:#f8fafc;color:#0f172a;font-size:15px}
+.sora-overview-bars {display:grid;gap:11px}
+.sora-overview-bar-label {display:flex;justify-content:space-between;align-items:start;gap:12px;font-size:14px}
+.sora-overview-bar-label span {flex:1;overflow-wrap:anywhere}
+.sora-overview-bar-label b {flex-shrink:0}
+.sora-overview-track {margin-top:5px;border-radius:999px;background:#e2e8f0;overflow:hidden;height:10px}
+.sora-overview-track>div {height:100%;background:#0891b2;border-radius:999px}
+.sora-overview-bar small {display:block;color:#64748b;font-size:11px;margin-top:3px}
+.sora-overview-facts {display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sora-overview-facts>div {background:#f8fafc;border-radius:13px;padding:12px;min-width:0;display:grid;gap:5px}
+.sora-overview-facts strong {font-size:23px;color:#0f172a}
+.sora-overview-facts span {font-size:12px;line-height:1.3;color:#475569}
+.sora-overview-docs {display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.sora-overview-document {border:1px solid #cbd5e1;border-radius:11px;padding:12px;background:#f8fafc;color:#0f172a;text-align:left;display:grid;gap:5px;min-width:0}
+.sora-overview-document strong {font-size:13px;overflow-wrap:anywhere}
+.sora-overview-document span {font-size:12px;color:#475569}
+.sora-overview-notes {padding-left:22px;color:#334155;line-height:1.5}
+.sora-overview-notes li {margin:6px 0}
+.sora-overview-empty {border:1px solid #fbbf24;background:#fffbeb;border-radius:13px;padding:18px;color:#92400e;line-height:1.5}
+@media(max-width:720px) {
+  .sora-full-overview {padding:0 10px 20px}
+  .sora-overview-header {padding:16px;border-radius:15px}
+  .sora-overview-header h2 {font-size:21px}
+  .sora-overview-kpis {grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .sora-overview-kpi {padding:11px}
+  .sora-overview-kpi strong {font-size:23px}
+  .sora-overview-columns {grid-template-columns:1fr}
+  .sora-overview-section {padding:13px;margin:8px 0 10px}
+  .sora-overview-section h3 {font-size:17px}
+  .sora-overview-docs {grid-template-columns:1fr}
+  .sora-overview-facts strong {font-size:20px}
+}
+
+
+/* Smartfon: szeroka tabela (>580px) otrzymuje czytelne pionowe karty grup.
+   Zachowujemy oryginalną tabelę w DOM i nie zmieniamy obliczeń. */
+.sora-compare-mobile-cards {display:none}
+@media (max-width:760px) {
+  .sora-compare-mobile-cards {display:grid;gap:12px;min-width:0;margin:12px 0}
+  .sora-compare-mobile-cards + .database-compare-table-wrap.sora-has-mobile-cards {
+    display:none !important;
+  }
+  .sora-comparison-source-card {
+    display:block;min-width:0;max-width:100%;padding:14px;
+    background:#fff;border:1px solid #cbd5e1;border-radius:14px;
+    box-shadow:0 3px 8px rgba(15,23,42,.045);
+  }
+  .sora-comparison-source-card h5 {
+    margin:0 0 10px;color:#0f172a;font-size:16px;line-height:1.4;
+    overflow-wrap:anywhere;
+  }
+  .sora-comparison-source-card dl {margin:0;display:grid;gap:0}
+  .sora-comparison-metric {
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(60px,auto);
+    gap:12px;align-items:start;padding:9px 0;
+    border-top:1px solid #edf2f7;
+    font-size:13px;line-height:1.5;
+  }
+  .sora-comparison-metric dt {color:#475569;overflow-wrap:anywhere}
+  .sora-comparison-metric dd {
+    margin:0;font-weight:800;text-align:right;color:#0f172a;
+    max-width:155px;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;
+  }
+  .sora-selection-report,.sora-selection-layout,.database-compare-body,
+  .database-comparison-result {min-width:0;max-width:100%;box-sizing:border-box}
+  .sora-selection-report .database-compare-table-wrap:not(.sora-has-mobile-cards) {
+    overflow-x:auto;max-width:100%;-webkit-overflow-scrolling:touch;
+  }
+}
+
+
+/* Etap 1 — wybór i status zawsze widoczne, również na małym ekranie. */
+.sora-selection-scope {
+  border:1px solid #b6d8dc;border-left:5px solid #0e7490;
+  background:#ecfeff;color:#164e63;border-radius:13px;
+  padding:12px 14px;margin-bottom:12px;min-width:0;
+  font-size:14px;line-height:1.45;overflow-wrap:anywhere;
+}
+.sora-selection-scope strong {display:block;font-size:15px;line-height:1.35}
+.sora-selection-scope p {margin:9px 0 0;font-size:12px;line-height:1.5}
+.sora-scope-labels {display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;min-width:0}
+.sora-scope-item {display:inline-flex;max-width:100%;padding:5px 8px;
+  border:1px solid #a5c5d5;border-radius:9px;background:#fff;
+  font-weight:700;font-size:12px;overflow-wrap:anywhere;white-space:normal}
+.sora-overview-nav-btn:disabled {opacity:.55;cursor:not-allowed}
+.sora-overview-status {overflow-wrap:anywhere;min-width:0}
+@media(max-width:760px) {
+  .sora-selection-choice,.sora-selection-report,
+  .sora-full-overview,.sora-overview-header {min-width:0;max-width:100%}
+  .sora-overview-header p {overflow-wrap:anywhere}
+  .sora-overview-actions {flex-direction:column;align-items:stretch}
+  .sora-overview-actions button {width:100%}
+  .sora-selection-scope {margin:8px 0 12px;padding:12px}
+}

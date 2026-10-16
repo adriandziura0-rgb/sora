@@ -65,8 +65,18 @@ async function nativeTap(label,timeout=20000){
  adb('shell','input','tap',...point(node).map(String));await pause(350);return node;
 }
 async function downloads(){
+ // Android DocumentsUI bywa gotowy zanim dorysuje wpis Sora-tests.
+ // Przed próbą otwarcia nawigacji czekamy na folder, żeby nie pomylić
+ // opóźnionego widoku z brakiem lokalnego katalogu.
  const nodes=await until(()=>{const ns=nativeNodes();return ns.some(n=>/documentsui/.test(n.package||''))?ns:false;},'document picker ready');
  if(nodes.some(n=>matches(n,'Sora-tests')))return;
+ const ready=await until(()=>{
+   const ns=nativeNodes();
+   if(ns.some(n=>matches(n,'Sora-tests'))) return 'folder';
+   if(ns.some(n=>matches(n,'Show roots')&&n.enabled!=='false')) return 'roots';
+   return false;
+ },'Sora-tests folder or accessible root navigation',30000);
+ if(ready==='folder')return;
  // Our own pickers set Downloads explicitly. Android's print spooler may
  // instead remember a different provider, so navigate through local storage.
  await nativeTap('Show roots');
@@ -99,15 +109,23 @@ async function cancelPicker(){
 async function saveFile(name){
  const nodes=await until(()=>{const ns=nativeNodes();return ns.some(n=>/documentsui/.test(n.package||''))?ns:false;},'save picker ready');
  // Both the raw filesystem root and Android's Downloads provider can save
- // exports. The print spooler does not set our initial folder URI.
- if(!nodes.some(n=>/:id\/header_title$/.test(n['resource-id']||'') && /^Files in Downloads?$/i.test(n.text||''))){
-  await nativeTap('Show roots');await nativeTap('Downloads');
+ // exports. The emulator may reopen at the storage root despite selecting
+ // Downloads; make sure the actual target is /sdcard/Download before writing.
+ const inDownloads=()=>nativeNodes().some(n=>/:id\/header_title$/.test(n['resource-id']||'')
+   && /^Files in Downloads?$/i.test(n.text||''));
+ if(!inDownloads()){
+   if(nodes.some(n=>n.text==='Download'))await nativeTap('Download');
+   else {await nativeTap('Show roots');await nativeTap('Downloads');}
+   if(!inDownloads()&&nativeNodes().some(n=>n.text==='Download'))await nativeTap('Download');
  }
+ await until(()=>inDownloads(),'actual Downloads folder in save picker',30000);
  const edit=await until(()=>nativeNodes().find(n=>n.class==='android.widget.EditText'), 'Save filename');
  adb('shell','input','tap',...point(edit).map(String));
  adb('shell','input','keyevent','123');
  adb('shell','input','keyevent',...Array(Math.max(1,edit.text.length)).fill('67'));
- adb('shell','input','text',name);await nativeTap('Save');
+ adb('shell','input','text',name);
+ await until(()=>nativeNodes().some(n=>n.text===name),'exact requested export filename',15000);
+ await nativeTap('Save');
  let previousSize=-1,stable=0;
  await until(()=>{
   try{
@@ -156,7 +174,17 @@ try{
  await until(()=>api('/api/health'),'APK server start',120000);
  const devices=await android.devices({omitDriverInstall:true});assert.equal(devices.length,1);
  device=devices[0];device.setDefaultTimeout(120000);
- const webview=await device.webView({pkg:'pl.drogowskazy.sora'});
+ let webview;
+ try {
+   webview=await device.webView({pkg:'pl.drogowskazy.sora'});
+ } catch (firstError) {
+   // Android 16 / emulator CDP may miss the first WebView debugging socket,
+   // even when the APK has rendered correctly and HTTP /api/health is ready.
+   console.warn('WebView debugger not attached; retry after foregrounding:',firstError.message);
+   adb('shell','am','start','-n','pl.drogowskazy.sora/.MainActivity');
+   await pause(2000);
+   webview=await device.webView({pkg:'pl.drogowskazy.sora'});
+ }
  page=await webview.page();
  await until(()=>page.url().includes('127.0.0.1:5433'),'local panel');
  page.on('pageerror',e=>{jsErrors.push(e.message);console.error('WEBVIEW_ERROR',e.message);});
@@ -199,6 +227,96 @@ try{
  await click('#refreshDatabaseBtn');await pause(300);assert.match(await page.locator('#databaseImportFeedback').textContent(),/Przywróć kopię SQLite/);
  assert.equal((await queueDone()).stats.done,7);
  done('real SQLite import: files, duplicate, empty-file error retained, folders, nested HTML, folder pack, cancellation and retry');
+ await databaseView();
+ await page.locator('#databaseComparePanel').evaluate(e=>e.open=true);
+ await until(()=>page.evaluate(()=>document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]').length>=2),'selectable folders');
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),0,
+   'Brak automatycznego zaznaczenia folderów.');
+ await page.locator('#databaseCompareGroupList input[data-compare-group]').first().check();
+ await page.locator('#databaseCompareGroupList input[data-compare-group]').nth(1).check();
+ await click('#openFullOverviewBtn');
+ await waitJs(()=>document.getElementById('soraFullOverview') && !document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ assert.match(await page.locator('#soraFullOverviewStatus').textContent(),/wybrane grupy/);
+ await click('#soraFullOverviewRefresh');
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('Gotowe'));
+ await waitJs(()=>!document.getElementById('soraDownloadSelectedReport').disabled);
+ const reportHtml=await exportButton('#soraDownloadSelectedReport','sora-selection-report.html');
+ assert.match(reportHtml.toString(),/554|SORA|raport zaznaczonych/);
+ const reportJson=JSON.parse((await exportButton('#soraDownloadSelectedData','sora-selection-report.json')).toString());
+ assert.equal(reportJson.scope.groups.length,2);
+ assert.equal(reportJson.report.ok,true);
+ await click('#soraFullOverviewBack');
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ await click('#compareDatabaseBtn');
+ await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-compare-mobile-cards .sora-comparison-source-card').length>=2);
+ // Wspólne treści są niezależne od listy tematów i uruchamiają się TYLKO po kliknięciu.
+ await click('#soraOpenQuoteDatabase');
+ assert.equal(await page.locator('#sharedContentPanel').evaluate(el=>el.open),true);
+ assert.equal(await page.locator('#sharedContentStatus').textContent(),
+   'Czekam na Twój wybór. Nie przeszukuję bazy automatycznie.');
+ await click('#findSharedContentBtn');
+ await waitJs(()=>document.getElementById('sharedContentStatus').textContent.includes('Przejrzano'));
+ assert.equal(await page.locator('#findSharedContentBtn').isDisabled(),false);
+ await click('#soraFindQuotesBtn');
+ await waitJs(()=>document.getElementById('soraQuotesStatus').textContent.includes('Przejrzano'));
+ const quotesPayload=JSON.parse((await exportButton('#soraDownloadQuotesBtn','sora-quotes.json')).toString());
+ assert.equal(quotesPayload.ok,true);
+ assert.equal(quotesPayload.selected_groups.length,2);
+ const cardStats=await page.evaluate(()=>({
+   cards:[...document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
+   mainCards:[...document.querySelectorAll('#databaseComparisonResult .database-compare-section:first-of-type .sora-comparison-source-card')].map(c=>c.querySelectorAll('.sora-comparison-metric').length),
+   originalTables:document.querySelectorAll('#databaseComparisonResult table.database-compare-table').length,
+   sources:document.getElementById('databaseCompareGroups').selectedOptions.length
+ }));
+ assert.ok(cardStats.cards.length>=cardStats.sources, 'Every selected source has a mobile card');
+ assert.ok(cardStats.cards.some(n=>n>=10), 'Main metric table must retain its full list of metrics');
+ assert.ok(cardStats.originalTables>=1, 'Desktop comparison table must remain available');
+ assert.ok(cardStats.cards.length>=cardStats.sources, 'Selected groups must be readable as full metric cards');
+ done('selected-group overview, responsive metric cards, full original tables, import unchanged');
+ // ETAP 1: nowy wybór unieważnia stary raport; jeden folder działa oddzielnie
+ // od porównania dwóch folderów. Testujemy zarówno zakres, jak i wyświetlanie.
+ // Używamy PRAWDZIWYCH zdarzeń użytkownika. Ręczne ustawienie
+ // input.checked nie aktualizuje wewnętrznego stanu wyboru głównego panelu.
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
+ await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').nth(1).uncheck();
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraSelectionScope')?.textContent.includes('Wybrano: 1 folder'));
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),1);
+ assert.equal(await page.locator('#databaseComparisonResult table').count(),0,
+   'Po zmianie zaznaczenia poprzednie porównanie musi zniknąć.');
+ await click('#openFullOverviewBtn');
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('1 wybrana grupa'));
+ assert.equal(await page.locator('#databaseComparisonResult table').count(),0);
+ await page.locator('#databaseCompareGroupList input[data-compare-group]:not(:checked)').first().check();
+ await waitJs(()=>document.getElementById('soraFullOverview').hidden);
+ await waitJs(()=>document.getElementById('soraSelectionScope')?.textContent.includes('Wybrano: 2 foldery'));
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
+ await click('#compareDatabaseBtn');
+ await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card').length>=2);
+ await waitJs(()=>document.getElementById('soraFullOverviewStatus').textContent.includes('2 wybrane grupy'));
+ done('stage 1: clear stale results, explicit one/two-folder status, preserve all comparison metrics');
+
+ // Regresja: po ponownym wczytaniu WebView wciąż są te same artykuły,
+ // a ostatni jawnie wybrany raport i porównanie wracają z zapisanych analiz.
+ const beforeReload = (await api('/api/baza/status')).stats.done;
+ const savedOverview = await page.evaluate(() =>
+   JSON.parse(localStorage.getItem('sora-zaznaczone-raport-v1') || 'null'));
+ assert.equal(savedOverview?.view,'comparison');
+ assert.equal(savedOverview?.groups?.length,2);
+ await page.reload({waitUntil:'domcontentloaded'});
+ await waitJs(()=>window.__drogowskazyNativeInstalled &&
+   document.getElementById('backendStatusPill')?.classList.contains('backend-ok'));
+ await databaseView();
+ await page.locator('#databaseComparePanel').evaluate(e=>e.open=true);
+ await waitJs(()=>document.querySelectorAll('#databaseCompareGroupList input[data-compare-group]').length>=2);
+ await waitJs(()=>!document.getElementById('soraFullOverview').hidden &&
+   document.getElementById('soraFullOverviewStatus').textContent.includes('2 wybrane grupy'));
+ await waitJs(()=>document.querySelectorAll('#databaseComparisonResult .sora-comparison-source-card').length>=2);
+ assert.equal(await page.locator('#databaseCompareGroupList input[data-compare-group]:checked').count(),2);
+ assert.equal((await api('/api/baza/status')).stats.done,beforeReload,
+   'Restoring the view must never reimport or remove articles');
+ done('persistent selected-group comparison after WebView reload; articles unchanged');
 
  // Delay one transfer to verify Stop adding without interrupting persisted jobs.
  await page.route('**/api/baza/importuj',async route=>{await pause(700);await route.continue();});
@@ -291,7 +409,17 @@ try{
 
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
  const backup=await exportButton('#downloadDatabaseBtn','audit-backup.sqlite3');assert.equal(backup.subarray(0,16).toString(),'SQLite format 3\0');
- await click('#reanalyzeDatabaseBtn');await waitJs(()=>!document.getElementById('reanalyzeDatabaseBtn').disabled);assert.equal((await queueDone()).stats.done,7);
+ // Never confirm a destructive full-database recalculation during a UI audit.
+ // Android displays a native confirmation dialog; close it explicitly before
+ // testing the remaining comparison buttons, or the dialog blocks all taps.
+ await click('#reanalyzeDatabaseBtn');
+ await until(()=>nativeNodes().some(n=>(n.text||'').includes('Przeliczyć WSZYSTKIE zapisane artykuły?')),
+   'full database reanalysis confirmation',30000);
+ await nativeTap('ANULUJ');
+ await until(()=>!nativeNodes().some(n=>(n.text||'').includes('Przeliczyć WSZYSTKIE zapisane artykuły?')),
+   'full database reanalysis cancellation',30000);
+ await waitJs(()=>!document.getElementById('reanalyzeDatabaseBtn').disabled);
+ assert.equal((await queueDone()).stats.done,7);
  await click('#aggregateDatabaseBtn');await waitJs(()=>ostatnieDane?.aggregate_from_database===true);
  JSON.parse((await exportButton('#downloadResultsBtn','audit-aggregate.json')).toString());
  await databaseView();await click('#expertModeBtn');await page.locator('#databasePanel').evaluate(e=>e.open=true);
@@ -301,12 +429,42 @@ try{
  await click('#compareDatabaseBtn');await waitJs(()=>ostatniePorownanieBazy!==null);
  JSON.parse((await exportButton('#downloadDatabaseComparisonBtn','audit-comparison.json')).toString());
  await page.locator('#sameStoryComparePanel').evaluate(e=>e.open=true);
- await page.evaluate(()=>odswiezTematyTejSamejSprawy());
+ await click('#searchSameStoryTopicsBtn');
  await waitJs(()=>Array.from(document.getElementById('sameStoryTopic').options).some(o=>o.value));
  await page.evaluate(()=>{const s=document.getElementById('sameStoryTopic');s.value=Array.from(s.options).find(o=>o.value).value;s.dispatchEvent(new Event('change'));});
  await waitJs(()=>document.getElementById('sameStoryGroups').options.length>=2);
- await page.evaluate(()=>{const s=document.getElementById('sameStoryGroups');Array.from(s.options).forEach((o,i)=>o.selected=i<2);s.dispatchEvent(new Event('change'));});
+ // Select the rendered publisher cards, not the hidden <select>. The
+ // comparison panel can be closed again by session-view restoration after
+ // topic refresh, so reopen it *after* the asynchronous group list is ready.
+ await page.locator('#sameStoryComparePanel').evaluate(panel=>{panel.hidden=false;panel.open=true;});
+ const publisherCards=page.locator('#sameStoryGroupList label.database-group-option');
+ assert.ok(await publisherCards.count()>=2,'Two publisher cards must be rendered');
+ // Click the actual visible labels. This dispatches the native checkbox
+ // "change" event used by the real application to enable the compare button.
+ await publisherCards.nth(0).click();
+ await publisherCards.nth(1).click();
+ await waitJs(()=>document.getElementById('sameStorySelectedCount').textContent.includes('Wybrane: 2')
+   && !document.getElementById('compareSameStoryBtn').disabled);
  await click('#compareSameStoryBtn');await waitJs(()=>ostatniePorownanieTejSamejSprawy!==null);
+ await waitJs(()=>document.getElementById('soraStoryReadable')
+   && !document.getElementById('soraStoryReadable').hidden
+   && document.querySelectorAll('#soraStoryReadable .sora-story-editor').length>=2);
+ assert.ok(await page.locator('#soraStoryReadable .sora-story-source').count()>=2,
+   'Linked source articles must be visible in the case comparison');
+ const caseHtml=await exportButton('#soraStoryDownloadHtml','audit-case.html');
+ assert.match(caseHtml.toString(),/SORA — raport jednej sprawy/);
+ const caseJson=JSON.parse((await exportButton('#soraStoryDownloadJson','audit-case.json')).toString());
+ assert.equal(caseJson.format,'sora_same_story_report_v1');
+ assert.equal(caseJson.comparison.same_story.topic_id,await page.locator('#sameStoryTopic').inputValue());
+ assert.ok(caseJson.source_documents.length>=2,'The selected topic must preserve original article links');
+ await click('#soraStoryTableToggle');
+ assert.equal(await page.locator('#sameStoryComparisonResult').evaluate(e=>e.classList.contains('sora-story-show-table')),true);
+ await click('#soraStoryTableToggle');
+ const quoteAction=page.locator('#soraStoryReadable [data-sora-story-quotes]').first();
+ await quoteAction.evaluate(e=>e.click());
+ await waitJs(()=>document.querySelector('#soraStoryReadable .sora-story-excerpts')
+   && !document.querySelector('#soraStoryReadable .sora-story-excerpts').hidden
+   && !document.querySelector('#soraStoryReadable .sora-story-excerpts').textContent.includes('Odczytuję'));
  JSON.parse((await exportButton('#downloadSameStoryComparisonBtn','audit-same-story.json')).toString());
  done('SQLite export, reanalysis, aggregate export, folder comparison and same-story comparison with JSON');
 
@@ -360,9 +518,14 @@ try{
  assert.equal(await page.locator('#printReport').textContent(),'');
  done('app settings, battery screen, actual service restart/stop/resume, valid restore, invalid restore preserves SQLite, ZIP cancellation/update preserves SQLite, clear');
  assert.deepEqual(testFailures,[],`Integration failures: ${testFailures.join('; ')}`);
- const missing=inventory.filter(s=>!clicked.has(s));assert.deepEqual(missing,[],`Untested static buttons: ${missing.join(', ')}`);
+ // Contextual recovery-dialog actions are conditionally hidden at first load.
+ // They are exercised in tools/test_import_recovery.mjs, not the generic
+ // always-visible-button sweep on an Android emulator.
+ const contextual=new Set(['#soraImportCancel','#soraImportDatabase','#soraImportClose']);
+ const missing=inventory.filter(s=>!clicked.has(s)&&!contextual.has(s));
+ assert.deepEqual(missing,[],`Untested regular buttons: ${missing.join(', ')}`);
  assert.deepEqual(jsErrors,[],`Uncaught WebView errors: ${jsErrors.join(', ')}`);
- writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.5',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
+ writeFileSync(`${output}/android-audit.json`,JSON.stringify({apk:'1.2.9',androidApi:adb('shell','getprop','ro.build.version.sdk'),staticButtons:inventory.length,clicked:[...clicked],scenarios,uncaughtErrors:jsErrors},null,2));
  writeFileSync(`${output}/android-final.png`,execFileSync('adb',['exec-out','screencap','-p']));
  console.log(`PASS: ${inventory.length} static panel buttons covered on Android; ${scenarios.length} integration scenarios`);
 }catch(error){

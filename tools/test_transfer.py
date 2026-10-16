@@ -27,6 +27,19 @@ def run():
         sys.path.insert(0,str(ROOT/'desktop'))
         from engine import runtime_identity as asset_identity
         assert identity['engine_sha256']==asset_identity()['engine_sha256'],'PHONE/PC identity mismatch'
+        # Identyfikator z rzeczywistego APK Sora PHONE 1.2.12.
+        # Nie wolno omijać porównania silników przy imporcie TRANSFER.
+        phone_112 = 'acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e'
+        assert identity['engine_sha256']==phone_112, 'PC nie jest zgodny z aktualnym APK PHONE 1.2.12'
+        # Symulacja Windows CRLF na plikach źródłowych: nadal ten sam silnik.
+        import shutil
+        windows_clone = root / 'windows-crlf'
+        shutil.copytree(runtime, windows_clone)
+        source = windows_clone / 'app.py'
+        content = source.read_bytes().replace(b'\r\n', b'\n')
+        source.write_bytes(content.replace(b'\n', b'\r\n'))
+        assert runtime_identity(windows_clone)['engine_sha256']==phone_112, (
+            'Zmiana końca linii LF↔CRLF nie może blokować TRANSFER')
         def add(store,text,name):
             doc=store.begin_import(text=text,filename=name,relative_path='Transfer/'+name,extension='.txt',encoding='utf-8',source_bytes=len(text.encode()),app_version=APP_VERSION)['document']
             result=analiza_po_polsku(analyze_text(text));result['analysis_run_id']='transfer-'+doc['content_sha256'][:16]

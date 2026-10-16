@@ -53,7 +53,9 @@ public class DrogowskazyService extends Service {
 
     public static void startIfEnabled(Context context) {
         boolean enabled = context.getSharedPreferences(PREFS, MODE_PRIVATE).getBoolean(KEY_AUTO_RUN, true);
-        if (enabled && ProjectStore.isInstalled(context)) {
+        // Także po przerwaniu podmiany APK, gdy katalog current chwilowo
+        // nie istnieje. instalator odzyska previous w ensureRuntime().
+        if (enabled) {
             startInternal(context, new Intent(context, DrogowskazyService.class));
         }
     }
@@ -159,19 +161,21 @@ public class DrogowskazyService extends Service {
     private void startWatchdog() {
         watchdog = Executors.newSingleThreadScheduledExecutor();
         watchdog.scheduleWithFixedDelay(() -> {
-            if (!ProjectStore.isInstalled(this)) return;
-            if (!isHealthy()) ensureRuntime();
+            if (!isHealthy() || ProjectStore.needsBundledInstall(this)
+                    || ProjectStore.hasInterruptedRestore(this)) ensureRuntime();
         }, 20, 20, TimeUnit.SECONDS);
     }
 
     private void ensureRuntime() {
         if (stopRequested) return;
-        if (!ProjectStore.isInstalled(this)) {
-            RUNTIME_STOPPED.set(true);
-            updateNotification("Wybierz ZIP programu w aplikacji");
-            return;
-        }
-        if (isHealthy()) {
+        // Po aktualizacji APK lub po przerwanym przenoszeniu current/previous
+        // instalator sam odtworzy program; nie blokujemy się na isInstalled().
+        // Po aktualizacji APK nie wolno pozostawić działającego starego panelu.
+        // Dotyczy także startu z MY_PACKAGE_REPLACED i BOOT_COMPLETED.
+        boolean installRequired = ProjectStore.needsBundledInstall(this);
+        boolean recoveryRequired = ProjectStore.hasInterruptedRestore(this);
+        if (!installRequired && !recoveryRequired && isHealthy()) {
+            RUNTIME_STOPPED.set(false);
             updateNotification("Działa w tle • 127.0.0.1:" + PORT);
             return;
         }
@@ -179,12 +183,26 @@ public class DrogowskazyService extends Service {
         runtimeExecutor.execute(() -> {
             try {
                 if (stopRequested) return;
+                if (ProjectStore.hasInterruptedRestore(this) || ProjectStore.needsBundledInstall(this)) {
+                    updateNotification("Zabezpieczanie danych i aktualizowanie programu…");
+                    if (Python.isStarted() && !stopRuntime()) {
+                        throw new IllegalStateException("Nie można zatrzymać poprzedniej wersji.");
+                    }
+                    ProjectStore.recoverInterruptedRestore(this);
+                    if (stopRequested) return;
+                    ProjectStore.installBundled(this);
+                }
+                if (stopRequested) return;
                 if (!Python.isStarted()) Python.start(new AndroidPlatform(getApplicationContext()));
                 PyObject bootstrap = Python.getInstance().getModule("android_bootstrap");
                 bootstrap.callAttr("start", ProjectStore.projectDir(this).getAbsolutePath(), PORT);
                 for (int i = 0; i < 30 && !isHealthy(); i++) Thread.sleep(500);
-                if (isHealthy()) updateNotification("Działa w tle • 127.0.0.1:" + PORT);
-                else updateNotification("Serwer startuje — sprawdź aplikację");
+                if (isHealthy()) {
+                    RUNTIME_STOPPED.set(false);
+                    updateNotification("Działa w tle • 127.0.0.1:" + PORT);
+                } else {
+                    updateNotification("Serwer startuje — sprawdź aplikację");
+                }
             } catch (Throwable error) {
                 updateNotification("Błąd uruchomienia — otwórz aplikację");
             } finally {

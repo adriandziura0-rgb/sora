@@ -1,6 +1,8 @@
 package pl.drogowskazy.sora;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
@@ -13,13 +15,13 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 final class ProjectStore {
-    static final String BUNDLED_VERSION = "4.5.12-inapp-2";
     private static final String BUNDLE_PREFS = "drogowskazy_bundle";
     private static final long MAX_UNPACKED_BYTES = 700L * 1024L * 1024L;
     private static final int MAX_ENTRIES = 20_000;
@@ -38,8 +40,19 @@ final class ProjectStore {
                 && new File(root, "static/app.js").isFile();
     }
 
+    // Identyfikator wbudowanego programu musi zmieniać się wraz z aktualizacją APK.
+    // Stała 4.5.12-inapp-2 powodowała, że APK 1.2.8 uruchamiało stary panel.
+    private static String bundledVersion(Context context) {
+        try {
+            PackageInfo packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+            return "apk-runtime-" + packageInfo.versionName;
+        } catch (PackageManager.NameNotFoundException error) {
+            throw new IllegalStateException("Nie można sprawdzić wersji zainstalowanej aplikacji.", error);
+        }
+    }
+
     static boolean needsBundledInstall(Context context) {
-        return !isInstalled(context) || !BUNDLED_VERSION.equals(context
+        return !isInstalled(context) || !bundledVersion(context).equals(context
                 .getSharedPreferences(BUNDLE_PREFS, Context.MODE_PRIVATE)
                 .getString("installed_version", ""));
     }
@@ -65,7 +78,7 @@ final class ProjectStore {
 
     private static void markBundleInstalled(Context context) throws IOException {
         if (!context.getSharedPreferences(BUNDLE_PREFS, Context.MODE_PRIVATE).edit()
-                .putString("installed_version", BUNDLED_VERSION).commit()) {
+                .putString("installed_version", bundledVersion(context)).commit()) {
             throw new IOException("Nie można zapisać wersji zainstalowanego programu.");
         }
     }
@@ -134,35 +147,106 @@ final class ProjectStore {
         }
     }
 
-    static String restoreDatabase(Context context, Uri uri) throws Exception {
+    // Utrzymuj dziennik przywracania i komplet DB/WAL/SHM, aby po przerwaniu
+    // operacji można było odzyskać wszystkie dotychczasowe dane.
+    static boolean hasInterruptedRestore(Context context) {
+        return new File(projectDir(context), "data/.restore-pending").isFile();
+    }
+
+    static synchronized void recoverInterruptedRestore(Context context) throws IOException {
+        File data = new File(projectDir(context), "data");
+        File pending = new File(data, ".restore-pending");
+        if (!pending.isFile()) return;
+        byte[] nameBytes = new byte[128];
+        int length;
+        try (FileInputStream in = new FileInputStream(pending)) {
+            length = in.read(nameBytes);
+        }
+        if (length <= 0) throw new IOException("Uszkodzony znacznik przywracania bazy.");
+        String backupName = new String(nameBytes, 0, length, StandardCharsets.UTF_8).trim();
+        if (!backupName.matches("backup-before-restore-[0-9]+(?:-[0-9]+)?")) {
+            throw new IOException("Nieprawidłowy katalog kopii przywracania.");
+        }
+        File backup = new File(data, backupName);
+        if (!backup.isDirectory()) throw new IOException("Brak kopii awaryjnej: " + backupName);
+        rollbackDatabaseFiles(data, backup);
+        if (!pending.delete()) throw new IOException("Nie można zakończyć odzyskiwania bazy.");
+    }
+
+    private static void rollbackDatabaseFiles(File data, File backup) throws IOException {
+        String base = "drogowskazy.sqlite3";
+        for (String suffix : new String[] {"", "-wal", "-shm"}) {
+            File destination = new File(data, base + suffix);
+            File saved = new File(backup, base + suffix);
+            if (saved.isFile()) {
+                copyFile(saved, destination);
+            } else if (destination.exists() && !destination.delete()) {
+                throw new IOException("Nie można cofnąć pliku bazy: " + destination.getName());
+            }
+        }
+    }
+
+    static synchronized String restoreDatabase(Context context, Uri uri) throws Exception {
         File root = projectDir(context);
         if (!isInstalled(context)) throw new IOException("Poczekaj na przygotowanie programu.");
+        recoverInterruptedRestore(context);
 
+        File data = new File(root, "data");
+        if (!data.isDirectory() && !data.mkdirs()) throw new IOException("Nie można utworzyć katalogu danych.");
         File incoming = new File(context.getCacheDir(), "drogowskazy-restore.sqlite3");
-        File target = new File(root, "data/drogowskazy.sqlite3");
-        File backup = new File(root, "data/drogowskazy.sqlite3.before_restore");
         incoming.delete();
-
-        try (InputStream in = context.getContentResolver().openInputStream(uri)) {
-            if (in == null) throw new IOException("Nie można otworzyć wybranej kopii bazy.");
-            copyStreamWithLimit(in, incoming, MAX_DATABASE_BYTES);
-        }
-        validateDatabase(incoming);
-
-        if (target.isFile()) copyFile(target, backup);
-        new File(target.getAbsolutePath() + "-wal").delete();
-        new File(target.getAbsolutePath() + "-shm").delete();
         try {
-            copyFile(incoming, target);
-            validateDatabase(target);
-            backup.delete();
-        } catch (Exception error) {
-            if (backup.isFile()) copyFile(backup, target);
-            throw error;
+            try (InputStream in = context.getContentResolver().openInputStream(uri)) {
+                if (in == null) throw new IOException("Nie można otworzyć wybranej kopii bazy.");
+                copyStreamWithLimit(in, incoming, MAX_DATABASE_BYTES);
+            }
+            validateDatabase(incoming); // Żadna zmiana aktywnej bazy przed walidacją.
+
+            String backupName = "backup-before-restore-" + System.currentTimeMillis();
+            File backup = new File(data, backupName);
+            int attempt = 0;
+            while (backup.exists()) {
+                backup = new File(data, backupName + "-" + (++attempt));
+            }
+            if (!backup.mkdir()) throw new IOException("Nie można utworzyć kopii przed przywracaniem.");
+            String base = "drogowskazy.sqlite3";
+            for (String suffix : new String[] {"", "-wal", "-shm"}) {
+                File original = new File(data, base + suffix);
+                if (original.isFile()) copyFile(original, new File(backup, base + suffix));
+            }
+
+            File pending = new File(data, ".restore-pending");
+            try (FileOutputStream marker = new FileOutputStream(pending)) {
+                marker.write(backup.getName().getBytes(StandardCharsets.UTF_8));
+                marker.getFD().sync();
+            }
+            try {
+                // Nowa kopia jest już sprawdzona, a stary DB i dzienniki
+                // pozostają zachowane w backup-before-restore-<czas>.
+                for (String suffix : new String[] {"-wal", "-shm"}) {
+                    File journal = new File(data, base + suffix);
+                    if (journal.exists() && !journal.delete()) {
+                        throw new IOException("Nie można odłączyć dziennika: " + journal.getName());
+                    }
+                }
+                File target = new File(data, base);
+                copyFile(incoming, target);
+                validateDatabase(target);
+                if (!pending.delete()) throw new IOException("Nie można zatwierdzić przywrócenia.");
+            } catch (Exception error) {
+                try {
+                    rollbackDatabaseFiles(data, backup);
+                    if (!pending.delete()) throw new IOException("Pozostawiono znacznik odzyskiwania.");
+                } catch (Exception rollbackError) {
+                    error.addSuppressed(rollbackError);
+                    // Znacznik pozostaje: następny start ponowi odzyskiwanie.
+                }
+                throw error;
+            }
+            return "Baza przywrócona. Poprzednie DB, WAL i SHM pozostają w katalogu " + backup.getName() + ".";
         } finally {
             incoming.delete();
         }
-        return "Baza SQLite przywrócona bez ponownego liczenia zakończonych rekordów.";
     }
 
     private static void validateDatabase(File file) throws IOException {

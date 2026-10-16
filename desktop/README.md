@@ -1,35 +1,50 @@
-DROGOWSKAZY SORA — APLIKACJA NA WINDOWS 10/11 (64-bit)
+DROGOWSKAZY SORA — WINDOWS 10/11 64-BIT
+NATYWNY Sora.exe, ORYGINALNY PANEL TELEFONU, BEZ PYTHONNET I QT
 
-Rozpakuj cały ZIP. Otwórz folder Sora i uruchom Sora.exe.
-Zachowaj folder _internal obok programu. Python i przeglądarka nie są potrzebne.
+URUCHOMIENIE
+1. Rozpakuj cały ZIP do NOWEGO folderu (nie mieszaj z poprzednimi wydaniami).
+2. Otwórz Sora/Sora.exe. Nie przenoś samego EXE; folder _engine jest wymagany.
+3. Aplikacja otwiera natywne okno Windows C# z kontrolką Microsoft WebView2.
+   To NIE jest karta przeglądarki i NIE jest osobny panel Tkinter.
+4. Kliknięcie X albo Alt+F4 CHOWA Sorę do zasobnika obok zegara Windows.
+   Backend nadal działa i może zapisywać analizy do SQLite.
+   Dwuklik ikony Sory obok zegara lub ponowne uruchomienie Sora.exe
+   otwiera istniejące okno zamiast uruchamiać drugi backend.
+   Menu ikony: „Zakończ Sorę i zatrzymaj analizę” — to całkowite wyjście.
+   Po awarii backendu watchdog uruchamia go ponownie, bez kasowania danych.
+   Chwilowy brak odpowiedzi nie zabija pracującego silnika.
+5. Wymagany jest Microsoft Edge WebView2 Runtime. Windows 11 zwykle już go ma.
+5. Jeśli program nie ruszy, logi są w:
+   %LOCALAPPDATA%\\DrogowskazySoraPC\\blad_okna_webview2.txt
+   %LOCALAPPDATA%\\DrogowskazySoraPC\\blad_silnika_pc.txt
 
-Natywne okno: Dokument, Wynik analizy, Baza dokumentów, Porównania,
-Ta sama sprawa, Kontrola jakości (benchmark i GOLD), Raport i eksport.
-Wyniki mają czytelne karty wypowiedzi, aktorów i źródeł oraz fragmenty tekstu.
-Widok Ekspert udostępnia sekcje silnika i sygnały P0.
-Raport można zapisać jako Markdown, PDF lub JSON.
-Foldery są dodawane do trwałej kolejki, duplikaty rozpoznaje wspólny silnik.
+ARCHITEKTURA
+• Sora.exe: samodzielny natywny host C# WinForms + WebView2.
+• _engine/SoraSilnik/SoraSilnik.exe: niezmieniony silnik i panel PHONE Flask.
+• Oryginalny interfejs HTML/CSS/JS z APK PHONE 1.2.12, nie uproszczona kopia.
+• Obie części komunikują się tylko po 127.0.0.1, z prywatną sesją.
+• Watchdog kontroluje /api/sora-pc/health (bez skanowania SQLite).
+• Praca w zasobniku trwa przy zamkniętym oknie; nie działa podczas uśpienia
+  komputera i nie przetrwa całkowitego zamknięcia Windows.
+• Po awarii silnika można odczytać wcześniej zapisane wyniki SQLite,
+  ale niezapisana w momencie awarii operacja nie jest automatycznie ponawiana.
+• Brak tkinter, QtWebEngine i pythonnet / Python.Runtime.dll w uruchamianiu okna.
+• Kopie i TRANSFER ZIP wybierają natywne dialogi Windows.
 
-Silnik jest pobierany bez zmian z zasobu aplikacji Android w tym repozytorium.
-SILNIK_PHONE_PC.json zawiera odcisk. TEST_OK.json opisuje testy gotowego EXE.
-PODGLAD.png przedstawia rzeczywiste okno z testu Windows.
+DANE
+• Własna baza PC: %LOCALAPPDATA%\\DrogowskazySoraPC\\data\\drogowskazy.sqlite3
+• Aplikacja PHONE ma osobną bazę; nie nadpisuj aktywnego pliku SQLite.
+• TRANSFER ZIP PHONE → PC i PC → PHONE sprawdza zgodność silnika i schematu,
+  tworzy kopię i scala dane. Przed pierwszym testem zachowaj eksport.
+• Wydanie PC nie zmienia klasyfikatora, schematu SQLite ani zapisanych analiz.
 
-Dane PC są przechowywane w %LOCALAPPDATA%\DrogowskazySoraPC.
-Aktualizacja programu nie usuwa tej bazy. Zamknięcie kończy rozpoczętą pracę.
-Kopia SQLite używa spójnego mechanizmu kopii bazy.
-Przywrócenie sprawdza schemat, silnik i integralność; zachowuje poprzednią bazę.
-Przywrócenie zastępuje bazę — nie scala rekordów dwóch urządzeń.
-TRANSFER PHONE↔PC jest wdrożony jako wersjonowany ZIP.
-Na PC, w Bazie dokumentów: IMPORT Z TELEFONU · ZIP / EKSPORT NA TELEFON · ZIP.
-Na telefonie Sora 1.2.4, w ustawieniach: IMPORT Z KOMPUTERA · ZIP /
-EKSPORT NA KOMPUTER · ZIP. Przenieś tylko ten ZIP wybranym sposobem.
-Import sprawdza format, schemat, identyczny silnik, sumę SHA-256 i integralność.
-Przed zapisem robi kopię bazy. Dokumenty i oceny są scalane w jednej transakcji.
-Ten sam dokument jest rozpoznawany po skrócie treści; lokalne numery rekordów
-są mapowane, a identyfikatory analiz i relacji pozostają zachowane.
-Starsze zmiany nie zastępują nowszych. Równoczesny konflikt zachowuje dane lokalne,
-a pakiet wejściowy zostaje w katalogu transfers obok kopii poprzedniej bazy.
-Powtórny import nie tworzy drugich dokumentów ani drugich ocen.
-Czasy modyfikacji pochodzą z urządzeń: ustaw prawidłową datę na obu.
-ZIP TRANSFER przenosi bazę dokumentów i oceny, nie program ani szkic edytora.
-Nie kopiuj aktywnej bazy ani katalogu aplikacji między urządzeniami.
+KONTROLE
+• TEST_OK_PRAWDZIWE_OKNO.json i PODGLAD_PRAWDZIWEGO_OKNA.png:
+  tworzone WYŁĄCZNIE po inicjalizacji natywnego WebView2, wykonaniu JavaScript
+  oraz znalezieniu wszystkich paneli PHONE w rzeczywistym oknie.
+• GitHub sprawdza te operacje przed publikacją i powtarza je po rozpakowaniu ZIP.
+• Pamiętaj: test na GitHubie nie zastąpi końcowego sprawdzenia na Twoim Windows.
+
+JEŚLI WYSTĄPI BŁĄD
+Zachowaj katalog danych. Prześlij blad_okna_webview2.txt lub
+blad_silnika_pc.txt. Nie odinstalowuj telefonu ani nie czyść baz danych.
