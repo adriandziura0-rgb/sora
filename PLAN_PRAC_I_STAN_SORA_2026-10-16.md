@@ -86,10 +86,34 @@
 
 ## 7. Najbliższy konkretny krok
 
-**A3, część 1:** na nowej gałęzi opartej o `67f48a45a79c30e8e22e8a3cb6c2426685566b42` dodać pełny paginowany indeks dokumentów 1 folderu, odróżniać „12 ostatnich” od pełnej listy, pokazać zakres i dowody bez zmiany silnika. Dołączyć testy odczytowe oraz sprawdzić Android i Windows na tym samym SHA. Dopiero po zielonym A3 część 1 robić widok porównania dwóch folderów.
+**NOWA BRAMKA AUDYT-0 (przed jakimkolwiek kodem A3 lub naprawami):** wykonać odczytowy audyt kolizji i czystości kodu oraz zbudować tabelę **DAWCA → ODBIORCA DANYCH** dla importu, kolejek, SQLite, API, cytatów, wyników, eksportu i TRANSFER. Każda para ma mieć typy, ID, zakres/revision, zachowanie przy zaniku danych, właściciela zapisu, test i status. Dopiero po pisemnym raporcie: minimalne naprawy P0 import/recovery, P1 cytaty i zakres, P2 porządki; po zaliczonych testach A3. Zasady są w [ZASADY_PRACY_SORA_AUDYT_DAWCA_ODBIORCA_CZYSTOSC.md](ZASADY_PRACY_SORA_AUDYT_DAWCA_ODBIORCA_CZYSTOSC.md).
+
+**Po audycie, usunięciu krytycznych kolizji i regresjach — A3, część 1:** na nowej gałęzi opartej o `67f48a45a79c30e8e22e8a3cb6c2426685566b42` dodać pełny paginowany indeks dokumentów 1 folderu, odróżniać „12 ostatnich” od pełnej listy, pokazać zakres i dowody bez zmiany silnika. Dołączyć testy odczytowe oraz sprawdzić Android i Windows na tym samym SHA. Dopiero po zielonym A3 część 1 robić widok porównania dwóch folderów.
 
 ## 8. Co ten zapis obejmuje, a czego nie
 
 To dokumentacja **stanu kodu, wykonanych etapów, wyników automatycznych buildów i planu** w repozytorium GitHub. Nie jest kopią prywatnej bazy SORA, artykułów użytkownika, istniejących na telefonie katalogów czy SQLite. Takie dane trzeba oddzielnie wyeksportować w aplikacji przez funkcję TRANSFER / kopię bazy.
 
 **Plan może być aktualizowany po każdym przetestowanym etapie**, przy zachowaniu historii i linku do konkretnego SHA.
+
+
+## 9. Nowe obowiązkowe zasady (16.10.2026) — audyt przed zmianą i kontrola dawca/odbiorca
+
+**Dokument nadrzędny dla kolejnych prac:** [ZASADY_PRACY_SORA_AUDYT_DAWCA_ODBIORCA_CZYSTOSC.md](ZASADY_PRACY_SORA_AUDYT_DAWCA_ODBIORCA_CZYSTOSC.md). Uzupełnia wcześniejszy audyt kolizji i plan, nie zmienia silnika.
+
+**Bramki etapowe:**
+
+| Kolejność | Zadanie | Dowód zakończenia |
+|---|---|---|
+| 0A | Audyt obecnego kodu 1.2.17 (tylko odczyt), repo, zależności, OLD, duplikaty, martwy kod i nakładki | Lista plików/odwołań, wykryte fakty, hipotezy, brak zmian w kodzie |
+| 0B | Mapa DAWCA → ODBIORCA dla wszystkich ścieżek objętych planowaną zmianą | Źródło, odbiorca, kontrakt typów/ID, znikające pola, rewizja i konflikt zapisu |
+| 0C | Audyt kolizji/starych wyników/dwukrotnego wywołania i ryzyka regresji PHONE/PC | Test reprodukcji, raport wpływu, punkt powrotu i minimalny plan |
+| 1 | Po zatwierdzeniu zakresu: poprawka P0 import/skan i później P1 cytaty/zakres | Osobny commit i testy K/D/C; zero zmian classifiera i schematu SQLite |
+| 2 | Po P0/P1: CLEAN potwierdzonych dubli, nakładek, nieużywanych gałęzi | Audyt importów, równoważność zachowania i czystość obu paczek |
+| 3 | A3: pełny 1 folder, potem porównanie 2 folderów | Źródła X/Y, paginacja, P0–P5, eksporty, testy danych |
+| 4 | A4: ta sama sprawa i baza cytatów | Wszystkie źródła, zgodne ID/temat, brak starego wyniku, neutralne porównanie |
+| 5 | A5: audyt końcowy i wydanie | APK i EXE z jednego SHA, GOLD, testy E2E, SQLite/TRANSFER, realne dane na kopii |
+
+**Reguły stałe:** przed każdą zmianą audit-first; przed i po każdej poprawce kontrola producenta i konsumenta, kolizji i czystości kodu; bez dubli, monkey-patchy i cichego usuwania; nie usuwać baz/projektów/GOLD, nie nadpisywać działającej SQLite, CORE pozostaje zamrożony; napisy UI po polsku. Nie zgadywać danych ani nie uznawać zielonego builda za dowód trafności analizy.
+
+**Obecny status:** wyłącznie zapis ustaleń i planu. Nie rozpoczęto wdrażania P0/P1/A3, nie wykonano nowego testu na prywatnej bazie.
