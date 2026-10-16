@@ -121,6 +121,31 @@
   exportReport.addEventListener('click',()=>{
     if(!canExport()) return;
     const title='SORA — raport zaznaczonych artykułów';
+    // Offline HTML is a print-friendly snapshot, not a copy of live WebView controls.
+    // Keep all eight comparisons visible without JavaScript, network or SQLite access.
+    const offline=document.createElement('div');
+    offline.innerHTML=output.innerHTML;
+    const selector=offline.querySelector('#soraOverviewMetric');
+    const comparison=selector?.closest('.sora-overview-section');
+    if(comparison){
+      const sources=report.sources || [];
+      comparison.innerHTML='<h3>Porównanie wszystkich redakcji — wszystkie wskaźniki</h3>'
+        +'<p class="sora-overview-muted">Raport offline: wszystkie metryki są pokazane poniżej. Brak aktywnych filtrów i połączenia z bazą.</p>'
+        +metricTypes.map(([key,label,kind])=>'<section class="sora-overview-metric"><h4>'
+          +esc(label)+'</h4>'+metricsTable(sources,key,kind)+'</section>').join('');
+    }
+    // In the app these buttons open a SQLite document; in standalone HTML they
+    // cannot do so. Preserve document titles and provenance as plain text.
+    offline.querySelectorAll('[data-sora-overview-document]').forEach(button=>{
+      const row=document.createElement('div');
+      row.className='sora-overview-document';
+      row.innerHTML=button.innerHTML; // rendered paths/publishers were HTML-escaped.
+      button.replaceWith(row);
+    });
+    // Defensive guard: no controls that pretend to work outside the application.
+    offline.querySelectorAll('button,select,input,textarea').forEach(control=>{
+      control.replaceWith(document.createTextNode(control.textContent || ''));
+    });
     const content='<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>'+title+'</title>'
       +'<meta name="viewport" content="width=device-width,initial-scale=1">'
       +'<style>body{font:15px/1.5 Arial,sans-serif;max-width:960px;margin:24px auto;padding:15px;color:#102133}'
@@ -129,11 +154,12 @@
       +'.sora-overview-kpi strong{display:block;font-size:24px}.sora-overview-bar{margin:8px 0}'
       +'.sora-overview-bar-label{display:flex;justify-content:space-between}.sora-overview-track{height:9px;background:#e2e8f0}'
       +'.sora-overview-track>div{height:9px;background:#0891b2}.sora-overview-document{display:block;padding:8px}'
+      +'.sora-overview-metric{border-top:1px solid #cbd5e1;margin-top:12px;padding-top:10px}.sora-overview-metric h4{margin:4px 0 8px}'
       +'@media(max-width:650px){.sora-overview-kpis,.sora-overview-columns,.sora-overview-facts{grid-template-columns:1fr}}'
       +'@media print{body{margin:0;max-width:none}}</style></head><body><h1>'+title+'</h1>'
       +'<p>Wybrane grupy: '+esc(selectedScope().labels.join(', '))+'</p>'
       +'<p>Data: '+esc(new Date().toLocaleString('pl-PL'))+'. Tylko zapisane wyniki zaznaczonych grup.</p>'
-      +output.innerHTML+'</body></html>';
+      +offline.innerHTML+'</body></html>';
     exportFile(reportName('html'),content,'text/html;charset=utf-8');
   });
 
