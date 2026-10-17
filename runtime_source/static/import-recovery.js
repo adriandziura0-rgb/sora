@@ -69,10 +69,10 @@
       });
       if(cancelled||own!==token) return;
       const accepted=entries.filter(supported);
-      if(!accepted.length) return await originalFolder(handle);
+      if(!accepted.length) return await originalFolder(handle,entries);
       const total=accepted.reduce((sum,entry)=>sum+Number(entry.file.size||0),0)+inputSize();
       if(total>limit) {showOversize(accepted,total);return;}
-      return await originalFolder(handle);
+      return await originalFolder(handle,entries);
     } catch(e) {
       if(!cancelled) {
         const current=pokazPostepOperacji('Błąd wyboru folderu',{wartosc:0});
