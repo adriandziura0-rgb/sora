@@ -2,7 +2,7 @@
 
 **Data:** 2026-10-17  
 **TASK_ID:** `SORA-P0-JEDEN-SKAN`  
-**Stan:** **KOD ZMIENIONY NA IZOLOWANEJ GAŁĘZI, LOKALNE TESTY JS PASS, GITHUB ACTIONS BLOCKED**. Niepublikowane APK/EXE, nie ma potwierdzenia pracy na fizycznym Android/Windows.  
+**Stan:** **KOD ZMIENIONY NA IZOLOWANEJ GAŁĘZI, LOKALNE TESTY JS PASS, MANIFEST RUNTIME ZWERYFIKOWANY, GITHUB ACTIONS BLOCKED**. Niepublikowane APK/EXE, nie ma potwierdzenia pracy na fizycznym Android/Windows.  
 **Źródło prawdy przed zmianą:** `sora-full-html-snapshot-1.2.17-20261016` @ `67f48a45a79c30e8e22e8a3cb6c2426685566b42`.  
 **Gałąź P0:** `sora-full-p0-single-scan-20261017`. Zmiana nie jest w `main` ani w powyższej bazowej gałęzi 1.2.17.
 
@@ -46,15 +46,15 @@ Zestaw `entries` nie jest dodatkowo zapisywany ani cache'owany globalnie. Jeden 
 | `tools/test_t01_folder_scan.mjs` bezpośrednio w Actions | dodany test automatyczny | **NOT_RUN — startup_failure przed uruchomieniem jobs** | BLOKADA |
 | 257 GOLD, cały build APK/EXE, prawdziwy WebView/Android/Windows | historyczny stan 1.2.17 | **NOT_RUN** | BLOKADA |
 
-**Uwaga:** w tym kroku wykonano rozszerzone testy lokalne i kontrolę kodu; nie wolno zamieniać historycznego PASS z 1.2.17 na PASS nowego commita P0.
+**Uwaga:** w tym kroku wykonano rozszerzone testy lokalne i kontrolę kodu oraz odtworzono deterministyczne pakowanie zmienionego runtime. Nie wolno zamieniać historycznego PASS z 1.2.17 na PASS nowego commita P0.
 
 ## 4. Kod CLEAN / kontrola kolizji po
 
-- Zmienione **tylko 2 pliki źródłowe**; pozostałe zmiany to 1 test i 2 jednolinijkowe zmiany CI. Żadnych nowych endpointów, parserów, schematów SQLite, UID, analityki, UI/CSS, migracji ani zmian klasyfikatora.
+- Zmienione **tylko 2 pliki źródłowego JavaScript aplikacji**; ponadto **obowiązkowe metadane pakowania**: `runtime_source/zip_manifest.json`, stała `RUNTIME_SHA` w `tools/build_runtime_from_sources.py`, 1 test i 2 jednolinijkowe zmiany CI. Żadnych nowych endpointów, parserów, schematów SQLite, UID, analityki, UI/CSS, migracji ani zmian klasyfikatora.
 - Nie dodano nowego wrappera; istniejący recovery jest tym samym właścicielem kontroli rozmiaru, główna logika budowania pakietu pozostaje w `app.js`.
 - T01 potwierdza jednokrotne `getFile`, przekazanie dokładnie 1 pakietu, brak zapisów przy anulowaniu.
 - **Nie twierdzimy**, że absolutnie wszystkie wyścigi w module importu zniknęły; nie zmieniano architektury anulowania poza poprawką duplikacji.
-- Historyczne gałęzie, pliki `OLD`/stage i prywatna baza nietknięte.
+- Historyczne gałęzie, pliki `OLD`/stage i prywatna baza nietknięte. Pin `ENGINE_SHA` klasyfikatora oraz wszystkie 64 pozostałe pliki runtime **bez zmian**.
 
 ## 5. CI i zasada NO-GO
 
@@ -65,3 +65,20 @@ Zestaw `entries` nie jest dodatkowo zapisywany ani cache'owany globalnie. Jeden 
 ## 6. Następny jeden krok
 
 **Zweryfikować przyczynę GitHub Actions `startup_failure` (brak jobs) i doprowadzić do rzeczywistego uruchomienia testów na gałęzi P0** — bez wymyślania kolejnych napraw kodu i bez dotykania działających artefaktów 1.2.17. Po zielonym CI: audyt końcowy P0, test E2E na urządzeniu, decyzja o wydaniu lub rollback. Następny niezależny problem P1 cytatów A→B→A jest już odtworzony, ale celowo nie mieszano go z P0.
+
+
+## 7. Obowiązkowy audyt pakowania deterministycznego — po modyfikacji UI
+
+**Odkryta blokada przed wydaniem:** sam dwupunktowy fix JS naruszał dotychczasowy `runtime_source/zip_manifest.json` i `tools/build_runtime_from_sources.py:RUNTIME_SHA`. Kanoniczny builder **musi** przerwać pracę przy każdym niezatwierdzonym bajcie w źródłach, a ZIP ma być bitowo identyczny z wcześniej sprawdzonym SHA. Dlatego uzupełnienie tych dwóch plików jest warunkiem budowy, nie „kolejną łatką”.
+
+**Rozpoznanie i wyliczenie:**
+- Oryginalny runtime ZIP wydobyty z APK 1.2.17: SHA-256 `a6f013effc57555009f13dc3ef63d6fdba2b0ca0a65b968c4a821f9b2b6ed2b2`.
+- Odwzorowano dokładnie algorytm `tools/build_runtime_from_sources.py`: 66 rekordów, te same nazwy, kolejność i metadane ZipInfo, kompresja i zawartość. Ponowne złożenie 66 **oryginalnych** plików dało **identyczny bajtowo ZIP** (`original_rebuild == original=True`). Dzięki temu porównanie dla poprawki ma sens.
+- Dwa zmienione pliki JS otrzymały SHA-256: `static/app.js` `59f6c8f7dc61c5b2adf06ebc399ebdab32be2d0c4111c964519ae64a66ee0140`, `static/import-recovery.js` `17acf3322dec1e2f65308a123ada16521e78c2e77dc6da67a4cecd20feeb8dbe`.
+- **Nowy ZIP P0** z dokładnie tymi samymi 64 pozostałymi plikami i z zachowaniem całej struktury: SHA-256 `daa8ed53b0d77e4af449539b0f3f0fd4b09c306d34d3cf2c0da58f0b113c85df`. Drugi niezależny przebieg składania według manifestu dał **bajtowo identyczny ZIP**; SHA manifestu GitHub zgadza się z niezależnie zrekonstruowaną wersją `15803847e424fe4c346f21a388290055fca79329`.
+- [`runtime_source/zip_manifest.json`](../runtime_source/zip_manifest.json) ma **tylko trzy zmiany SHA**: dwóch źródeł JS i całej paczki runtime. [`tools/build_runtime_from_sources.py`](../tools/build_runtime_from_sources.py) aktualizuje wyłącznie `RUNTIME_SHA`.
+- **`ENGINE_SHA=acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e` POZOSTAJE NIEZMIENIONY.** Identyfikator silnika obejmuje `app.py`, `clean_core/`, `knowledge/` i `benchmark/`, nie pliki `static/`; wszystko z tego zakresu jest bajtowo nietknięte.
+- Nowy SHA ZIP oznacza zmianę zasobu aplikacji; [`ProjectStore.java`](https://github.com/adriandziura0-rgb/sora/blob/67f48a45a79c30e8e22e8a3cb6c2426685566b42/app/src/main/java/pl/drogowskazy/sora/ProjectStore.java) identyfikuje instalację po wersji pakietu **oraz hash asset ZIP**, więc nie wymaga w tym P0 zmiany schematu danych.
+- **Wykonano lokalny odpowiednik algorytmu deterministycznego pakowania, ale NIE uruchomiono prawdziwego `tools/build_runtime_from_sources.py` w GitHub Actions**. To nadal BLOCKED przez `startup_failure`. Nie nadawać statusu PASS dla pełnego workflow/buildu.
+
+**Konkluzja:** w drzewie Git gałęzi P0 działa spójny kontrakt pakowania i nie naruszono zamrożonego silnika. Następny test CI ma zbudować runtime według nowego SHA, uruchomić regresje, a dopiero potem można generować APK/EXE. Żadnego ręcznego nadpisywania runtime ZIP w instalacji użytkownika.
