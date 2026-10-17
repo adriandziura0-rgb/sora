@@ -131,36 +131,12 @@ def test() -> dict:
         assert case["selected_overview_read_only"] is True
         assert case["selected_overview_groups"] == ["Folder_A", "Folder_B"]
 
-    first = results["A_potem_B_identical"]
-    second = results["B_potem_A_identical"]
     distinct = results["A_potem_B_different"]
-    repeated = results["A_potem_B_3x_duplicate"]
-
-    assert [x["action"] for x in first["actions"]] == ["new", "duplicate"]
-    assert len(first["documents"]) == 1
-    assert first["stats"]["duplicates"] == 1
-    assert first["per_folder"]["Folder_A"]["saved_documents"] == 1
-    assert first["per_folder"]["Folder_B"]["saved_documents"] == 0
-    assert first["per_folder"]["Folder_B"]["comparison_group_count"] == 0
-    assert first["selected_overview_articles"] == 1
-    assert first["import_events"][1]["relative_path"] == "Folder_B/ten_sam.txt"
-
-    assert [x["action"] for x in second["actions"]] == ["new", "duplicate"]
-    assert len(second["documents"]) == 1
-    assert second["per_folder"]["Folder_A"]["saved_documents"] == 0
-    assert second["per_folder"]["Folder_B"]["saved_documents"] == 1
-
     assert [x["action"] for x in distinct["actions"]] == ["new", "new"]
     assert len(distinct["documents"]) == 2
     assert distinct["per_folder"]["Folder_A"]["comparison_group_count"] == 1
     assert distinct["per_folder"]["Folder_B"]["comparison_group_count"] == 1
-
-    assert [x["action"] for x in repeated["actions"]] == ["new", "duplicate", "duplicate"]
-    assert repeated["stats"]["duplicates"] == 2
-    assert len(repeated["import_events"]) == 3
-    assert len(repeated["documents"]) == 1
     return results
-
 
 def main() -> int:
     parser = argparse.ArgumentParser()
@@ -170,18 +146,36 @@ def main() -> int:
     results = test()
     print(json.dumps({"test": "SORA-T02", "code": "runtime_source/clean_core",
                       "cases": results}, ensure_ascii=False, indent=2))
+    a = results["A_potem_B_identical"]
+    b = results["B_potem_A_identical"]
+    d = results["A_potem_B_3x_duplicate"]
     if args.gate:
-        a = results["A_potem_B_identical"]
+        # Bramkę "2 lokalizacje" włączyć wyłącznie po decyzji,
+        # że raport ma liczyć WYSTĄPIENIA, a nie tylko unikatowe treści.
         both = all(
             a["per_folder"][name]["comparison_group_count"] == 1
             for name in ("Folder_A", "Folder_B")
         )
         if not both:
-            print("FAIL T02 GATE: identyczny artykuł z folderów A/B nie ma obu przypisań", file=sys.stderr)
+            print("FAIL T02 GATE: w raporcie brakuje jednej lokalizacji; kontrakt wymaga decyzji", file=sys.stderr)
             return 1
-        print("PASS T02 GATE: obie lokalizacje widoczne bez podwójnego przeliczania")
+        print("PASS T02 GATE: obie lokalizacje widoczne według przyjętego kontraktu")
     else:
-        print("PASS T02 AUDIT: odtworzono błąd na prawdziwych modułach; to NIE jest wynik poprawności semantyki.")
+        assert [x["action"] for x in a["actions"]] == ["new", "duplicate"]
+        assert len(a["documents"]) == 1 and a["stats"]["duplicates"] == 1
+        assert a["per_folder"]["Folder_A"]["saved_documents"] == 1
+        assert a["per_folder"]["Folder_B"]["saved_documents"] == 0
+        assert a["per_folder"]["Folder_B"]["comparison_group_count"] == 0
+        assert a["selected_overview_articles"] == 1
+        assert a["import_events"][1]["relative_path"] == "Folder_B/ten_sam.txt"
+        assert [x["action"] for x in b["actions"]] == ["new", "duplicate"]
+        assert len(b["documents"]) == 1
+        assert b["per_folder"]["Folder_A"]["saved_documents"] == 0
+        assert b["per_folder"]["Folder_B"]["saved_documents"] == 1
+        assert [x["action"] for x in d["actions"]] == ["new", "duplicate", "duplicate"]
+        assert d["stats"]["duplicates"] == 2 and len(d["import_events"]) == 3
+        assert len(d["documents"]) == 1
+        print("PASS T02 AUDIT: reprodukcja obecnej semantyki; to NIE jest poprawność obu przypisań.")
     return 0
 
 
