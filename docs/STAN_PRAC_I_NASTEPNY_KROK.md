@@ -1,6 +1,6 @@
 # STAN PRAC I NASTĘPNY KROK — Drogowskazy SORA — analizy artykułów
 
-**Utworzono:** 2026-10-17 • **TASK_ID:** `SORA-AUDYT0-001` • **Status:** `T01 ODTWORZONY — FAIL 3→6 / T02 NIEURUCHOMIONY / P0 NIEWDROŻONE`  
+**Utworzono:** 2026-10-17 • **TASK_ID:** `SORA-AUDYT0-001` • **Status:** `T01 ODTWORZONY / T02 SQL WYKONANY, KOD NOT_RUN / P0 NIEWDROŻONE`  
 **Repozytorium:** https://github.com/adriandziura0-rgb/sora  
 **HEAD kodu sprawdzany PRZED dodaniem dokumentacji:** `main` @ `28f5b698105e522c7d2658776a2382f46bc1e7b9`. Ten SHA jest **punktem odczytu**, nie dowodem najnowszego działającego produktu.  
 **Standard uniwersalny:** [UNIWERSALNY STANDARD v1.0](https://github.com/adriandziura0-rgb/przewijarka-app/blob/main/docs/UNIWERSALNY_STANDARD_PRACY_I_KONTYNUACJI_v1_0.md). Dodatkowo obowiązuje lokalny `AGENTS.md`; MASTER LIVE tylko w odpowiedniej domenie.
@@ -14,15 +14,15 @@
 ## 2. Stan zadania
 
 - **Zakończone/dowiedzione:** Audyt statyczny 11 ścieżek zapisany; T01 na rzeczywistych fragmentach JS w izolowanym V8 wykazał 3 pliki odczytane 6 razy, przekazanie jednego pakietu 3 dokumentów i brak automatycznego zapisu SQLite. Zielone poprzednie CI Android/Windows 1.2.17 pozostaje punktem odniesienia, **nie obejmuje naprawy T01**.
-- **Otwarte / BLOKADA:** Wg audytu: podwójny skan folderu; niejednoznaczny model identycznej treści w dwóch folderach; cykl żądań cytatów A→B→A; niepełne listy 12/60.
-- **Testy wykonane:** **T01 — FAIL (oczekiwane 3 odczyty, zmierzone 6)**; duży folder — PASS w symulacji (1 skan, 0 zapisów przy anulowaniu). **CI nowego testu: BLOCKED — `startup_failure`, bez wykonanych jobs**. Prawdziwy telefon/Windows — NOT_RUN. **Żaden fix nie został wdrożony.**
+- **Otwarte / BLOKADA:** T01: podwójny skan 3→6; T02: po analizie kodu i uruchomieniu projekcji SQL drugi folder nie staje się odrębnym przypisaniem w `documents`/raporcie (decyzja biznesowa i uruchomienie testu prawdziwych modułów nadal wymagane); T03: cykl cytatów A→B→A do odtworzenia; ponadto limity list 12/60.
+- **Testy wykonane:** **T01 — FAIL (3→6)**. **T02 — 4/4 izolowane projekcje SQL PASS**, w tym A→B ta sama treść daje `documents=1`, `import_events=2` i grupy A=1/B=0, kolejność B→A odwraca przypisanie. **Test prawdziwych modułów T02 NOT_RUN**: test zapisany na osobnej gałęzi. T03 NOT_RUN; GitHub CI niedawno `startup_failure`. Brak napraw, zmian CORE/SQLite i nowych wydań.
 - **DAWCA → ODBIORCA:** do potwierdzenia na rzeczywistym torze podanym w kroku poniżej; nie udawać, że wszystkie ogniwa już sprawdzono.
 - **Kolizje i CLEAN:** istniejące hipotezy/raporty trzeba prześledzić do SHA i testu; żadnego kasowania `OLD` ani automatycznej przebudowy.
 - **CORE, baza, historia, program:** **nietknięte**. Nie nadpisano SQLite, schematu, par wyników ani skryptów produktu.
 
 ## 3. Jeden następny krok — zaczynać TUTAJ
 
-**Nie rozpoczynać A3 ani refaktoru. Kolejny dokładny krok: T02 na danych syntetycznych — ten sam tekst w folderze A i B, kontrola `documents`/`import_events`/API/porównania i decyzja, czy liczymy unikalną treść czy wystąpienia publikacji. Następnie T03 cytaty A→B→A; dopiero po wynikach i decyzjach minimalne P0/P1. T01 nie powtarzać na tym samym SHA bez zmiany zachowania lub nowego dowodu.**
+**Kolejny dokładny krok: uruchomić `python tools/test_t02_duplicate_folders.py --audit` na prawdziwym checkout SORA 1.2.17 (najlepiej GitHub CI po usunięciu `startup_failure`) i potwierdzić logi. Nie zmieniać bazy. Dopiero następnie wykonać T03 cytaty A→B→A. T01 i projekcji SQL T02 nie ponawiać bez nowego kodu/dowodu.**
 
 **Kryterium GO/NO-GO:** T01–T03 mają logi PASS/FAIL i minimalny plan. Zmiana schema SQLite tylko po osobnej decyzji i rollback.
 
@@ -62,3 +62,14 @@ NASTĘPNY JEDEN KROK:
 - [GitHub Actions: startup_failure, zero wykonanych zadań](https://github.com/adriandziura0-rgb/sora/actions/runs/39030648844) — **nie interpretować jako wynik testu Node**.
 - **Obecny wynik**: trzykrotnie wybrany fragment danych przechodzi `getFile` 6×, ale trafia dalej raz (3 dokumenty). Przyczyna: wrapper `import-recovery.js` i `originalFolder` wykonują pełne skany kolejno. Bez zmian bazy/CORE/kodu produkcyjnego.
 - **Decyzja:** T01 nie powtarzać bez zmiany kodu lub potrzeby testu regresji. Przejść do T02; naprawę P0 podjąć osobno po bramkach testów i z kontrolą CLEAN.
+
+
+## 7. Kontynuacja po T02 — 17.10.2026
+
+**TASK_ID:** `SORA-T02-TOZSAMOSC-FOLDEROW` • **status: SQL-model PASS, pełny test modułów NOT_RUN, decyzja kontraktu OTWARTA.** Kod bazowy bez zmiany: `67f48a45a79c30e8e22e8a3cb6c2426685566b42`.
+
+- [Raport T02: schemat, dawca→odbiorca, 4 próby SQLite i ryzyka](https://github.com/adriandziura0-rgb/sora/blob/sora-t02-deduplikacja-foldery-20261017/docs/AUDYT_T02_TOZSAMOSC_TRESCI_I_FOLDEROW_2026-10-17.md).
+- [Test prawdziwych modułów SORA do uruchomienia (`--audit` / `--gate`)](https://github.com/adriandziura0-rgb/sora/blob/sora-t02-deduplikacja-foldery-20261017/tools/test_t02_duplicate_folders.py).
+- W izolowanym SQLite wykonano: A→B identyczna treść: jeden dokument, duplikat B w zdarzeniu, wykaz folderów A=1/B=0; odwrotne B→A daje B=1/A=0; różne teksty A=1/B=1; ponowiony B zwiększa tylko liczbę zdarzeń duplikatu. **Wykonana próba to projekcja SQL, nie realny moduł.**
+- **Brama następna:** wykonać `python tools/test_t02_duplicate_folders.py --audit` z rzeczywistego checkoutu 1.2.17 i potwierdzić status. Przed zmianą schematu wybrać kontrakt: unikalne teksty czy wystąpienia w folderach. Sugerowany bezpieczny kierunek to **jedno obliczenie na treść + osobna ewidencja pochodzenia**, ale **NIE WDROŻONO** go.
+- Po potwierdzeniu T02 przejść do T03 (cytaty A→B→A); naprawy P0/P1 pod kontrolą oddzielnego planu. Nie nadpisywać schematu ani danych.
