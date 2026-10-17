@@ -1,6 +1,6 @@
 # STAN PRAC I NASTĘPNY KROK — Drogowskazy SORA — analizy artykułów
 
-**Utworzono:** 2026-10-17 • **TASK_ID:** `SORA-AUDYT0-001` • **Status:** `T01 FAIL 3→6 / T02 REAL PY PASS / T03 FAIL A→B→A / P0-P1 NIEWDROŻONE`  
+**Utworzono:** 2026-10-17 • **TASK_ID:** `SORA-AUDYT0-001` • **Status:** `T01 FIX NA OSOBNEJ GAŁĘZI, TEST LOKALNY PASS / CI BLOCKED / BRAK WYDANIA`  
 **Repozytorium:** https://github.com/adriandziura0-rgb/sora  
 **HEAD kodu sprawdzany PRZED dodaniem dokumentacji:** `main` @ `28f5b698105e522c7d2658776a2382f46bc1e7b9`. Ten SHA jest **punktem odczytu**, nie dowodem najnowszego działającego produktu.  
 **Standard uniwersalny:** [UNIWERSALNY STANDARD v1.0](https://github.com/adriandziura0-rgb/przewijarka-app/blob/main/docs/UNIWERSALNY_STANDARD_PRACY_I_KONTYNUACJI_v1_0.md). Dodatkowo obowiązuje lokalny `AGENTS.md`; MASTER LIVE tylko w odpowiedniej domenie.
@@ -22,7 +22,7 @@
 
 ## 3. Jeden następny krok — zaczynać TUTAJ
 
-**Kolejny dokładny krok: P0 — przygotować i przetestować MINIMALNĄ zmianę eliminującą drugi skan w `import-recovery.js` / `app.js` przy zachowaniu limitu 1800 KiB, drogi do bazy i anulowania. Najpierw graf odpowiedzialności i test T01, potem mały fix i regresja. T02 (związany ze zmianą schematu) pozostaje wstrzymany do decyzji o kontrakcie liczników; T03 gotowy do późniejszej oddzielnej poprawki P1. Nie łączyć P0/P1 w jeden commit.**
+**Kolejny dokładny krok: zbadać `startup_failure` GitHub Actions i uzyskać rzeczywisty PASS testów P0 na gałęzi `sora-full-p0-single-scan-20261017` (Android/Windows na jednym SHA), a potem test ręczny WebView na urządzeniach i audyt końcowy. Nie wydawać APK/EXE z P0 przed tą bramką. Nie mieszać osobnej naprawy P1 cytatów ani migracji T02.**
 
 **Kryterium GO/NO-GO:** T01–T03 mają logi PASS/FAIL i minimalny plan. Zmiana schema SQLite tylko po osobnej decyzji i rollback.
 
@@ -94,6 +94,28 @@ NASTĘPNY JEDEN KROK:
 
 ### JEDEN następny krok
 
-**P0 — usunięcie podwójnego skanowania przy użyciu istniejącej funkcji, bez nowej warstwy i bez zmiany schematu/CORE.** Dopiero po testach T01 i regresjach wdrożenie, a osobno P1 cytaty i ADR T02. Zatrzymać wydanie, jeśli testy PC/Android nie zostaną potwierdzone.
+**P0: kod na osobnej gałęzi już zmieniono i lokalna regresja skanowania jest zielona; pozostało odblokowanie CI, pełne E2E Android/Windows i audyt końcowy.** P1 cytatów i ADR T02 pozostają oddzielnymi zadaniami.
 
-**Stan wydania:** nadal **SORA 1.2.17**, żadna poprawka z T01–T03 nie została wdrożona do aplikacji. `main` nadal nie jest najnowszym kodem rozwojowym.
+**Stan wydania:** nadal oryginalne **SORA 1.2.17**; P0 istnieje **wyłącznie na nieopublikowanej gałęzi**, nie ma nowego APK/EXE ani zatwierdzonej regresji w CI. `main` nadal nie jest źródłem najnowszego kodu rozwojowego.
+
+
+## 9. Wynik naprawy P0 — 17.10.2026 (najnowszy punkt wznowienia)
+
+**TASK_ID:** `SORA-P0-JEDEN-SKAN`  
+**Stan:** `KOD WDROŻONY NA BRANCHU / TEST LOKALNY PASS / CI STARTUP_FAILURE / WYDANIE NO-GO`.  
+**Gałąź:** `sora-full-p0-single-scan-20261017`  
+**HEAD gałęzi P0:** `aa6c208c03f88ff1d92856d1a6884bf56a7ad61b`  
+**Bazowy działający punkt odniesienia (bez zmiany):** `67f48a45a79c30e8e22e8a3cb6c2426685566b42` (SORA 1.2.17).
+
+- [Pełny raport P0, porównanie przed/po i audyt CLEAN](https://github.com/adriandziura0-rgb/sora/blob/sora-full-p0-single-scan-20261017/docs/RAPORT_P0_JEDEN_SKAN_FOLDERU_2026-10-17.md).
+- [Kod P0 — gałąź testowa](https://github.com/adriandziura0-rgb/sora/tree/sora-full-p0-single-scan-20261017).
+- [T01 — bramka regresyjna](https://github.com/adriandziura0-rgb/sora/blob/sora-full-p0-single-scan-20261017/tools/test_t01_folder_scan.mjs).
+- [Ostatnia próba CI startup_failure — bez uruchomionych jobs](https://github.com/adriandziura0-rgb/sora/actions/runs/39036260543).
+- **P0 DAWCA → ODBIORCA:** picker → zbieranie `entries` **1×** → obecny handler `dodajFolderZHandle(handle,entries)` → walidacja/analiza; bez ponownego skanu. Brak zmian parsera, klasyfikatora, schematu i danych SQLite.
+- **Przed:** 3 pliki → 6 wywołań `getFile` i jeden pakiet. **Po:** 3 pliki → **3** wywołania i jeden pakiet. 7 lokalnych scenariuszy z syntetycznym DOM i FileSystem handles: PASS, w tym podfolder, za duży folder, zamknięcie, pliki nieobsługiwane, pusty zbiór, podwójne kliknięcie i anulowanie. Składnia obu JS PASS. Nie jest to test prawdziwego WebView/Android.
+- **CLEAN:** 2 pliki produktu z małym diffem, 1 test i +1 linia do każdego z dwóch workflow; bez nowej warstwy patchy/OLD i bez nadpisywania historycznych plików.
+- **BLOKADA:** automatyczne GitHub Actions dla brancha P0 kończą się `startup_failure` **przed testami** (0 jobs). Nie deklarować pełnego PASS ani publikacji.
+- **NASTĘPNY JEDEN KROK:** zdiagnozować przyczynę startup_failure i uruchomić realne GitHub CI na SHA P0. Jeżeli trzeba zmienić workflow, najpierw audyt przyczyny, nie próby losowych poprawek. Następnie rzeczywiste testy PHONE/PC i decyzja o wydaniu.
+- **POZOSTAŁE, OSOBNE:** P1 cytaty A→B→A (czerwony test istnieje); T02 duplikaty folderów (pełne moduły z APK przebadane, decyzja co do definicji liczenia wystąpień nadal otwarta); A3 wstrzymany do potrzebnych bramek.
+
+**Punkt rollback:** commit bazowego kodu `67f48a45...`; danych SQLite nie cofano i nie należy ich kopiować/podmieniać „na żywo”. Nie zmieniać `main` bez testów.
