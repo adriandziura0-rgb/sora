@@ -62,6 +62,7 @@ jobs:
           python tools/test_quote_database.py
           node tools/test_view_persistence.mjs
           node tools/test_import_recovery.mjs
+          node tools/test_t01_folder_scan.mjs
 
       - name: Install Android SDK packages
         shell: bash
