@@ -1,0 +1,28 @@
+name: T01 - test pojedynczego skanowania folderu
+
+on:
+  push:
+    branches:
+      - sora-t01-reprodukcja-skanu-20261017
+    paths:
+      - 'tools/test_t01_folder_scan.mjs'
+      - '.github/workflows/test-t01-folder-scan.yml'
+      - 'runtime_source/static/app.js'
+      - 'runtime_source/static/import-recovery.js'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  folder_scan:
+    name: T01 czerwony test przed poprawka
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Wykonaj rzeczywiste skrypty JS, nie zmieniaj CORE
+        run: node tools/test_t01_folder_scan.mjs
