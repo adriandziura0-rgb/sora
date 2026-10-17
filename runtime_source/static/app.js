@@ -2691,12 +2691,14 @@ async function zbierzPlikiZKataloguHandle(dirHandle, prefix='', onScan=null){
   return wynik;
 }
 
-async function dodajFolderZHandle(dirHandle){
+async function dodajFolderZHandle(dirHandle, precollectedEntries=null){
   const tokenSkanu = pokazPostepOperacji('Skanowanie folderu', {wartosc:null, szczegol:'Szukam obsługiwanych dokumentów także w podfolderach…'});
   try{
-    const entries = await zbierzPlikiZKataloguHandle(dirHandle, dirHandle.name || '', (count, rel)=>{
-      aktualizujPostepOperacji(tokenSkanu,{tekstWartosci:`${count} pl.`,szczegol:`Znaleziono ${count} · ${rel}`});
-    });
+    // Recovery przekazuje gotową listę; skan katalogu nie może wystąpić ponownie.
+    const entries = Array.isArray(precollectedEntries) ? precollectedEntries
+      : await zbierzPlikiZKataloguHandle(dirHandle, dirHandle.name || '', (count, rel)=>{
+        aktualizujPostepOperacji(tokenSkanu,{tekstWartosci:`${count} pl.`,szczegol:`Znaleziono ${count} · ${rel}`});
+      });
     const unreadable = entries.filter(item => item.readError);
     const supported = entries.filter(item => !item.readError && czyObslugiwanyPlik(item.file));
     const skippedUnsupported = entries.length - supported.length;
