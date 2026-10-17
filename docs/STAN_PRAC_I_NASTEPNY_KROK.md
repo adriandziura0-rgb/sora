@@ -104,13 +104,13 @@ NASTĘPNY JEDEN KROK:
 **TASK_ID:** `SORA-P0-JEDEN-SKAN`  
 **Stan:** `KOD WDROŻONY NA BRANCHU / TEST LOKALNY PASS / CI STARTUP_FAILURE / WYDANIE NO-GO`.  
 **Gałąź:** `sora-full-p0-single-scan-20261017`  
-**HEAD gałęzi P0:** `aa6c208c03f88ff1d92856d1a6884bf56a7ad61b`  
+**HEAD gałęzi P0 (zweryfikowany po zapisie raportu i manifestu):** `e70108286a610d21095a9b448c1a1c22adc25cf3`  
 **Bazowy działający punkt odniesienia (bez zmiany):** `67f48a45a79c30e8e22e8a3cb6c2426685566b42` (SORA 1.2.17).
 
 - [Pełny raport P0, porównanie przed/po i audyt CLEAN](https://github.com/adriandziura0-rgb/sora/blob/sora-full-p0-single-scan-20261017/docs/RAPORT_P0_JEDEN_SKAN_FOLDERU_2026-10-17.md).
 - [Kod P0 — gałąź testowa](https://github.com/adriandziura0-rgb/sora/tree/sora-full-p0-single-scan-20261017).
 - [T01 — bramka regresyjna](https://github.com/adriandziura0-rgb/sora/blob/sora-full-p0-single-scan-20261017/tools/test_t01_folder_scan.mjs).
-- [Ostatnia próba CI startup_failure — bez uruchomionych jobs](https://github.com/adriandziura0-rgb/sora/actions/runs/39036260543).
+- [Ostatnia sprawdzona próba CI startup_failure — bez uruchomionych jobs](https://github.com/adriandziura0-rgb/sora/actions/runs/39036767787).
 - **P0 DAWCA → ODBIORCA:** picker → zbieranie `entries` **1×** → obecny handler `dodajFolderZHandle(handle,entries)` → walidacja/analiza; bez ponownego skanu. Brak zmian parsera, klasyfikatora, schematu i danych SQLite.
 - **Przed:** 3 pliki → 6 wywołań `getFile` i jeden pakiet. **Po:** 3 pliki → **3** wywołania i jeden pakiet. 7 lokalnych scenariuszy z syntetycznym DOM i FileSystem handles: PASS, w tym podfolder, za duży folder, zamknięcie, pliki nieobsługiwane, pusty zbiór, podwójne kliknięcie i anulowanie. Składnia obu JS PASS. Nie jest to test prawdziwego WebView/Android.
 - **CLEAN i deterministyczny build:** 2 pliki JavaScript z małym diffem, 1 test i +1 linia w dwóch workflow. Uzupełniono też obowiązkowe sumy SHA w kanonicznym `runtime_source/zip_manifest.json` i stałą `RUNTIME_SHA` w `tools/build_runtime_from_sources.py` — bez zmiany `ENGINE_SHA` zamrożonego silnika, 64 niezmienione pliki runtime. Odtworzone pakowanie ZIP lokalnie bitowo zgodne z algorytmem i manifestem. Brak nowej warstwy patchy/OLD i brak ingerencji w bazę.
