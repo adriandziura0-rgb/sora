@@ -113,9 +113,20 @@ NASTĘPNY JEDEN KROK:
 - [Ostatnia próba CI startup_failure — bez uruchomionych jobs](https://github.com/adriandziura0-rgb/sora/actions/runs/39036260543).
 - **P0 DAWCA → ODBIORCA:** picker → zbieranie `entries` **1×** → obecny handler `dodajFolderZHandle(handle,entries)` → walidacja/analiza; bez ponownego skanu. Brak zmian parsera, klasyfikatora, schematu i danych SQLite.
 - **Przed:** 3 pliki → 6 wywołań `getFile` i jeden pakiet. **Po:** 3 pliki → **3** wywołania i jeden pakiet. 7 lokalnych scenariuszy z syntetycznym DOM i FileSystem handles: PASS, w tym podfolder, za duży folder, zamknięcie, pliki nieobsługiwane, pusty zbiór, podwójne kliknięcie i anulowanie. Składnia obu JS PASS. Nie jest to test prawdziwego WebView/Android.
-- **CLEAN:** 2 pliki produktu z małym diffem, 1 test i +1 linia do każdego z dwóch workflow; bez nowej warstwy patchy/OLD i bez nadpisywania historycznych plików.
+- **CLEAN i deterministyczny build:** 2 pliki JavaScript z małym diffem, 1 test i +1 linia w dwóch workflow. Uzupełniono też obowiązkowe sumy SHA w kanonicznym `runtime_source/zip_manifest.json` i stałą `RUNTIME_SHA` w `tools/build_runtime_from_sources.py` — bez zmiany `ENGINE_SHA` zamrożonego silnika, 64 niezmienione pliki runtime. Odtworzone pakowanie ZIP lokalnie bitowo zgodne z algorytmem i manifestem. Brak nowej warstwy patchy/OLD i brak ingerencji w bazę.
 - **BLOKADA:** automatyczne GitHub Actions dla brancha P0 kończą się `startup_failure` **przed testami** (0 jobs). Nie deklarować pełnego PASS ani publikacji.
 - **NASTĘPNY JEDEN KROK:** zdiagnozować przyczynę startup_failure i uruchomić realne GitHub CI na SHA P0. Jeżeli trzeba zmienić workflow, najpierw audyt przyczyny, nie próby losowych poprawek. Następnie rzeczywiste testy PHONE/PC i decyzja o wydaniu.
 - **POZOSTAŁE, OSOBNE:** P1 cytaty A→B→A (czerwony test istnieje); T02 duplikaty folderów (pełne moduły z APK przebadane, decyzja co do definicji liczenia wystąpień nadal otwarta); A3 wstrzymany do potrzebnych bramek.
 
 **Punkt rollback:** commit bazowego kodu `67f48a45...`; danych SQLite nie cofano i nie należy ich kopiować/podmieniać „na żywo”. Nie zmieniać `main` bez testów.
+
+
+### Bramka pakowania P0 (zapis uzupełniający)
+
+Wykryto, że kanoniczny builder SORA przerywa pracę po zmianie JS bez aktualizacji manifestu. Na gałęzi P0:
+- zaktualizowano **wyłącznie** SHA `static/app.js`, `static/import-recovery.js` i całego ZIP w `runtime_source/zip_manifest.json`;
+- stała `RUNTIME_SHA` = `daa8ed53b0d77e4af449539b0f3f0fd4b09c306d34d3cf2c0da58f0b113c85df` odpowiada odtworzonemu bajtowo lokalnemu ZIP P0;
+- `ENGINE_SHA` = `acd41f077f31df1d1f7bfa6584f529d22ca886a2a0faaef17561f1493288032e` bez zmian; wszystkie 64 inne pliki runtime identyczne z bazą;
+- zapisana w GitHub [dodatkowa kontrola deterministycznego pakowania P0](https://github.com/adriandziura0-rgb/sora/blob/sora-full-p0-single-scan-20261017/docs/RAPORT_P0_JEDEN_SKAN_FOLDERU_2026-10-17.md#7-obowiązkowy-audyt-pakowania-deterministycznego--po-modyfikacji-ui).
+
+**Następny jeden krok pozostaje bez zmian:** zweryfikować/odblokować `startup_failure` w GitHub Actions; przetestować prawdziwy kanoniczny builder, regresje + build Android i PC na jednym SHA. To jest **test lokalnej rekonstrukcji**, nie zielone GitHub Actions.
