@@ -42,3 +42,12 @@
 - Testuj widok analizy jednego artykułu, jednego folderu, wielu folderów oraz wybranych rekordów, zachowanie danych i przejrzystość wyników.
 - Pilnuj wyboru katalogów/SD, importu, SQLite/WAL, limitów żądań, usługi lokalnej i ponownego otwierania Android/Windows.
 - Nie zakładaj, że domyślna gałąź main jest najnowszym wydaniem; sprawdź aktywny branch, commit, PR i punkt cofnięcia przed działaniem.
+
+## Ciągłość pracy: nie powtarzać zakończonych etapów
+
+- **Jeden wspólny standard v1.0:** [UNIWERSALNY STANDARD — AUDYT, DAWCA→ODBIORCA, KOLIZJE, CLEAN, ANTY-PĘTLA](https://github.com/adriandziura0-rgb/przewijarka-app/blob/main/docs/UNIWERSALNY_STANDARD_PRACY_I_KONTYNUACJI_v1_0.md).
+- **Jeden lokalny punkt wznowienia:** [STAN PRAC I NASTĘPNY KROK](docs/STAN_PRAC_I_NASTEPNY_KROK.md). Odczytaj go przed następną zmianą lub raportem stanu, a następnie porównaj z bieżącym SHA. Dokument nie aktualizuje się sam.
+- **Przed każdą nową pracą:** sprawdź TASK_ID, ostatni potwierdzony commit **kodu**, ostatni raport PASS/FAIL, BLOKADĘ i jeden następny krok. **Nie ponawiaj całego audytu**, jeśli stan kodu i kontraktów nie uległ zmianie; audytuj tylko różnicę i jej zależności.
+- **Zero pętli:** ten sam test kończący się dwukrotnie tym samym błędem bez nowego dowodu oznacza STOP i zmianę hipotezy/metody rozpoznania — żadnej nowej łatki na ślepo.
+- **Zamykanie etapów:** wynik i dowód testu → ponowny audyt DAWCA/ODBIORCA i czystości → aktualizacja jednego rejestru, konkretne SHA i punkt cofnięcia. Zielony build lub zapis planu sam w sobie nie zamyka etapu.
+- Reguły sportowe LIVE obowiązują tylko, gdy projekt je rzeczywiście obsługuje; lokalny profil projektu pozostaje nadrzędny dla definicji danych.
